@@ -12,6 +12,13 @@ const nextConfig = {
       },
     ],
   },
+  experimental: {
+    outputFileTracingIncludes: {
+      "/api/*": ["./data/**"],
+      "/": ["./data/**"],
+      "/listings/*": ["./data/**"],
+    },
+  },
 };
 
 export default nextConfig;

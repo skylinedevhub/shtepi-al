@@ -5,12 +5,16 @@ import type { Listing, ListingFilters, ListingsResponse, Stats } from "./types";
 
 function resolveDbPath(): string {
   if (process.env.SQLITE_DB_PATH) return process.env.SQLITE_DB_PATH;
-  // Try relative to CWD (works whether started from project root or web/)
-  for (const candidate of ["db/shtepi.db", "../db/shtepi.db"]) {
+  // Try multiple locations: web/data/ (Vercel), project root db/, parent db/
+  for (const candidate of [
+    "data/shtepi.db",
+    "db/shtepi.db",
+    "../db/shtepi.db",
+  ]) {
     const abs = path.resolve(process.cwd(), candidate);
     if (fs.existsSync(abs)) return abs;
   }
-  return path.join(process.cwd(), "db", "shtepi.db");
+  return path.join(process.cwd(), "data", "shtepi.db");
 }
 
 const DB_PATH = resolveDbPath();
