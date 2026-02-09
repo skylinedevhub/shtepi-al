@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ShtëpiAL — Web Frontend
 
-## Getting Started
+Next.js 14 frontend for the ShtëpiAL Albanian real estate aggregator.
 
-First, run the development server:
+## Architecture
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+web/
+├── src/app/
+│   ├── layout.tsx          # Root layout: header (backdrop-blur, mobile menu), footer (3-col)
+│   ├── page.tsx            # Homepage: hero, search, stats bar, recent listings (server component)
+│   ├── globals.css         # Design tokens, shimmer animations, focus-visible, scrollbar
+│   └── listings/
+│       ├── page.tsx        # Listings grid: skeleton loading, sort dropdown, empty state
+│       └── [id]/page.tsx   # Detail page: gallery, breadcrumbs, contact CTA, share button
+├── src/components/
+│   ├── SearchBar.tsx       # Full-text search with clear button
+│   ├── ListingCard.tsx     # Card with Next.js Image, error fallback, badges
+│   ├── FilterSidebar.tsx   # Desktop sidebar + mobile animated drawer, clear-all
+│   ├── ImageGallery.tsx    # Keyboard nav, touch swipe, shimmer loading
+│   ├── MobileMenu.tsx      # Hamburger slide-out drawer
+│   └── ShareButton.tsx     # Copy-to-clipboard with toast feedback
+├── src/lib/
+│   ├── db.ts              # SQLite (better-sqlite3 readonly) — handles missing DB gracefully
+│   └── types.ts           # Listing, ListingFilters, ListingsResponse, Stats
+├── tailwind.config.ts     # Semantic color tokens (primary blue-600), shimmer animation
+└── next.config.mjs        # Image remote patterns
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Data Flow
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Homepage** (`page.tsx`): Server component calls `getStats()` and `getListings()` directly from `db.ts`
+- **Listings page** (`listings/page.tsx`): Client component fetches from `/api/listings` or `/api/search`
+- **Detail page** (`listings/[id]/page.tsx`): Server component calls `getListingById()` directly
+- **API routes**: Thin wrappers around `db.ts` functions, all `force-dynamic`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Design System
 
-## Learn More
+- **Primary**: blue-600 (`#2563eb`) with light/lighter/dark/darker variants
+- **Cards**: `rounded-xl`, `shadow-sm → shadow-lg` on hover
+- **Buttons/Inputs**: `rounded-lg`, consistent focus ring (`ring-primary/20`)
+- **Loading**: Shimmer skeleton animation (CSS gradient slide)
+- **Accessibility**: `focus-visible` outlines, aria-labels (Albanian), skip-to-content link
 
-To learn more about Next.js, take a look at the following resources:
+## Scrapers
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Scrapers are maintained individually — each source site has unique HTML structure and requires targeted updates. See GitHub issues with the `scraper` label for per-spider tracking:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Spider | Source | Notes |
+|--------|--------|-------|
+| `merrjep.py` | merrjep.al | Standard listings site |
+| `celesi.py` | gazetacelesi.al | Standard listings site |
+| `mirlir.py` | mirlir.com | Standard listings site |
+| `njoftime.py` | njoftime.com | XenForo forum — metadata via regex in thread titles (fragile) |
 
-## Deploy on Vercel
+## Development
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run dev    # Start dev server on :3000
+npm run build  # Production build (requires SQLITE_DB_PATH or db/shtepi.db)
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment
+
+Deployed to Vercel. The frontend works without a database (returns empty responses gracefully). For production data, the Scrapy pipeline writes to `db/shtepi.db` which the Next.js app reads at request time.
