@@ -1,7 +1,7 @@
-"""Spider for merrjep.com - Kosovo classifieds site (server-side rendered).
+"""Spider for merrjep.al - Albania's largest classifieds site.
 
 Crawls real estate listings (apartments, houses, villas, land)
-from the Kosovo version of MerrJep.
+from the Albanian version of MerrJep.
 """
 
 import re
@@ -13,30 +13,40 @@ from shtepi.normalizers import parse_area, parse_floor, parse_price_text
 
 
 class MerrjepSpider(scrapy.Spider):
-    """Crawl merrjep.com real estate listings."""
+    """Crawl merrjep.al real estate listings."""
 
     name = "merrjep"
-    allowed_domains = ["www.merrjep.com", "merrjep.com"]
+    allowed_domains = ["www.merrjep.al", "merrjep.al"]
 
-    BASE = "https://www.merrjep.com/shpallje/patundshmeri"
+    BASE = "https://www.merrjep.al/njoftime/imobiliare-vendbanime"
 
-    # Property categories on merrjep.com Kosovo
+    # Property categories on merrjep.al (Albania)
     PROPERTY_CATEGORIES = {
-        "banesa": "apartment",
+        "apartamente": "apartment",
         "shtepi": "house",
         "vila": "villa",
         "toke-fusha-farma": "land",
     }
 
+    # Transaction types to crawl
+    TRANSACTION_TYPES = {
+        "ne-shitje": "sale",
+        "me-qera": "rent",
+    }
+
     def start_requests(self):
-        """Generate start URLs for each property category."""
+        """Generate start URLs for each property category + transaction type."""
         for category, prop_type in self.PROPERTY_CATEGORIES.items():
-            url = f"{self.BASE}/{category}"
-            yield scrapy.Request(
-                url,
-                callback=self.parse,
-                meta={"property_type": prop_type},
-            )
+            for txn_slug, txn_type in self.TRANSACTION_TYPES.items():
+                url = f"{self.BASE}/{category}/{txn_slug}"
+                yield scrapy.Request(
+                    url,
+                    callback=self.parse,
+                    meta={
+                        "property_type": prop_type,
+                        "transaction_type": txn_type,
+                    },
+                )
 
     def parse(self, response):
         """Parse a category listing page to extract detail links and pagination.
@@ -82,9 +92,10 @@ class MerrjepSpider(scrapy.Spider):
         item["source_id"] = self._extract_id(response.url)
 
         # -- Title --
-        item["title"] = (
-            response.css("h1.ci-text-base::text").get("").strip() or None
-        )
+        title = response.css("h1.ci-text-base::text").get("")
+        if not title:
+            title = response.css("h1::text").get("")
+        item["title"] = title.strip() or None
 
         # -- Price --
         price_value = response.css(
@@ -95,11 +106,11 @@ class MerrjepSpider(scrapy.Spider):
         # Filter to find the currency string (EUR, ALL, etc.)
         currency = None
         for ct in currency_text:
-            ct_stripped = ct.strip()
-            if ct_stripped and ct_stripped.upper() in (
-                "EUR", "ALL", "USD", "CHF",
-            ):
-                currency = ct_stripped.upper()
+            ct_stripped = ct.strip().upper()
+            if ct_stripped in ("EUR", "ALL", "USD", "CHF", "LEK"):
+                currency = ct_stripped
+                if currency == "LEK":
+                    currency = "ALL"
                 break
 
         if price_value:
@@ -115,16 +126,45 @@ class MerrjepSpider(scrapy.Spider):
                 item["price"] = None
                 item["currency_original"] = None
         else:
-            item["price"] = None
-            item["currency_original"] = None
+            # Fallback: try to parse price from text
+            price_text = response.css("bdi.new-price::text").get("")
+            if not price_text:
+                price_text = response.css("h4::text").get("")
+            if price_text:
+                parsed_price, parsed_currency = parse_price_text(price_text)
+                item["price"] = parsed_price
+                item["currency_original"] = parsed_currency if parsed_price else None
+            else:
+                item["price"] = None
+                item["currency_original"] = None
 
-        # -- Transaction type: from tags --
-        item["transaction_type"] = self._detect_transaction_type(
-            self._extract_tag_value(response, "Lloji i shpalljes:")
-        )
+        # -- Price period: detect monthly rent --
+        price_period_text = response.css("p.list-price span::text").get("")
+        if not price_period_text:
+            price_period_text = response.css("bdi.new-price::text").getall()
+            price_period_text = " ".join(price_period_text)
+        if "muaj" in price_period_text.lower():
+            item["price_period"] = "monthly"
+        else:
+            item["price_period"] = "total"
+
+        # -- Transaction type: from tags or meta --
+        tag_txn = self._extract_tag_value(response, "Lloji i njoftimit:")
+        if not tag_txn:
+            tag_txn = self._extract_tag_value(response, "Lloji i shpalljes:")
+        item["transaction_type"] = self._detect_transaction_type(tag_txn)
+        # Fallback to meta if tag not found
+        if not tag_txn and response.meta.get("transaction_type"):
+            item["transaction_type"] = response.meta["transaction_type"]
 
         # -- Property type: from meta or URL --
         item["property_type"] = self._detect_property_type(response)
+
+        # -- Room config from title --
+        if item.get("title"):
+            room_match = re.search(r'(\d+\s*\+\s*\d+(?:\s*\+\s*\w+)?)', item["title"])
+            if room_match:
+                item["room_config"] = room_match.group(1).replace(" ", "")
 
         # -- Property attributes from tags-area --
         tags = self._extract_tags(response)
@@ -133,10 +173,10 @@ class MerrjepSpider(scrapy.Spider):
             tags.get("numri_i_dhomave")
         )
 
-        area_raw = tags.get("siperfaqe")
+        area_raw = tags.get("siperfaqe") or tags.get("sipërfaqe")
         item["area_sqm"] = parse_area(area_raw)
 
-        floor_raw = tags.get("kati_(numri_i_kateve)")
+        floor_raw = tags.get("kati_(numri_i_kateve)") or tags.get("kati")
         floor, total_floors = parse_floor(floor_raw)
         item["floor"] = floor
         item["total_floors"] = total_floors
@@ -150,8 +190,21 @@ class MerrjepSpider(scrapy.Spider):
         ).getall()
         if not images:
             images = response.css(
+                'a[data-fancybox="gallery"]::attr(href)'
+            ).getall()
+        if not images:
+            images = response.css(
                 'a[data-fancybox="images"] img::attr(data-src)'
             ).getall()
+        if not images:
+            # Try carousel images
+            images = response.css(
+                'div.gallery-area img::attr(src)'
+            ).getall()
+            if not images:
+                images = response.css(
+                    'div.gallery-area img::attr(data-src)'
+                ).getall()
         images = [
             img for img in images
             if img and "skeleton" not in img and "placeholder" not in img
@@ -162,6 +215,14 @@ class MerrjepSpider(scrapy.Spider):
         desc_parts = response.css(
             "div.description-area span::text"
         ).getall()
+        if not desc_parts:
+            desc_parts = response.css(
+                "div.description-area p::text"
+            ).getall()
+        if not desc_parts:
+            desc_parts = response.css(
+                "div.description-area::text"
+            ).getall()
         if desc_parts:
             description = " ".join(
                 part.strip() for part in desc_parts if part.strip()
@@ -178,10 +239,22 @@ class MerrjepSpider(scrapy.Spider):
             ).get("").strip()
         )
         if not poster_name:
+            poster_name = (
+                response.css(
+                    "div.store-info-area h4::text"
+                ).get("").strip()
+            )
+        if not poster_name:
             # Private sellers
             poster_name = (
                 response.css(
                     "div.seller-info-area span.ci-valign-middle::text"
+                ).get("").strip()
+            )
+        if not poster_name:
+            poster_name = (
+                response.css(
+                    "div.seller-info-area h4::text"
                 ).get("").strip()
             )
         item["poster_name"] = poster_name or None
@@ -199,10 +272,12 @@ class MerrjepSpider(scrapy.Spider):
             )
 
         # Poster type: from tags or badge
-        poster_type_raw = tags.get("publikuar_nga")
+        poster_type_raw = tags.get("njoftim_nga") or tags.get("publikuar_nga")
         if poster_type_raw and poster_type_raw.lower() == "kompani":
             item["poster_type"] = "agency"
         elif response.css("span.badge-trusted-seller"):
+            item["poster_type"] = "agency"
+        elif response.css("span.isstore"):
             item["poster_type"] = "agency"
         else:
             item["poster_type"] = "private"
@@ -217,7 +292,7 @@ class MerrjepSpider(scrapy.Spider):
     def _extract_id(url):
         """Extract the numeric listing ID from the URL.
 
-        MerrJep.com URLs: /shpallja/{slug}/{numeric_id}
+        MerrJep.al URLs: /njoftim/{slug}/{numeric_id}
         """
         match = re.search(r'(\d+)$', url.rstrip("/"))
         if match:
@@ -228,10 +303,10 @@ class MerrjepSpider(scrapy.Spider):
 
     @staticmethod
     def _detect_transaction_type(tag_value):
-        """Detect sale vs rent from the 'Lloji i shpalljes' tag value.
+        """Detect sale vs rent from the listing type tag value.
 
         Keywords: Shitet -> sale
-                  Jepet me qira / Qira -> rent
+                  Jepet me qira / Qira / me qera -> rent
         Falls back to sale if unclear.
         """
         if not tag_value:
@@ -251,7 +326,7 @@ class MerrjepSpider(scrapy.Spider):
             return prop_type
 
         url_lower = response.url.lower()
-        if "banesa" in url_lower or "apartament" in url_lower:
+        if "apartament" in url_lower:
             return "apartment"
         if "vila" in url_lower:
             return "villa"
@@ -263,7 +338,7 @@ class MerrjepSpider(scrapy.Spider):
         # From breadcrumbs
         breadcrumbs = response.css("ul.breadcrumbs li a span::text").getall()
         breadcrumb_text = " ".join(breadcrumbs).lower()
-        if "banesa" in breadcrumb_text or "apartament" in breadcrumb_text:
+        if "apartament" in breadcrumb_text:
             return "apartment"
         if "vila" in breadcrumb_text:
             return "villa"
@@ -281,7 +356,7 @@ class MerrjepSpider(scrapy.Spider):
 
         Returns dict with normalized keys like:
             numri_i_dhomave, siperfaqe, kati_(numri_i_kateve),
-            adresa/rruga, komuna, lloji_i_shpalljes, publikuar_nga
+            adresa/rruga, komuna, lloji_i_njoftimit, njoftim_nga
         """
         tags = {}
         for tag in response.css("div.tags-area a.tag-item"):
@@ -308,7 +383,7 @@ class MerrjepSpider(scrapy.Spider):
 
         Args:
             response: Scrapy response
-            label_text: The label to search for, e.g. "Lloji i shpalljes:"
+            label_text: The label to search for, e.g. "Lloji i njoftimit:"
 
         Returns:
             The bdi text value, or None
