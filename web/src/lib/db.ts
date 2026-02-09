@@ -32,23 +32,14 @@ function getDb(): Database.Database | null {
 }
 
 // --- JSON seed fallback (for Vercel where SQLite binary may not work) ---
+// Static import so Vercel's bundler includes the file
+import seedData from "../../data/seed-listings.json";
 
 let _seedListings: Listing[] | null = null;
 
 function getSeedListings(): Listing[] {
   if (_seedListings) return _seedListings;
-  for (const candidate of [
-    "data/seed-listings.json",
-    "../data/seed-listings.json",
-  ]) {
-    const abs = path.resolve(process.cwd(), candidate);
-    if (fs.existsSync(abs)) {
-      const raw = JSON.parse(fs.readFileSync(abs, "utf-8")) as Record<string, unknown>[];
-      _seedListings = raw.map(rowToListing);
-      return _seedListings;
-    }
-  }
-  _seedListings = [];
+  _seedListings = (seedData as Record<string, unknown>[]).map(rowToListing);
   return _seedListings;
 }
 
