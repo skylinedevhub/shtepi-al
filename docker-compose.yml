@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - db-data:/app/db:ro
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  scrapy:
+    build:
+      context: ./scrapy_project
+      dockerfile: Dockerfile
+    volumes:
+      - db-data:/app/db
+    environment:
+      - SQLITE_DB_PATH=/app/db/shtepi.db
+    restart: "no"
+    profiles:
+      - scrape
+
+volumes:
+  db-data:
+    driver: local

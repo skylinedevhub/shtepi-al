@@ -1,0 +1,261 @@
+"""Spider for njoftime.com - XenForo forum with Albanian real estate listings.
+
+Njoftime.com uses XenForo forum software. Listings are posted as forum threads
+with structured metadata encoded in thread titles:
+
+    "Tiranë, shitet apartament 2+1 Kati 3, 85 m² 75,000 € (Bllok)"
+
+The spider extracts:
+- Thread list pages: thread links + pagination
+- Thread pages: metadata from title (via regex) + description/images from first post
+"""
+
+import re
+from urllib.parse import urljoin
+
+import scrapy
+
+from shtepi.items import ListingItem
+from shtepi.normalizers import parse_area, parse_floor
+
+
+class NjoftimeSpider(scrapy.Spider):
+    name = "njoftime"
+    allowed_domains = ["njoftime.com"]
+    start_urls = [
+        "https://njoftime.com/categories/apartamente-prona-imobiliare.41/",
+    ]
+
+    # ─── Regex for parsing structured thread titles ─────────────────
+    #
+    # Title format:
+    #   "City, transaction property [rooms] [Kati floor[/total]], area price currency[/muaj] [(neighborhood)]"
+    #
+    # Examples:
+    #   "Tiranë, shitet apartament 2+1 Kati 3, 85 m² 75,000 € (Bllok)"
+    #   "Durrës, jepet me qira apartament 1+1 Kati 2/5, 50 m² 300 €/muaj (Plazh)"
+    #   "Vlorë, shitet vilë 150 m² 200,000 €"
+
+    TITLE_RE = re.compile(
+        r"^(?P<city>[^,]+),\s*"                          # City (everything before first comma)
+        r"(?P<transaction>"                               # Transaction type group
+            r"jepet\s+me\s+qira"                          #   "jepet me qira"
+            r"|jepet\s+me\s+qera"                         #   "jepet me qera"
+            r"|në\s+shitje"                               #   "në shitje"
+            r"|ne\s+shitje"                               #   "ne shitje"
+            r"|shitet"                                    #   "shitet"
+            r"|shitje"                                    #   "shitje"
+        r")\s+"                                           # end transaction group
+        r"(?P<property_type>\S+)"                         # Property type (one word: apartament, vilë, etc.)
+        r"(?:\s+(?P<rooms>\d+\+\d+(?:\+\w+)?))?"          # Optional room config: "2+1", "2+1+2"
+        r"(?:\s+Kati\s+(?P<floor>\d+)(?:/(?P<total_floors>\d+))?)?"  # Optional floor: "Kati 3" or "Kati 2/5"
+        r"[,\s]*"                                         # separator
+        r"(?P<area>[\d.,]+)\s*m[²2]"                      # Area: "85 m²"
+        r"\s+"                                            # space
+        r"(?P<price>[\d.,]+)\s*"                          # Price: "75,000" or "200,000"
+        r"(?P<currency>€|Lek|ALL|EUR|USD|\$)"             # Currency symbol/text
+        r"(?P<monthly>/muaj)?"                            # Optional monthly indicator
+        r"(?:\s*\((?P<neighborhood>[^)]+)\))?"             # Optional neighborhood in parens
+        r"\s*$",
+        re.IGNORECASE,
+    )
+
+    def parse(self, response):
+        """Parse the XenForo forum thread listing page.
+
+        Yields:
+            - Request for each thread (callback=parse_thread)
+            - Request for next page (callback=parse, i.e. this method)
+        """
+        # Extract thread links from structItem elements
+        for thread in response.css("div.structItem--thread"):
+            link = thread.css("div.structItem-title a::attr(href)").get()
+            if link:
+                full_url = response.urljoin(link)
+                yield scrapy.Request(
+                    url=full_url,
+                    callback=self.parse_thread,
+                )
+
+        # Follow pagination ("Next" link)
+        next_page = response.css(
+            "a.pageNav-jump--next::attr(href)"
+        ).get()
+        if next_page:
+            yield scrapy.Request(
+                url=response.urljoin(next_page),
+                callback=self.parse,
+            )
+
+    def parse_thread(self, response):
+        """Parse a XenForo thread page to extract listing data.
+
+        Extracts metadata from the thread title via regex, and the
+        description text + images from the first post body.
+
+        Yields:
+            ListingItem with all extracted fields.
+        """
+        # Get thread title
+        title = response.css("h1.p-title-value::text").get("").strip()
+
+        # Extract structured data from title
+        parsed = self.parse_thread_title(title)
+
+        # Extract thread ID from URL
+        source_id = self._extract_thread_id(response.url)
+
+        # Get first post only (the listing itself, not replies)
+        all_posts = response.css("article.message--post")
+        first_post = all_posts[0] if all_posts else None
+
+        # Description from first post body
+        description = ""
+        images = []
+        if first_post:
+            # Get text content from the bbWrapper div
+            bb_wrapper = first_post.css("div.bbWrapper")
+            if bb_wrapper:
+                # Get all text, stripping HTML tags
+                description = bb_wrapper.css("::text").getall()
+                description = " ".join(t.strip() for t in description if t.strip())
+
+                # Get images
+                images = bb_wrapper.css("img.bbImage::attr(src)").getall()
+
+        # Poster name from first post or thread info
+        poster_name = response.css(
+            "article.message--post:first-of-type div.message-name a.username::text"
+        ).get()
+        if not poster_name:
+            poster_name = response.css(
+                "ul.listInline a.username::text"
+            ).get()
+
+        # Determine price period
+        price_period = parsed.get("price_period", "total")
+
+        item = ListingItem()
+        item["source"] = "njoftime"
+        item["source_url"] = response.url
+        item["source_id"] = source_id
+        item["title"] = title
+        item["description"] = description
+
+        # From title parser
+        item["city"] = parsed.get("city")
+        item["transaction_type"] = parsed.get("transaction_type")
+        item["property_type"] = parsed.get("property_type")
+        item["room_config"] = parsed.get("room_config")
+        item["floor"] = parsed.get("floor")
+        item["total_floors"] = parsed.get("total_floors")
+        item["area_sqm"] = parsed.get("area_sqm")
+        item["price"] = parsed.get("price")
+        item["currency_original"] = parsed.get("currency")
+        item["price_period"] = price_period
+        item["neighborhood"] = parsed.get("neighborhood")
+
+        # From post content
+        item["images"] = images
+        item["image_count"] = len(images)
+        item["poster_name"] = poster_name
+
+        yield item
+
+    def parse_thread_title(self, title):
+        """Parse structured metadata from a njoftime.com thread title.
+
+        Args:
+            title: Thread title string, e.g.
+                "Tiranë, shitet apartament 2+1 Kati 3, 85 m² 75,000 € (Bllok)"
+
+        Returns:
+            Dict with keys: city, transaction_type, property_type, room_config,
+            floor, total_floors, area_sqm, price, currency, price_period,
+            neighborhood. Missing fields are None.
+        """
+        result = {
+            "city": None,
+            "transaction_type": None,
+            "property_type": None,
+            "room_config": None,
+            "floor": None,
+            "total_floors": None,
+            "area_sqm": None,
+            "price": None,
+            "currency": None,
+            "price_period": "total",
+            "neighborhood": None,
+        }
+
+        match = self.TITLE_RE.match(title.strip())
+        if not match:
+            return result
+
+        result["city"] = match.group("city").strip()
+        result["transaction_type"] = match.group("transaction").strip()
+        result["property_type"] = match.group("property_type").strip()
+
+        # Room config (optional)
+        rooms = match.group("rooms")
+        if rooms:
+            result["room_config"] = rooms.strip()
+
+        # Floor (optional)
+        floor_str = match.group("floor")
+        if floor_str:
+            result["floor"] = int(floor_str)
+
+        total_floors_str = match.group("total_floors")
+        if total_floors_str:
+            result["total_floors"] = int(total_floors_str)
+
+        # Area
+        area_str = match.group("area")
+        if area_str:
+            result["area_sqm"] = float(area_str.replace(",", ""))
+
+        # Price
+        price_str = match.group("price")
+        if price_str:
+            result["price"] = float(price_str.replace(",", ""))
+
+        # Currency
+        currency_raw = match.group("currency")
+        if currency_raw:
+            currency_raw = currency_raw.strip()
+            if currency_raw in ("€", "EUR"):
+                result["currency"] = "EUR"
+            elif currency_raw.lower() in ("lek", "all"):
+                result["currency"] = "ALL"
+            elif currency_raw in ("$", "USD"):
+                result["currency"] = "USD"
+            else:
+                result["currency"] = currency_raw
+
+        # Monthly indicator
+        monthly = match.group("monthly")
+        if monthly:
+            result["price_period"] = "monthly"
+
+        # Neighborhood (optional)
+        neighborhood = match.group("neighborhood")
+        if neighborhood:
+            result["neighborhood"] = neighborhood.strip()
+
+        return result
+
+    def _extract_thread_id(self, url):
+        """Extract the numeric thread ID from a XenForo thread URL.
+
+        URLs look like: /threads/some-slug.10001/
+        The ID is the number after the last dot in the slug.
+        """
+        match = re.search(r'\.(\d+)/?', url)
+        if match:
+            return match.group(1)
+        # Fallback: try to find any number sequence
+        match = re.search(r'/threads/[^/]*?(\d+)', url)
+        if match:
+            return match.group(1)
+        return url
