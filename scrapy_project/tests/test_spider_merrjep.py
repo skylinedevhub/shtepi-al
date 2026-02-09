@@ -1,4 +1,4 @@
-"""Tests for MerrJep.al spider."""
+"""Tests for MerrJep.com spider (Kosovo version)."""
 
 import os
 
@@ -16,7 +16,7 @@ def fake_response_from_file(filename, url=None, meta=None):
 
     Args:
         filename: HTML file name in the fixtures directory.
-        url: URL to associate with the response (defaults to merrjep.al).
+        url: URL to associate with the response (defaults to merrjep.com).
         meta: Optional dict of request meta to attach.
 
     Returns:
@@ -24,7 +24,7 @@ def fake_response_from_file(filename, url=None, meta=None):
     """
     filepath = os.path.join(FIXTURES_DIR, filename)
     if url is None:
-        url = "https://www.merrjep.al/njoftime/imobiliare-vendbanime/apartamente/tirane"
+        url = "https://www.merrjep.com/shpallje/patundshmeri/shtepi"
 
     with open(filepath, "r", encoding="utf-8") as f:
         body = f.read()
@@ -38,6 +38,9 @@ def fake_response_from_file(filename, url=None, meta=None):
     )
 
 
+# ─── Listing page ──────────────────────────────────────────────────
+
+
 class TestParseListingPage:
     """Test that the spider correctly parses a category/listing page."""
 
@@ -45,34 +48,32 @@ class TestParseListingPage:
         self.spider = MerrjepSpider()
         self.response = fake_response_from_file(
             "merrjep_list.html",
-            url="https://www.merrjep.al/njoftime/imobiliare-vendbanime/apartamente/ne-shitje/tirane",
+            url="https://www.merrjep.com/shpallje/patundshmeri/shtepi",
+            meta={"property_type": "house"},
         )
 
-    def test_yields_requests_for_detail_pages(self):
-        """Spider should yield Request objects for each listing detail page."""
+    def test_yields_three_detail_requests(self):
+        """Spider should yield a Request for each of the 3 listing cards."""
         results = list(self.spider.parse(self.response))
-
-        # Separate requests from items
         requests = [r for r in results if isinstance(r, Request)]
 
-        # We should have requests for each listing card (4 cards) plus next page
         detail_requests = [
             r for r in requests
-            if "/njoftim/" in r.url
+            if "/shpallja/" in r.url
         ]
-        assert len(detail_requests) == 4
+        assert len(detail_requests) == 3
 
     def test_detail_urls_are_absolute(self):
         """All yielded detail page URLs should be absolute."""
         results = list(self.spider.parse(self.response))
         requests = [r for r in results if isinstance(r, Request)]
-        detail_requests = [r for r in requests if "/njoftim/" in r.url]
+        detail_requests = [r for r in requests if "/shpallja/" in r.url]
 
         for req in detail_requests:
             assert req.url.startswith("https://"), f"URL not absolute: {req.url}"
 
     def test_yields_next_page_request(self):
-        """Spider should follow pagination to the next page."""
+        """Spider should follow the 'Tjetra' pagination link."""
         results = list(self.spider.parse(self.response))
         requests = [r for r in results if isinstance(r, Request)]
 
@@ -80,16 +81,34 @@ class TestParseListingPage:
             r for r in requests
             if "Page=2" in r.url
         ]
-        assert len(next_page_requests) >= 1, "Should follow next page link"
+        assert len(next_page_requests) >= 1, "Should follow Tjetra next page link"
+
+    def test_total_requests_is_four(self):
+        """Should yield 3 detail requests + 1 pagination request = 4 total."""
+        results = list(self.spider.parse(self.response))
+        requests = [r for r in results if isinstance(r, Request)]
+        assert len(requests) == 4
 
     def test_detail_requests_use_parse_detail_callback(self):
         """Detail page requests should use parse_detail as callback."""
         results = list(self.spider.parse(self.response))
         requests = [r for r in results if isinstance(r, Request)]
-        detail_requests = [r for r in requests if "/njoftim/" in r.url]
+        detail_requests = [r for r in requests if "/shpallja/" in r.url]
 
         for req in detail_requests:
             assert req.callback == self.spider.parse_detail
+
+    def test_meta_propagated_to_detail_requests(self):
+        """Property type meta should be passed to detail requests."""
+        results = list(self.spider.parse(self.response))
+        requests = [r for r in results if isinstance(r, Request)]
+        detail_requests = [r for r in requests if "/shpallja/" in r.url]
+
+        for req in detail_requests:
+            assert req.meta.get("property_type") == "house"
+
+
+# ─── Detail page ────────────────────────────────────────────────────
 
 
 class TestParseDetail:
@@ -99,10 +118,10 @@ class TestParseDetail:
         self.spider = MerrjepSpider()
         self.response = fake_response_from_file(
             "merrjep_listing.html",
-            url="https://www.merrjep.al/njoftim/shitet-apartament-2-1-85m2-ne-bllok-tirane/10001001",
+            url="https://www.merrjep.com/shpallja/shtepi-500m2-ne-shitje-ne-lagjen-qendresa/12345678",
+            meta={"property_type": "house"},
         )
         results = list(self.spider.parse_detail(self.response))
-        # Should yield exactly one item
         assert len(results) == 1, f"Expected 1 item, got {len(results)}"
         self.item = results[0]
 
@@ -111,81 +130,120 @@ class TestParseDetail:
 
     def test_source_url(self):
         assert self.item["source_url"] == (
-            "https://www.merrjep.al/njoftim/"
-            "shitet-apartament-2-1-85m2-ne-bllok-tirane/10001001"
+            "https://www.merrjep.com/shpallja/"
+            "shtepi-500m2-ne-shitje-ne-lagjen-qendresa/12345678"
         )
 
     def test_source_id(self):
-        assert self.item["source_id"] == "10001001"
+        assert self.item["source_id"] == "12345678"
 
     def test_title(self):
-        assert self.item["title"] == "Shitet Apartament 2+1, 85 m2, ne Bllok, Tirane"
+        assert self.item["title"] == (
+            "Shtepi 500m2 ne shitje ne Lagjen Qendresa."
+        )
 
     def test_price(self):
-        assert self.item["price"] == 85000.0
+        assert self.item["price"] == 200000.0
 
     def test_currency(self):
         assert self.item["currency_original"] == "EUR"
 
-    def test_room_config(self):
-        assert self.item["room_config"] == "2+1"
+    def test_rooms(self):
+        assert self.item["rooms"] == 5
 
     def test_area_sqm(self):
-        assert self.item["area_sqm"] == 85.0
+        assert self.item["area_sqm"] == 500.0
 
     def test_floor(self):
-        assert self.item["floor"] == 3
+        assert self.item["floor"] == 2
 
     def test_total_floors(self):
-        assert self.item["total_floors"] == 8
+        assert self.item["total_floors"] == 3
 
     def test_city(self):
-        assert self.item["city"] == "Tirane"
+        assert self.item["city"] == "Prishtine"
 
     def test_neighborhood(self):
-        assert self.item["neighborhood"] == "Bllok"
+        assert self.item["neighborhood"] == "Lagja Qendresa"
 
     def test_images(self):
         images = self.item["images"]
         assert isinstance(images, list)
-        assert len(images) == 3
-        assert "media.merrjep.al" in images[0]
+        assert len(images) == 2
+        assert "media.merrjep.com" in images[0]
+        assert "photo1-full" in images[0]
+        assert "photo2-full" in images[1]
 
     def test_description_present(self):
         desc = self.item["description"]
         assert desc is not None
         assert len(desc) > 20
-        assert "SHITET APARTAMENT" in desc
+        assert "SHITET SHTEPI" in desc
 
-    def test_transaction_type_from_url(self):
-        """Transaction type should be inferred from the URL path containing 'ne-shitje'."""
+    def test_transaction_type(self):
+        """Transaction type should be 'sale' from the Lloji i shpalljes tag."""
         assert self.item["transaction_type"] == "sale"
 
+    def test_property_type(self):
+        assert self.item["property_type"] == "house"
+
     def test_poster_name(self):
-        assert self.item["poster_name"] == "ARKA HOME"
+        assert self.item["poster_name"] == "RealEstate KS"
 
     def test_poster_phone(self):
-        assert self.item["poster_phone"] == "+355694001234"
+        assert self.item["poster_phone"] == "+38344888444"
 
-    def test_property_type(self):
-        assert self.item["property_type"] == "apartment"
+    def test_poster_type_agency(self):
+        """Poster type should be 'agency' when Publikuar nga is Kompani."""
+        assert self.item["poster_type"] == "agency"
 
 
-class TestParseDetailRentListing:
-    """Test transaction_type detection for rent listings."""
+# ─── ID extraction ──────────────────────────────────────────────────
 
-    def setup_method(self):
-        self.spider = MerrjepSpider()
-        self.response = fake_response_from_file(
-            "merrjep_listing.html",
-            url="https://www.merrjep.al/njoftim/qera-apartament-1-1-laprake/10001002",
-        )
 
-    def test_transaction_type_rent_from_url(self):
-        """Transaction type should be 'rent' when URL contains 'qera' or 'qira'."""
-        results = list(self.spider.parse_detail(self.response))
-        item = results[0]
-        assert item["transaction_type"] == "rent"
+class TestExtractId:
+    """Test _extract_id with various URL formats."""
+
+    def test_standard_url(self):
+        url = "https://www.merrjep.com/shpallja/shtepi-ne-shitje/12345678"
+        assert MerrjepSpider._extract_id(url) == "12345678"
+
+    def test_url_with_trailing_slash(self):
+        url = "https://www.merrjep.com/shpallja/shtepi-ne-shitje/12345678/"
+        assert MerrjepSpider._extract_id(url) == "12345678"
+
+    def test_url_with_long_slug(self):
+        url = "https://www.merrjep.com/shpallja/shtepi-500m2-ne-shitje-ne-lagjen-qendresa/99887766"
+        assert MerrjepSpider._extract_id(url) == "99887766"
+
+
+# ─── Transaction type detection ─────────────────────────────────────
+
+
+class TestDetectTransactionType:
+    """Test _detect_transaction_type with tag values from the real site."""
+
+    def test_shitet_is_sale(self):
+        assert MerrjepSpider._detect_transaction_type("Shitet") == "sale"
+
+    def test_jepet_me_qira_is_rent(self):
+        assert MerrjepSpider._detect_transaction_type("Jepet me qira") == "rent"
+
+    def test_qira_is_rent(self):
+        assert MerrjepSpider._detect_transaction_type("Qira") == "rent"
+
+    def test_none_defaults_to_sale(self):
+        assert MerrjepSpider._detect_transaction_type(None) == "sale"
+
+    def test_empty_defaults_to_sale(self):
+        assert MerrjepSpider._detect_transaction_type("") == "sale"
+
+    def test_kembim_defaults_to_sale(self):
+        """Unknown value should default to sale."""
+        assert MerrjepSpider._detect_transaction_type("Kembim") == "sale"
+
+
+# ─── Missing data handling ──────────────────────────────────────────
 
 
 class TestHandlesMissingPrice:
@@ -196,38 +254,27 @@ class TestHandlesMissingPrice:
 
     def test_missing_price_yields_item(self):
         """Spider should still yield an item even if price is missing/zero."""
-        # Create a response with price value="0"
         html = """
         <html>
         <body>
-            <h1 class="listing-title">Apartament ne Shitje, Durres</h1>
-            <div class="listing-price">
-                <span class="format-money" value="0">Me marreveshje</span>
-                <span class="currency">EUR</span>
+            <h1 class="ci-text-base">Banesa ne Prishtine</h1>
+            <bdi class="new-price">
+                <span class="format-money-int" value="0">Me marreveshje</span>
+                <span>EUR</span>
+            </bdi>
+            <div class="tags-area">
+                <a class="tag-item">
+                    <span>Komuna:</span>
+                    <bdi>Prishtine</bdi>
+                </a>
             </div>
-            <div class="listing-properties">
-                <div class="property-row">
-                    <a href="#">
-                        <span class="property-label">Komuna:</span>
-                        <span class="property-value">Durres</span>
-                    </a>
-                </div>
-            </div>
-            <div class="listing-description">
-                <div class="description-text">Apartament per shitje ne Durres.</div>
-            </div>
-            <div id="carouselExampleIndicators" class="carousel slide">
-                <div class="carousel-inner"></div>
-            </div>
-            <div class="seller-info">
-                <div class="seller-contact">
-                    <a href="tel:+355691234567" class="phone-number">+355691234567</a>
-                </div>
+            <div class="description-area">
+                <span>Banesa per shitje ne Prishtine.</span>
             </div>
         </body>
         </html>
         """
-        url = "https://www.merrjep.al/njoftim/apartament-ne-shitje-durres/10001004"
+        url = "https://www.merrjep.com/shpallja/banesa-ne-prishtine/55555555"
         request = Request(url=url)
         response = HtmlResponse(url=url, request=request, body=html, encoding="utf-8")
 
@@ -235,40 +282,30 @@ class TestHandlesMissingPrice:
         assert len(results) == 1
         item = results[0]
 
-        # Price should be None when value is 0 or missing
         assert item["price"] is None
-        # Other fields should still be populated
-        assert item["title"] == "Apartament ne Shitje, Durres"
-        assert item["source_id"] == "10001004"
-        assert item["city"] == "Durres"
+        assert item["title"] == "Banesa ne Prishtine"
+        assert item["source_id"] == "55555555"
+        assert item["city"] == "Prishtine"
 
     def test_no_price_element_yields_item(self):
         """Spider should handle pages where the price element is entirely absent."""
         html = """
         <html>
         <body>
-            <h1 class="listing-title">Vila ne Vlore</h1>
-            <div class="listing-properties">
-                <div class="property-row">
-                    <a href="#">
-                        <span class="property-label">Komuna:</span>
-                        <span class="property-value">Vlore</span>
-                    </a>
-                </div>
+            <h1 class="ci-text-base">Toke ne Ferizaj</h1>
+            <div class="tags-area">
+                <a class="tag-item">
+                    <span>Komuna:</span>
+                    <bdi>Ferizaj</bdi>
+                </a>
             </div>
-            <div class="listing-description">
-                <div class="description-text">Vila e bukur ne bregdet.</div>
-            </div>
-            <div id="carouselExampleIndicators" class="carousel slide">
-                <div class="carousel-inner"></div>
-            </div>
-            <div class="seller-info">
-                <div class="seller-contact"></div>
+            <div class="description-area">
+                <span>Toke per shitje.</span>
             </div>
         </body>
         </html>
         """
-        url = "https://www.merrjep.al/njoftim/vila-ne-vlore/10001005"
+        url = "https://www.merrjep.com/shpallja/toke-ne-ferizaj/66666666"
         request = Request(url=url)
         response = HtmlResponse(url=url, request=request, body=html, encoding="utf-8")
 
@@ -277,32 +314,26 @@ class TestHandlesMissingPrice:
         item = results[0]
         assert item["price"] is None
         assert item["currency_original"] is None
-        assert item["title"] == "Vila ne Vlore"
+        assert item["title"] == "Toke ne Ferizaj"
 
     def test_missing_images_yields_empty_list(self):
         """Spider should yield an empty image list if no images found."""
         html = """
         <html>
         <body>
-            <h1 class="listing-title">Garsoniere ne Tirane</h1>
-            <div class="listing-price">
-                <span class="format-money" value="35000">35.000</span>
-                <span class="currency">EUR</span>
-            </div>
-            <div class="listing-properties"></div>
-            <div class="listing-description">
-                <div class="description-text">Garsoniere e vogel.</div>
-            </div>
-            <div id="carouselExampleIndicators" class="carousel slide">
-                <div class="carousel-inner"></div>
-            </div>
-            <div class="seller-info">
-                <div class="seller-contact"></div>
+            <h1 class="ci-text-base">Banesa ne Prizren</h1>
+            <bdi class="new-price">
+                <span class="format-money-int" value="35000">35 000</span>
+                <span>EUR</span>
+            </bdi>
+            <div class="tags-area"></div>
+            <div class="description-area">
+                <span>Banesa e vogel.</span>
             </div>
         </body>
         </html>
         """
-        url = "https://www.merrjep.al/njoftim/garsoniere-ne-tirane/10001006"
+        url = "https://www.merrjep.com/shpallja/banesa-ne-prizren/77777777"
         request = Request(url=url)
         response = HtmlResponse(url=url, request=request, body=html, encoding="utf-8")
 
@@ -311,3 +342,108 @@ class TestHandlesMissingPrice:
         item = results[0]
         assert item["images"] == []
         assert item["price"] == 35000.0
+
+
+# ─── Rent listing via tag ────────────────────────────────────────────
+
+
+class TestParseDetailRentListing:
+    """Test transaction_type detection for rent listings via tag value."""
+
+    def setup_method(self):
+        self.spider = MerrjepSpider()
+        html = """
+        <html>
+        <body>
+            <h1 class="ci-text-base">Banesa me qira ne Prishtine</h1>
+            <bdi class="new-price">
+                <span class="format-money-int" value="300">300</span>
+                <span>EUR</span>
+            </bdi>
+            <div class="tags-area">
+                <a class="tag-item">
+                    <span>Lloji i shpalljes:</span>
+                    <bdi>Jepet me qira</bdi>
+                </a>
+                <a class="tag-item">
+                    <span>Komuna:</span>
+                    <bdi>Prishtine</bdi>
+                </a>
+            </div>
+            <div class="description-area">
+                <span>Banesa jepet me qira.</span>
+            </div>
+        </body>
+        </html>
+        """
+        url = "https://www.merrjep.com/shpallja/banesa-me-qira-prishtine/88888888"
+        request = Request(url=url)
+        self.response = HtmlResponse(
+            url=url, request=request, body=html, encoding="utf-8"
+        )
+
+    def test_transaction_type_rent_from_tag(self):
+        """Transaction type should be 'rent' when tag says 'Jepet me qira'."""
+        results = list(self.spider.parse_detail(self.response))
+        item = results[0]
+        assert item["transaction_type"] == "rent"
+
+
+# ─── Private seller (no badge) ──────────────────────────────────────
+
+
+class TestPrivateSeller:
+    """Test that poster_type is 'private' when no agency indicators."""
+
+    def setup_method(self):
+        self.spider = MerrjepSpider()
+        html = """
+        <html>
+        <body>
+            <h1 class="ci-text-base">Shtepi ne Peje</h1>
+            <bdi class="new-price">
+                <span class="format-money-int" value="150000">150 000</span>
+                <span>EUR</span>
+            </bdi>
+            <div class="tags-area">
+                <a class="tag-item">
+                    <span>Publikuar nga:</span>
+                    <bdi>Privat</bdi>
+                </a>
+            </div>
+            <div class="description-area">
+                <span>Shtepi per shitje.</span>
+            </div>
+            <div class="seller-info-area">
+                <h4>
+                    <span class="ci-valign-middle">Fisnik H.</span>
+                </h4>
+            </div>
+            <div class="contact-area">
+                <a href="tel:+38349123456">
+                    <bdi>+38349123456</bdi>
+                </a>
+            </div>
+        </body>
+        </html>
+        """
+        url = "https://www.merrjep.com/shpallja/shtepi-ne-peje/44444444"
+        request = Request(url=url)
+        self.response = HtmlResponse(
+            url=url, request=request, body=html, encoding="utf-8"
+        )
+
+    def test_poster_type_private(self):
+        results = list(self.spider.parse_detail(self.response))
+        item = results[0]
+        assert item["poster_type"] == "private"
+
+    def test_private_poster_name(self):
+        results = list(self.spider.parse_detail(self.response))
+        item = results[0]
+        assert item["poster_name"] == "Fisnik H."
+
+    def test_private_poster_phone(self):
+        results = list(self.spider.parse_detail(self.response))
+        item = results[0]
+        assert item["poster_phone"] == "+38349123456"

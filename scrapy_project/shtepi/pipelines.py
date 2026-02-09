@@ -4,6 +4,7 @@ Pipeline chain: Validate → Normalize → Dedup → Store
 """
 
 import json
+import os
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -105,7 +106,13 @@ class SQLitePipeline:
 
     @classmethod
     def from_crawler(cls, crawler):
-        db_path = crawler.settings.get("SQLITE_DB_PATH", "db/shtepi.db")
+        db_path = os.environ.get(
+            "SQLITE_DB_PATH",
+            crawler.settings.get("SQLITE_DB_PATH", "db/shtepi.db"),
+        )
+        if not os.path.isabs(db_path):
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            db_path = os.path.join(project_root, db_path)
         return cls(db_path)
 
     def open_spider(self, spider):
