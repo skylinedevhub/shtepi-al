@@ -1,5 +1,4 @@
-# Database
-db/*.db
+# Database (WAL/SHM are temp files, but .db is committed for Vercel deployment)
 db/*.db-wal
 db/*.db-shm
 
