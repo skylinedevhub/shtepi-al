@@ -5,7 +5,6 @@ import type { Listing, ListingFilters, ListingsResponse, Stats } from "./types";
 
 function resolveDbPath(): string {
   if (process.env.SQLITE_DB_PATH) return process.env.SQLITE_DB_PATH;
-  // Try multiple locations: web/data/ (Vercel), project root db/, parent db/
   for (const candidate of [
     "data/shtepi.db",
     "db/shtepi.db",
@@ -24,30 +23,44 @@ let _db: Database.Database | null = null;
 function getDb(): Database.Database | null {
   if (_db) return _db;
   if (!fs.existsSync(DB_PATH)) return null;
-  _db = new Database(DB_PATH, { readonly: true });
-  return _db;
+  try {
+    _db = new Database(DB_PATH, { readonly: true });
+    return _db;
+  } catch {
+    return null;
+  }
 }
 
-const EMPTY_RESPONSE: ListingsResponse = {
-  listings: [],
-  total: 0,
-  page: 1,
-  limit: 24,
-  has_more: false,
-};
+// --- JSON seed fallback (for Vercel where SQLite binary may not work) ---
 
-const EMPTY_STATS: Stats = {
-  total_listings: 0,
-  by_city: {},
-  by_type: {},
-  by_source: {},
-  by_transaction: {},
-};
+let _seedListings: Listing[] | null = null;
+
+function getSeedListings(): Listing[] {
+  if (_seedListings) return _seedListings;
+  for (const candidate of [
+    "data/seed-listings.json",
+    "../data/seed-listings.json",
+  ]) {
+    const abs = path.resolve(process.cwd(), candidate);
+    if (fs.existsSync(abs)) {
+      const raw = JSON.parse(fs.readFileSync(abs, "utf-8")) as Record<string, unknown>[];
+      _seedListings = raw.map(rowToListing);
+      return _seedListings;
+    }
+  }
+  _seedListings = [];
+  return _seedListings;
+}
+
+// --- Helpers ---
 
 function rowToListing(row: Record<string, unknown>): Listing {
   return {
     ...row,
-    images: JSON.parse((row.images as string) || "[]"),
+    images:
+      typeof row.images === "string"
+        ? JSON.parse(row.images || "[]")
+        : row.images ?? [],
     is_active: Boolean(row.is_active),
     has_elevator: row.has_elevator == null ? null : Boolean(row.has_elevator),
     has_parking: row.has_parking == null ? null : Boolean(row.has_parking),
@@ -56,9 +69,150 @@ function rowToListing(row: Record<string, unknown>): Listing {
   } as Listing;
 }
 
+// --- Seed-based fallback implementations ---
+
+function seedGetListings(filters: ListingFilters): ListingsResponse {
+  let listings = getSeedListings();
+
+  if (filters.city) listings = listings.filter((l) => l.city === filters.city);
+  if (filters.transaction_type)
+    listings = listings.filter(
+      (l) => l.transaction_type === filters.transaction_type
+    );
+  if (filters.property_type)
+    listings = listings.filter(
+      (l) => l.property_type === filters.property_type
+    );
+  if (filters.price_min != null)
+    listings = listings.filter(
+      (l) => l.price != null && l.price >= filters.price_min!
+    );
+  if (filters.price_max != null)
+    listings = listings.filter(
+      (l) => l.price != null && l.price <= filters.price_max!
+    );
+  if (filters.rooms_min != null)
+    listings = listings.filter(
+      (l) => l.rooms != null && l.rooms >= filters.rooms_min!
+    );
+  if (filters.rooms_max != null)
+    listings = listings.filter(
+      (l) => l.rooms != null && l.rooms <= filters.rooms_max!
+    );
+  if (filters.area_min != null)
+    listings = listings.filter(
+      (l) => l.area_sqm != null && l.area_sqm >= filters.area_min!
+    );
+  if (filters.area_max != null)
+    listings = listings.filter(
+      (l) => l.area_sqm != null && l.area_sqm <= filters.area_max!
+    );
+  if (filters.neighborhood)
+    listings = listings.filter(
+      (l) => l.neighborhood === filters.neighborhood
+    );
+  if (filters.source)
+    listings = listings.filter((l) => l.source === filters.source);
+
+  // Sort
+  switch (filters.sort) {
+    case "price_asc":
+      listings = [...listings].sort(
+        (a, b) => (a.price ?? Infinity) - (b.price ?? Infinity)
+      );
+      break;
+    case "price_desc":
+      listings = [...listings].sort(
+        (a, b) => (b.price ?? 0) - (a.price ?? 0)
+      );
+      break;
+    case "area_desc":
+      listings = [...listings].sort(
+        (a, b) => (b.area_sqm ?? 0) - (a.area_sqm ?? 0)
+      );
+      break;
+    default:
+      // newest: seed data already sorted by first_seen DESC
+      break;
+  }
+
+  const total = listings.length;
+  const page = filters.page ?? 1;
+  const limit = Math.min(filters.limit ?? 24, 100);
+  const offset = (page - 1) * limit;
+  const sliced = listings.slice(offset, offset + limit);
+
+  return {
+    listings: sliced,
+    total,
+    page,
+    limit,
+    has_more: offset + sliced.length < total,
+  };
+}
+
+function seedGetListingById(id: string): Listing | null {
+  return getSeedListings().find((l) => l.id === id) ?? null;
+}
+
+function seedSearchListings(
+  query: string,
+  limit: number,
+  page: number
+): ListingsResponse {
+  const q = query.toLowerCase();
+  const matches = getSeedListings().filter(
+    (l) =>
+      l.title.toLowerCase().includes(q) ||
+      (l.description && l.description.toLowerCase().includes(q)) ||
+      (l.city && l.city.toLowerCase().includes(q)) ||
+      (l.neighborhood && l.neighborhood.toLowerCase().includes(q))
+  );
+
+  const offset = (page - 1) * limit;
+  const sliced = matches.slice(offset, offset + limit);
+
+  return {
+    listings: sliced,
+    total: matches.length,
+    page,
+    limit,
+    has_more: offset + sliced.length < matches.length,
+  };
+}
+
+function seedGetStats(): Stats {
+  const listings = getSeedListings();
+  const byCity: Record<string, number> = {};
+  const byType: Record<string, number> = {};
+  const bySource: Record<string, number> = {};
+  const byTransaction: Record<string, number> = {};
+
+  for (const l of listings) {
+    if (l.city) byCity[l.city] = (byCity[l.city] ?? 0) + 1;
+    if (l.property_type)
+      byType[l.property_type] = (byType[l.property_type] ?? 0) + 1;
+    if (l.source) bySource[l.source] = (bySource[l.source] ?? 0) + 1;
+    if (l.transaction_type)
+      byTransaction[l.transaction_type] =
+        (byTransaction[l.transaction_type] ?? 0) + 1;
+  }
+
+  return {
+    total_listings: listings.length,
+    by_city: byCity,
+    by_type: byType,
+    by_source: bySource,
+    by_transaction: byTransaction,
+  };
+}
+
+// --- Public API: SQLite first, JSON seed fallback ---
+
 export function getListings(filters: ListingFilters): ListingsResponse {
   const db = getDb();
-  if (!db) return EMPTY_RESPONSE;
+  if (!db) return seedGetListings(filters);
+
   const conditions: string[] = ["is_active = 1"];
   const params: unknown[] = [];
 
@@ -107,15 +261,14 @@ export function getListings(filters: ListingFilters): ListingsResponse {
     params.push(filters.source);
   }
 
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const where =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-  // Count total
   const countRow = db
     .prepare(`SELECT COUNT(*) as count FROM listings ${where}`)
     .get(...params) as { count: number };
   const total = countRow.count;
 
-  // Sort
   let orderBy = "first_seen DESC";
   switch (filters.sort) {
     case "price_asc":
@@ -153,7 +306,7 @@ export function getListings(filters: ListingFilters): ListingsResponse {
 
 export function getListingById(id: string): Listing | null {
   const db = getDb();
-  if (!db) return null;
+  if (!db) return seedGetListingById(id);
   const row = db
     .prepare("SELECT * FROM listings WHERE id = ?")
     .get(id) as Record<string, unknown> | undefined;
@@ -166,7 +319,7 @@ export function searchListings(
   page: number = 1
 ): ListingsResponse {
   const db = getDb();
-  if (!db) return EMPTY_RESPONSE;
+  if (!db) return seedSearchListings(query, limit, page);
   const offset = (page - 1) * limit;
 
   const countRow = db
@@ -197,7 +350,7 @@ export function searchListings(
 
 export function getStats(): Stats {
   const db = getDb();
-  if (!db) return EMPTY_STATS;
+  if (!db) return seedGetStats();
 
   const total = (
     db
