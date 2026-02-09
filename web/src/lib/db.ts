@@ -3,7 +3,17 @@ import fs from "fs";
 import path from "path";
 import type { Listing, ListingFilters, ListingsResponse, Stats } from "./types";
 
-const DB_PATH = path.join(process.cwd(), "..", "db", "shtepi.db");
+function resolveDbPath(): string {
+  if (process.env.SQLITE_DB_PATH) return process.env.SQLITE_DB_PATH;
+  // Try relative to CWD (works whether started from project root or web/)
+  for (const candidate of ["db/shtepi.db", "../db/shtepi.db"]) {
+    const abs = path.resolve(process.cwd(), candidate);
+    if (fs.existsSync(abs)) return abs;
+  }
+  return path.join(process.cwd(), "db", "shtepi.db");
+}
+
+const DB_PATH = resolveDbPath();
 
 let _db: Database.Database | null = null;
 
@@ -11,7 +21,6 @@ function getDb(): Database.Database | null {
   if (_db) return _db;
   if (!fs.existsSync(DB_PATH)) return null;
   _db = new Database(DB_PATH, { readonly: true });
-  _db.pragma("journal_mode = WAL");
   return _db;
 }
 
