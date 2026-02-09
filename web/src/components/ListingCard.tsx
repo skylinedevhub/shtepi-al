@@ -1,14 +1,19 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import type { Listing } from "@/lib/types";
 
 const SOURCE_COLORS: Record<string, string> = {
-  merrjep: "bg-blue-100 text-blue-800",
-  celesi: "bg-green-100 text-green-800",
-  mirlir: "bg-purple-100 text-purple-800",
-  njoftime: "bg-orange-100 text-orange-800",
+  merrjep: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
+  celesi: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+  mirlir: "bg-violet-50 text-violet-700 ring-1 ring-violet-200",
+  njoftime: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
 };
 
 export default function ListingCard({ listing }: { listing: Listing }) {
+  const [imgError, setImgError] = useState(false);
   const firstImage = listing.images[0];
   const priceText = listing.price
     ? `€${listing.price.toLocaleString("de-DE", { maximumFractionDigits: 0 })}`
@@ -19,25 +24,24 @@ export default function ListingCard({ listing }: { listing: Listing }) {
   return (
     <Link
       href={`/listings/${listing.id}`}
-      className="group block rounded-lg border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
+      className="group block overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:shadow-lg hover:border-gray-300"
     >
       {/* Image */}
-      <div className="relative aspect-[4/3] overflow-hidden rounded-t-lg bg-gray-100">
-        {firstImage ? (
-          <img
+      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+        {firstImage && !imgError ? (
+          <Image
             src={firstImage}
             alt={listing.title}
-            className="h-full w-full object-cover transition group-hover:scale-105"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition duration-300 group-hover:scale-105"
             loading="lazy"
+            unoptimized
+            onError={() => setImgError(true)}
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-gray-400">
-            <svg
-              className="h-12 w-12"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
+          <div className="flex h-full items-center justify-center text-gray-300">
+            <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -47,22 +51,37 @@ export default function ListingCard({ listing }: { listing: Listing }) {
             </svg>
           </div>
         )}
-        {/* Source badge */}
-        <span
-          className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-xs font-medium ${SOURCE_COLORS[listing.source] ?? "bg-gray-100 text-gray-800"}`}
-        >
-          {listing.source}
-        </span>
+
+        {/* Badges */}
+        <div className="absolute left-2 top-2 flex gap-1.5">
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${SOURCE_COLORS[listing.source] ?? "bg-gray-50 text-gray-700 ring-1 ring-gray-200"}`}
+          >
+            {listing.source}
+          </span>
+          {listing.transaction_type && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                listing.transaction_type === "sale"
+                  ? "bg-primary-lighter text-primary-darker ring-1 ring-primary/20"
+                  : "bg-green-50 text-green-700 ring-1 ring-green-200"
+              }`}
+            >
+              {listing.transaction_type === "sale" ? "Shitje" : "Qira"}
+            </span>
+          )}
+        </div>
+
         {/* Image count */}
         {listing.image_count > 1 && (
-          <span className="absolute bottom-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-xs text-white">
+          <span className="absolute bottom-2 right-2 rounded-md bg-black/60 px-1.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
             {listing.image_count} foto
           </span>
         )}
       </div>
 
       {/* Content */}
-      <div className="p-3">
+      <div className="p-4">
         {/* Price */}
         <div className="text-lg font-bold text-gray-900">
           {priceText}
@@ -74,9 +93,23 @@ export default function ListingCard({ listing }: { listing: Listing }) {
         </div>
 
         {/* Details row */}
-        <div className="mt-1 flex items-center gap-3 text-sm text-gray-600">
-          {listing.room_config && <span>{listing.room_config}</span>}
-          {listing.area_sqm && <span>{listing.area_sqm} m²</span>}
+        <div className="mt-1.5 flex items-center gap-3 text-sm text-gray-600">
+          {listing.room_config && (
+            <span className="flex items-center gap-1">
+              <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              </svg>
+              {listing.room_config}
+            </span>
+          )}
+          {listing.area_sqm && (
+            <span className="flex items-center gap-1">
+              <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+              </svg>
+              {listing.area_sqm} m²
+            </span>
+          )}
           {listing.floor != null && (
             <span>
               Kati {listing.floor}
@@ -86,12 +119,12 @@ export default function ListingCard({ listing }: { listing: Listing }) {
         </div>
 
         {/* Location */}
-        <div className="mt-1 truncate text-sm text-gray-500">
+        <div className="mt-1.5 truncate text-sm text-gray-500">
           {[listing.neighborhood, listing.city].filter(Boolean).join(", ")}
         </div>
 
         {/* Title */}
-        <h3 className="mt-1 truncate text-sm font-medium text-gray-700">
+        <h3 className="mt-1.5 truncate text-sm font-medium text-gray-700 group-hover:text-primary">
           {listing.title}
         </h3>
       </div>
