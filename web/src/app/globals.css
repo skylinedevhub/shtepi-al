@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #FDF8F0;
+  --foreground: #374151;
 }
 
 html {
@@ -14,42 +14,41 @@ html {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
 }
 
 /* Focus-visible accessibility ring */
 *:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid #C75B39;
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar — warm palette */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #F5EDE0;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #D5CFC7;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #8B8178;
 }
 
-/* Shimmer skeleton */
+/* Shimmer skeleton — warm tones */
 .skeleton-shimmer {
   background: linear-gradient(
     90deg,
-    #f1f5f9 25%,
-    #e2e8f0 37%,
-    #f1f5f9 63%
+    #F5EDE0 25%,
+    #e8dfd2 37%,
+    #F5EDE0 63%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
@@ -71,7 +70,7 @@ body {
   left: 8px;
   z-index: 100;
   padding: 8px 16px;
-  background: #2563eb;
+  background: #C75B39;
   color: white;
   border-radius: 0 0 8px 8px;
   font-size: 14px;
@@ -81,6 +80,30 @@ body {
 
 .skip-to-content:focus {
   top: 0;
+}
+
+/* Leaflet popup overrides */
+.leaflet-popup-content-wrapper {
+  border-radius: 1rem !important;
+  box-shadow: 0 10px 25px -5px rgba(27, 42, 74, 0.15),
+    0 8px 10px -6px rgba(27, 42, 74, 0.1) !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  min-width: 280px;
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 4px 6px -1px rgba(27, 42, 74, 0.1) !important;
+}
+
+/* City marker — removes Leaflet default icon background */
+.city-marker {
+  background: none !important;
+  border: none !important;
 }
 
 @layer utilities {

@@ -41,8 +41,8 @@ export default function ListingDetailPage({ params }: Props) {
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
       {/* Breadcrumb */}
-      <nav className="mb-4 flex items-center gap-1.5 text-sm text-gray-500" aria-label="Breadcrumb">
-        <Link href="/listings" className="transition hover:text-primary">
+      <nav className="mb-4 flex items-center gap-1.5 text-sm text-warm-gray" aria-label="Breadcrumb">
+        <Link href="/listings" className="transition hover:text-terracotta">
           Njoftime
         </Link>
         <ChevronIcon />
@@ -50,14 +50,14 @@ export default function ListingDetailPage({ params }: Props) {
           <>
             <Link
               href={`/listings?city=${encodeURIComponent(listing.city)}`}
-              className="transition hover:text-primary"
+              className="transition hover:text-terracotta"
             >
               {listing.city}
             </Link>
             <ChevronIcon />
           </>
         )}
-        <span className="truncate font-medium text-gray-700">{listing.title}</span>
+        <span className="truncate font-medium text-navy">{listing.title}</span>
       </nav>
 
       <ImageGallery images={listing.images} alt={listing.title} />
@@ -65,18 +65,18 @@ export default function ListingDetailPage({ params }: Props) {
       {/* Header */}
       <div className="mt-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{listing.title}</h1>
+          <h1 className="font-display text-2xl font-bold text-navy md:text-3xl">{listing.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-4">
-            <span className="text-3xl font-bold text-primary">
+            <span className="text-3xl font-bold text-terracotta">
               {priceText}
               {periodSuffix && (
-                <span className="text-lg font-normal text-gray-500">
+                <span className="text-lg font-normal text-warm-gray">
                   {periodSuffix}
                 </span>
               )}
             </span>
             {listing.price_all != null && (
-              <span className="rounded-md bg-gray-100 px-2 py-1 text-sm text-gray-500">
+              <span className="rounded-md bg-cream-dark px-2 py-1 text-sm text-warm-gray">
                 {listing.price_all.toLocaleString("de-DE", {
                   maximumFractionDigits: 0,
                 })}{" "}
@@ -89,7 +89,7 @@ export default function ListingDetailPage({ params }: Props) {
       </div>
 
       {/* Details grid */}
-      <div className="mt-6 grid grid-cols-2 gap-4 rounded-xl border border-gray-200 bg-gray-50/50 p-5 sm:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-4 rounded-2xl border border-warm-gray-light/40 bg-cream-dark p-5 sm:grid-cols-4">
         {listing.room_config && (
           <Detail icon={<RoomIcon />} label="Dhoma" value={listing.room_config} />
         )}
@@ -128,8 +128,8 @@ export default function ListingDetailPage({ params }: Props) {
 
       {/* Location */}
       <div className="mt-6">
-        <h2 className="text-lg font-semibold text-gray-900">Vendndodhja</h2>
-        <p className="mt-1 text-gray-600">
+        <h2 className="font-display text-lg font-semibold text-navy">Vendndodhja</h2>
+        <p className="mt-1 text-warm-gray">
           {[listing.neighborhood, listing.city, listing.address_raw]
             .filter(Boolean)
             .join(", ")}
@@ -139,8 +139,8 @@ export default function ListingDetailPage({ params }: Props) {
       {/* Description */}
       {listing.description && (
         <div className="mt-6">
-          <h2 className="text-lg font-semibold text-gray-900">Përshkrimi</h2>
-          <p className="mt-2 whitespace-pre-line leading-relaxed text-gray-600">
+          <h2 className="font-display text-lg font-semibold text-navy">Përshkrimi</h2>
+          <p className="mt-2 whitespace-pre-line leading-relaxed text-warm-gray">
             {listing.description}
           </p>
         </div>
@@ -148,14 +148,14 @@ export default function ListingDetailPage({ params }: Props) {
 
       {/* Contact */}
       {(listing.poster_name || listing.poster_phone) && (
-        <div className="mt-6 rounded-xl border border-primary/20 bg-primary-lighter/50 p-5">
-          <h2 className="text-lg font-semibold text-gray-900">Kontakti</h2>
+        <div className="mt-6 rounded-2xl border border-terracotta/20 bg-terracotta-light p-5">
+          <h2 className="font-display text-lg font-semibold text-navy">Kontakti</h2>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
             {listing.poster_name && (
-              <p className="font-medium text-gray-800">{listing.poster_name}</p>
+              <p className="font-medium text-navy">{listing.poster_name}</p>
             )}
             {listing.poster_type && (
-              <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200">
+              <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-warm-gray ring-1 ring-warm-gray-light">
                 {POSTER_TYPE_LABELS[listing.poster_type] ?? listing.poster_type}
               </span>
             )}
@@ -163,7 +163,7 @@ export default function ListingDetailPage({ params }: Props) {
           {listing.poster_phone && (
             <a
               href={`tel:${listing.poster_phone}`}
-              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-primary-dark hover:shadow-md"
+              className="mt-3 inline-flex items-center gap-2 rounded-btn bg-terracotta px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-terracotta-dark hover:shadow-md"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -175,16 +175,16 @@ export default function ListingDetailPage({ params }: Props) {
       )}
 
       {/* Source link */}
-      <div className="mt-6 flex flex-col gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
-        <span className="text-sm text-gray-500">
-          Nga <strong className="text-gray-700">{listing.source}</strong> — parë më{" "}
+      <div className="mt-6 flex flex-col gap-3 border-t border-warm-gray-light pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-sm text-warm-gray">
+          Nga <strong className="text-navy">{listing.source}</strong> — parë më{" "}
           {new Date(listing.first_seen).toLocaleDateString("sq-AL")}
         </span>
         <a
           href={listing.source_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+          className="inline-flex items-center gap-1.5 rounded-btn border border-warm-gray-light px-4 py-2 text-sm font-medium text-navy transition hover:bg-cream-dark"
         >
           Shiko në faqen origjinale
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -198,7 +198,7 @@ export default function ListingDetailPage({ params }: Props) {
 
 function ChevronIcon() {
   return (
-    <svg className="h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-4 w-4 shrink-0 text-warm-gray-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
     </svg>
   );
@@ -207,10 +207,10 @@ function ChevronIcon() {
 function Detail({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-start gap-2">
-      <span className="mt-0.5 text-gray-400">{icon}</span>
+      <span className="mt-0.5 text-terracotta/60">{icon}</span>
       <div>
-        <dt className="text-xs text-gray-500">{label}</dt>
-        <dd className="font-medium text-gray-900">{value}</dd>
+        <dt className="text-xs uppercase tracking-wide text-warm-gray">{label}</dt>
+        <dd className="font-medium text-navy">{value}</dd>
       </div>
     </div>
   );

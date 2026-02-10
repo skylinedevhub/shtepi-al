@@ -63,7 +63,7 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
       {hasActiveFilters && (
         <button
           onClick={clearAll}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+          className="w-full rounded-btn border border-warm-gray-light px-3 py-2 text-sm font-medium text-navy transition hover:bg-cream-dark"
         >
           Pastro filtrat
         </button>
@@ -71,7 +71,7 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
 
       {/* Transaction type */}
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-gray-900">Lloji</h3>
+        <h3 className="mb-2 text-sm font-semibold text-navy">Lloji</h3>
         <div className="flex gap-2">
           {["sale", "rent"].map((t) => (
             <button
@@ -83,10 +83,10 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
                   currentValue("transaction_type") === t ? null : t
                 )
               }
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+              className={`rounded-btn px-4 py-2 text-sm font-medium transition ${
                 currentValue("transaction_type") === t
-                  ? "bg-primary text-white shadow-sm"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-terracotta text-white shadow-sm"
+                  : "bg-cream-dark text-navy hover:bg-warm-gray-light/50"
               }`}
             >
               {t === "sale" ? "Shitje" : "Qira"}
@@ -97,11 +97,11 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
 
       {/* City */}
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-gray-900">Qyteti</h3>
+        <h3 className="mb-2 text-sm font-semibold text-navy">Qyteti</h3>
         <select
           value={currentValue("city")}
           onChange={(e) => updateFilter("city", e.target.value || null)}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          className="w-full rounded-btn border border-warm-gray-light px-3 py-2 text-sm focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
         >
           <option value="">Të gjitha</option>
           {CITIES.map((c) => (
@@ -114,7 +114,7 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
 
       {/* Property type */}
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-gray-900">
+        <h3 className="mb-2 text-sm font-semibold text-navy">
           Lloji i pronës
         </h3>
         <div className="flex flex-wrap gap-2">
@@ -128,10 +128,10 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
                   currentValue("property_type") === pt.value ? null : pt.value
                 )
               }
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+              className={`rounded-btn px-3 py-1.5 text-xs font-medium transition ${
                 currentValue("property_type") === pt.value
-                  ? "bg-primary text-white shadow-sm"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-terracotta text-white shadow-sm"
+                  : "bg-cream-dark text-navy hover:bg-warm-gray-light/50"
               }`}
             >
               {pt.label}
@@ -142,7 +142,7 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
 
       {/* Price range */}
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-gray-900">
+        <h3 className="mb-2 text-sm font-semibold text-navy">
           Çmimi (EUR)
         </h3>
         <div className="flex gap-2">
@@ -153,7 +153,7 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
             onChange={(e) =>
               updateFilter("price_min", e.target.value || null)
             }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-btn border border-warm-gray-light px-3 py-2 text-sm focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
           />
           <input
             type="number"
@@ -162,14 +162,14 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
             onChange={(e) =>
               updateFilter("price_max", e.target.value || null)
             }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-btn border border-warm-gray-light px-3 py-2 text-sm focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
           />
         </div>
       </div>
 
       {/* Rooms */}
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-gray-900">Dhoma</h3>
+        <h3 className="mb-2 text-sm font-semibold text-navy">Dhoma</h3>
         <div className="flex gap-2">
           {["0", "1", "2", "3", "4"].map((r) => (
             <button
@@ -181,10 +181,10 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
                   currentValue("rooms_min") === r ? null : r
                 )
               }
-              className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition ${
+              className={`flex h-10 w-10 items-center justify-center rounded-btn text-sm font-medium transition ${
                 currentValue("rooms_min") === r
-                  ? "bg-primary text-white shadow-sm"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-terracotta text-white shadow-sm"
+                  : "bg-cream-dark text-navy hover:bg-warm-gray-light/50"
               }`}
             >
               {r === "0" ? "S" : `${r}+`}
@@ -195,7 +195,7 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
 
       {/* Area range */}
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-gray-900">
+        <h3 className="mb-2 text-sm font-semibold text-navy">
           Sipërfaqja (m²)
         </h3>
         <div className="flex gap-2">
@@ -206,7 +206,7 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
             onChange={(e) =>
               updateFilter("area_min", e.target.value || null)
             }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-btn border border-warm-gray-light px-3 py-2 text-sm focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
           />
           <input
             type="number"
@@ -215,14 +215,14 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
             onChange={(e) =>
               updateFilter("area_max", e.target.value || null)
             }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-btn border border-warm-gray-light px-3 py-2 text-sm focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
           />
         </div>
       </div>
 
       {/* Source */}
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-gray-900">Burimi</h3>
+        <h3 className="mb-2 text-sm font-semibold text-navy">Burimi</h3>
         <div className="flex flex-wrap gap-2">
           {SOURCES.map((s) => (
             <button
@@ -234,10 +234,10 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
                   currentValue("source") === s ? null : s
                 )
               }
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+              className={`rounded-btn px-3 py-1.5 text-xs font-medium transition ${
                 currentValue("source") === s
-                  ? "bg-primary text-white shadow-sm"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-terracotta text-white shadow-sm"
+                  : "bg-cream-dark text-navy hover:bg-warm-gray-light/50"
               }`}
             >
               {s}
@@ -258,22 +258,22 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
       {/* Mobile drawer */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-50 bg-navy/40 backdrop-blur-sm md:hidden"
           onClick={onClose}
         />
       )}
       <aside
-        className={`fixed right-0 top-0 z-50 h-full w-80 overflow-y-auto bg-white p-5 shadow-xl transition-transform duration-300 md:hidden ${
+        className={`fixed right-0 top-0 z-50 h-full w-80 overflow-y-auto bg-cream p-5 shadow-xl transition-transform duration-300 md:hidden ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Filtra</h2>
+          <h2 className="font-display text-lg font-semibold text-navy">Filtra</h2>
           {onClose && (
             <button
               onClick={onClose}
               aria-label="Mbyll filtrat"
-              className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100"
+              className="rounded-lg p-2 text-warm-gray transition hover:bg-cream-dark"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

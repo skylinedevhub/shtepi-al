@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Playfair_Display, DM_Sans } from "next/font/google";
 import Link from "next/link";
 import MobileMenu from "@/components/MobileMenu";
 import "./globals.css";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
+const playfair = Playfair_Display({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-playfair",
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-dm-sans",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -25,32 +31,32 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="sq">
-      <body className={`${geistSans.variable} font-sans antialiased`}>
+      <body className={`${playfair.variable} ${dmSans.variable} font-sans antialiased`}>
         <a href="#main-content" className="skip-to-content">
           Kalo te përmbajtja
         </a>
 
-        <header className="sticky top-0 z-40 border-b border-gray-200/80 bg-white/95 backdrop-blur-md">
+        <header className="sticky top-0 z-40 border-b border-navy-light/30 bg-navy/95 backdrop-blur-md">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-            <Link href="/" className="text-xl font-bold tracking-tight text-primary">
-              ShtëpiAL
+            <Link href="/" className="font-display text-xl font-bold tracking-tight text-cream">
+              <span className="text-gold">Shtëpi</span>AL
             </Link>
             <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
               <Link
                 href="/listings"
-                className="text-gray-600 transition hover:text-gray-900"
+                className="text-cream/70 transition hover:text-cream"
               >
                 Të gjitha
               </Link>
               <Link
                 href="/listings?transaction_type=sale"
-                className="text-gray-600 transition hover:text-gray-900"
+                className="text-cream/70 transition hover:text-cream"
               >
                 Shitje
               </Link>
               <Link
                 href="/listings?transaction_type=rent"
-                className="text-gray-600 transition hover:text-gray-900"
+                className="text-cream/70 transition hover:text-cream"
               >
                 Qira
               </Link>
@@ -61,13 +67,13 @@ export default function RootLayout({
 
         <main id="main-content">{children}</main>
 
-        <footer className="border-t border-gray-200 bg-gray-50">
+        <footer className="border-t border-navy-light/30 bg-navy">
           <div className="mx-auto max-w-7xl px-4 py-10">
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
               {/* About */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">ShtëpiAL</h3>
-                <p className="mt-2 text-sm leading-relaxed text-gray-500">
+                <h3 className="font-display text-sm font-semibold text-gold">ShtëpiAL</h3>
+                <p className="mt-2 text-sm leading-relaxed text-cream/50">
                   Agregator i njoftimeve të pasurive të paluajtshme në Shqipëri.
                   Gjeni apartamente, shtëpi, vila dhe tokë nga burime të ndryshme, në një vend.
                 </p>
@@ -75,25 +81,25 @@ export default function RootLayout({
 
               {/* Sources */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">Burimet</h3>
-                <ul className="mt-2 space-y-1 text-sm text-gray-500">
+                <h3 className="font-display text-sm font-semibold text-gold">Burimet</h3>
+                <ul className="mt-2 space-y-1 text-sm text-cream/50">
                   <li>
-                    <a href="https://merrjep.al" target="_blank" rel="noopener noreferrer" className="transition hover:text-primary">
+                    <a href="https://merrjep.al" target="_blank" rel="noopener noreferrer" className="transition hover:text-terracotta">
                       merrjep.al
                     </a>
                   </li>
                   <li>
-                    <a href="https://gazetacelesi.al" target="_blank" rel="noopener noreferrer" className="transition hover:text-primary">
+                    <a href="https://gazetacelesi.al" target="_blank" rel="noopener noreferrer" className="transition hover:text-terracotta">
                       gazetacelesi.al
                     </a>
                   </li>
                   <li>
-                    <a href="https://mirlir.com" target="_blank" rel="noopener noreferrer" className="transition hover:text-primary">
+                    <a href="https://mirlir.com" target="_blank" rel="noopener noreferrer" className="transition hover:text-terracotta">
                       mirlir.com
                     </a>
                   </li>
                   <li>
-                    <a href="https://njoftime.com" target="_blank" rel="noopener noreferrer" className="transition hover:text-primary">
+                    <a href="https://njoftime.com" target="_blank" rel="noopener noreferrer" className="transition hover:text-terracotta">
                       njoftime.com
                     </a>
                   </li>
@@ -102,13 +108,13 @@ export default function RootLayout({
 
               {/* Quick cities */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">Qytete</h3>
-                <ul className="mt-2 space-y-1 text-sm text-gray-500">
+                <h3 className="font-display text-sm font-semibold text-gold">Qytete</h3>
+                <ul className="mt-2 space-y-1 text-sm text-cream/50">
                   {QUICK_CITIES.map((city) => (
                     <li key={city}>
                       <Link
                         href={`/listings?city=${encodeURIComponent(city)}`}
-                        className="transition hover:text-primary"
+                        className="transition hover:text-terracotta"
                       >
                         {city}
                       </Link>
@@ -118,7 +124,7 @@ export default function RootLayout({
               </div>
             </div>
 
-            <div className="mt-8 border-t border-gray-200 pt-6 text-center text-xs text-gray-400">
+            <div className="mt-8 border-t border-navy-light/30 pt-6 text-center text-xs text-cream/30">
               © {new Date().getFullYear()} ShtëpiAL. Të gjitha të drejtat e rezervuara.
             </div>
           </div>

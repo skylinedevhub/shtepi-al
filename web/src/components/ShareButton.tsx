@@ -19,7 +19,7 @@ export default function ShareButton() {
     <button
       onClick={handleShare}
       aria-label="Ndaj linkun"
-      className="relative shrink-0 rounded-lg border border-gray-300 p-2.5 text-gray-500 transition hover:bg-gray-50 hover:text-gray-700"
+      className="relative shrink-0 rounded-btn border border-warm-gray-light p-2.5 text-warm-gray transition hover:bg-cream-dark hover:text-navy"
     >
       <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
@@ -30,7 +30,7 @@ export default function ShareButton() {
         />
       </svg>
       {copied && (
-        <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white">
+        <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-navy px-2 py-1 text-xs text-cream">
           U kopjua!
         </span>
       )}

@@ -30,14 +30,14 @@ export default function SearchBar() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Kërko sipas lagjes, qytetit, ose përshkrimit..."
-        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pr-20 text-gray-900 shadow-sm placeholder:text-gray-400 transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+        className="w-full rounded-btn border border-warm-gray-light bg-white px-4 py-3.5 pr-20 text-navy shadow-lg placeholder:text-warm-gray transition focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
       />
       {query && (
         <button
           type="button"
           onClick={handleClear}
           aria-label="Pastro kërkimin"
-          className="absolute right-12 top-1/2 -translate-y-1/2 rounded-md p-1 text-gray-400 transition hover:text-gray-600"
+          className="absolute right-14 top-1/2 -translate-y-1/2 rounded-md p-1 text-warm-gray transition hover:text-navy"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -47,7 +47,7 @@ export default function SearchBar() {
       <button
         type="submit"
         aria-label="Kërko"
-        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-primary p-2 text-white transition hover:bg-primary-dark"
+        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-btn bg-terracotta p-2.5 text-white transition hover:bg-terracotta-dark"
       >
         <svg
           className="h-5 w-5"
