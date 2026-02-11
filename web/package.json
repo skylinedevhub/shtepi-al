@@ -12,22 +12,29 @@
     "remotion:render-all": "remotion render src/remotion/index.ts LaunchAnnouncement-EN && remotion render src/remotion/index.ts LaunchAnnouncement-SQ && remotion render src/remotion/index.ts HowItWorks-EN && remotion render src/remotion/index.ts HowItWorks-SQ && remotion render src/remotion/index.ts StatsShowcase-EN && remotion render src/remotion/index.ts StatsShowcase-SQ"
   },
   "dependencies": {
-    "better-sqlite3": "^12.6.2",
+    "@auth/drizzle-adapter": "^1.11.1",
+    "@neondatabase/serverless": "^1.0.2",
+    "@vercel/blob": "^2.2.0",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.45.1",
     "leaflet": "^1.9.4",
     "next": "14.2.35",
+    "next-auth": "^5.0.0-beta.30",
     "react": "^18",
     "react-dom": "^18",
-    "react-leaflet": "^4.2.1"
+    "react-leaflet": "^4.2.1",
+    "zod": "^3.22.3"
   },
   "devDependencies": {
     "@remotion/bundler": "^4.0.421",
     "@remotion/cli": "^4.0.421",
     "@remotion/renderer": "^4.0.421",
-    "@types/better-sqlite3": "^7.6.13",
+    "@types/bcryptjs": "^2.4.6",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "drizzle-kit": "^0.31.9",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8",

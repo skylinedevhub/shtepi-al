@@ -1,5 +1,7 @@
 """Scrapy settings for ShtëpiAL project."""
 
+import os
+
 BOT_NAME = "shtepi"
 SPIDER_MODULES = ["shtepi.spiders"]
 NEWSPIDER_MODULE = "shtepi.spiders"
@@ -16,11 +18,18 @@ CONCURRENT_REQUESTS_PER_DOMAIN = 2
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 # Pipeline chain: validate → normalize → dedup → store
+# Conditional: PostgreSQL if DATABASE_URL set, else SQLite
+_store_pipeline = (
+    "shtepi.pipelines.PostgreSQLPipeline"
+    if os.environ.get("DATABASE_URL")
+    else "shtepi.pipelines.SQLitePipeline"
+)
+
 ITEM_PIPELINES = {
     "shtepi.pipelines.ValidationPipeline": 100,
     "shtepi.pipelines.NormalizationPipeline": 200,
     "shtepi.pipelines.DedupPipeline": 300,
-    "shtepi.pipelines.SQLitePipeline": 400,
+    _store_pipeline: 400,
 }
 
 # SQLite database path
