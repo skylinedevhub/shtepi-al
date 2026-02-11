@@ -25,7 +25,7 @@ class NjoftimeSpider(scrapy.Spider):
     allowed_domains = ["njoftime.com", "www.njoftime.com"]
     start_urls = [
         "https://njoftime.com/forums/shtepi-ne-shitje.4/",
-        "https://njoftime.com/forums/shtepi-me-qira.5/",
+        "https://njoftime.com/forums/shtepi-me-qera.36/",
     ]
 
     # ─── Regex for parsing structured thread titles ─────────────────

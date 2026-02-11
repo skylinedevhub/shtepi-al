@@ -530,7 +530,7 @@ class TestStartUrls:
     def test_start_urls_contain_real_forums(self):
         spider = NjoftimeSpider()
         assert "https://njoftime.com/forums/shtepi-ne-shitje.4/" in spider.start_urls
-        assert "https://njoftime.com/forums/shtepi-me-qira.5/" in spider.start_urls
+        assert "https://njoftime.com/forums/shtepi-me-qera.36/" in spider.start_urls
 
     def test_start_urls_count(self):
         spider = NjoftimeSpider()
