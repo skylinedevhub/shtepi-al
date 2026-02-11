@@ -237,12 +237,11 @@ shtepi-al/
 ├── scripts/
 │   ├── run_spiders.sh           # Run all production spiders
 │   └── migrate-sqlite-to-pg.py  # One-time SQLite → Neon migration
-├── docker/
-│   └── scrapy.Dockerfile
-├── docker-compose.yml
 ├── db/
-│   ├── schema.sql               # SQLite schema (local dev)
-│   └── shtepi.db                # SQLite database (local dev)
+│   └── schema.sql               # SQLite schema (local dev reference)
+├── docs/
+│   ├── shtepial-prd.md          # Product requirements document
+│   └── screenshots/             # UI screenshots
 └── README.md
 ```
 

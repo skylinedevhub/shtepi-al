@@ -1,4 +1,5 @@
-# Database (WAL/SHM are temp files, but .db is committed for Vercel deployment)
+# Database (local dev only — production uses Neon PostgreSQL, Vercel uses JSON seed fallback)
+db/*.db
 db/*.db-wal
 db/*.db-shm
 
