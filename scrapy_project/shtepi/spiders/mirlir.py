@@ -123,19 +123,16 @@ class MirLirSpider(scrapy.Spider):
         source_id = self._extract_id_from_url(response.url)
         item["source_id"] = source_id
 
-        # Title from the main heading (outside the article element)
-        # On the real site, listing title is in .listing-header h4 or
-        # the first h4 in .classified-ad before the article
-        title = response.css(".listing-header h4::text").get()
+        # Title from the main heading
+        # Live site uses .listing-title h4 (formerly .listing-header h4)
+        title = response.css(".listing-title h4::text").get()
+        if not title:
+            title = response.css(".listing-header h4::text").get()
         if not title:
             title = response.css(".classified-ad h4::text").get()
         if not title:
-            # Fallback: page title often contains the listing title
-            page_title = response.css("title::text").get("")
-            if "..." in page_title:
-                title = page_title.split("...")[0].strip()
-            elif "|" in page_title:
-                title = page_title.split("|")[0].strip()
+            # Fallback: first h4 on the page
+            title = response.css("h4::text").get()
         if title:
             title = title.strip()
         item["title"] = title
@@ -151,7 +148,10 @@ class MirLirSpider(scrapy.Spider):
                 item["price"] = None
         else:
             # Fallback: parse from header text
-            price_text = response.css(".listing-header .price-label::text").get()
+            price_text = (
+                response.css(".listing-title .price-label::text").get()
+                or response.css(".listing-header .price-label::text").get()
+            )
             if price_text:
                 price_val, _ = parse_price_text(price_text)
                 item["price"] = price_val
