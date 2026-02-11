@@ -12,11 +12,21 @@ import json
 import os
 import sqlite3
 import sys
+import uuid
 from datetime import datetime, timezone
 
 import psycopg2
 
 SQLITE_PATH = sys.argv[1] if len(sys.argv) > 1 else "db/shtepi.db"
+
+
+def _to_bool(val):
+    """Cast SQLite int (0/1) to Python bool for PostgreSQL BOOLEAN columns."""
+    if val is None:
+        return None
+    return bool(val)
+
+
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if not DATABASE_URL:
@@ -71,7 +81,8 @@ def main():
                     images, image_count,
                     poster_name, poster_phone, poster_type,
                     is_active, origin, status,
-                    first_seen, last_seen, created_at
+                    first_seen, last_seen, created_at,
+                    has_elevator, has_parking, is_furnished, is_new_build
                 ) VALUES (
                     %(id)s, %(source)s, %(source_url)s, %(source_id)s,
                     %(title)s, %(description)s, %(price)s, %(price_all)s,
@@ -83,7 +94,8 @@ def main():
                     %(images)s, %(image_count)s,
                     %(poster_name)s, %(poster_phone)s, %(poster_type)s,
                     %(is_active)s, 'scraped', 'active',
-                    %(first_seen)s, %(last_seen)s, %(created_at)s
+                    %(first_seen)s, %(last_seen)s, %(created_at)s,
+                    %(has_elevator)s, %(has_parking)s, %(is_furnished)s, %(is_new_build)s
                 )
                 ON CONFLICT (source, source_id) WHERE source IS NOT NULL
                 DO UPDATE SET
@@ -94,7 +106,7 @@ def main():
                     last_seen = EXCLUDED.last_seen
                 """,
                 {
-                    "id": row_dict["id"],
+                    "id": str(uuid.uuid4()),
                     "source": row_dict.get("source"),
                     "source_url": row_dict.get("source_url"),
                     "source_id": row_dict.get("source_id"),
@@ -125,6 +137,10 @@ def main():
                     "first_seen": row_dict.get("first_seen"),
                     "last_seen": row_dict.get("last_seen"),
                     "created_at": row_dict.get("created_at"),
+                    "has_elevator": _to_bool(row_dict.get("has_elevator")),
+                    "has_parking": _to_bool(row_dict.get("has_parking")),
+                    "is_furnished": _to_bool(row_dict.get("is_furnished")),
+                    "is_new_build": _to_bool(row_dict.get("is_new_build")),
                 },
             )
 

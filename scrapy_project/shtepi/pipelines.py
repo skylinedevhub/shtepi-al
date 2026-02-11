@@ -276,6 +276,13 @@ class PostgreSQLPipeline:
 
     BUFFER_SIZE = 50
 
+    @staticmethod
+    def _to_bool(val):
+        """Cast int/str to bool for PostgreSQL BOOLEAN columns, preserving None."""
+        if val is None:
+            return None
+        return bool(val)
+
     def __init__(self, database_url):
         self.database_url = database_url
         self.conn = None
@@ -404,10 +411,10 @@ class PostgreSQLPipeline:
                     "poster_phone": item.get("poster_phone"),
                     "poster_type": item.get("poster_type", "private"),
                     "now": now,
-                    "has_elevator": item.get("has_elevator"),
-                    "has_parking": item.get("has_parking"),
-                    "is_furnished": item.get("is_furnished"),
-                    "is_new_build": item.get("is_new_build"),
+                    "has_elevator": self._to_bool(item.get("has_elevator")),
+                    "has_parking": self._to_bool(item.get("has_parking")),
+                    "is_furnished": self._to_bool(item.get("is_furnished")),
+                    "is_new_build": self._to_bool(item.get("is_new_build")),
                 },
             )
 

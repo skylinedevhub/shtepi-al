@@ -8,7 +8,7 @@ Albanian real estate aggregator and listing platform. Scrapy spiders collect lis
 
 ```
 scrapy_project/          Scrapy spiders (Python)
-  shtepi/spiders/        merrjep, celesi, mirlir, njoftime
+  shtepi/spiders/        merrjep, celesi, mirlir, njoftime, duashpi
   shtepi/pipelines.py    Validate → Normalize → Dedup → Store (SQLite or PostgreSQL)
   shtepi/normalizers.py  Albanian-aware parsing (cities, prices, room configs)
 
@@ -51,7 +51,7 @@ cp .env.example .env.local  # Edit with your credentials
 npm run dev                  # http://localhost:3000
 ```
 
-The app works without `DATABASE_URL` — it falls back to `data/seed-listings.json` (58 real listings).
+The app works without `DATABASE_URL` — it falls back to `data/seed-listings.json` (91 real listings from 5 sources).
 
 ### Scrapy Spiders
 
@@ -67,7 +67,7 @@ DATABASE_URL=postgresql://... scrapy crawl merrjep
 
 ```bash
 cd scrapy_project
-python -m pytest tests/ -q   # 280 tests
+python -m pytest tests/ -q   # 352 tests
 ```
 
 ## Environment Variables
@@ -128,10 +128,11 @@ Scraped listings use a partial unique index on `(source, source_id)` for dedup.
 
 | Spider | Domain | Status | Listings |
 |--------|--------|--------|----------|
-| merrjep | merrjep.al | Live | 20+ |
+| merrjep | merrjep.al | Live | 20 |
 | celesi | gazetacelesi.al | Live | 18 |
 | mirlir | mirlir.com | Live | 20 |
-| njoftime | njoftime.com | Pending | — |
+| njoftime | njoftime.com | Live | 15 |
+| duashpi | duashpi.al | Live | 18 |
 
 ## Albanian-Specific Parsing
 

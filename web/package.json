@@ -6,10 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "remotion:preview": "remotion preview src/remotion/index.ts",
-    "remotion:render": "remotion render src/remotion/index.ts",
-    "remotion:render-all": "remotion render src/remotion/index.ts LaunchAnnouncement-EN && remotion render src/remotion/index.ts LaunchAnnouncement-SQ && remotion render src/remotion/index.ts HowItWorks-EN && remotion render src/remotion/index.ts HowItWorks-SQ && remotion render src/remotion/index.ts StatsShowcase-EN && remotion render src/remotion/index.ts StatsShowcase-SQ"
+    "lint": "next lint"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.1",
@@ -26,9 +23,6 @@
     "zod": "^3.22.3"
   },
   "devDependencies": {
-    "@remotion/bundler": "^4.0.421",
-    "@remotion/cli": "^4.0.421",
-    "@remotion/renderer": "^4.0.421",
     "@types/bcryptjs": "^2.4.6",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
@@ -38,7 +32,6 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8",
-    "remotion": "^4.0.421",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }
