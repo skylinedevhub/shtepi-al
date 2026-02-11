@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getListingById } from "@/lib/db";
+import { getListingById } from "@/lib/db/queries";
 import ImageGallery from "@/components/ImageGallery";
 import ShareButton from "@/components/ShareButton";
 
@@ -26,8 +26,8 @@ interface Props {
   params: { id: string };
 }
 
-export default function ListingDetailPage({ params }: Props) {
-  const listing = getListingById(params.id);
+export default async function ListingDetailPage({ params }: Props) {
+  const listing = await getListingById(params.id);
 
   if (!listing) {
     notFound();

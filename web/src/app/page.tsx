@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
 import ListingCard from "@/components/ListingCard";
-import { getStats, getListings } from "@/lib/db";
+import { getStats, getListings } from "@/lib/db/queries";
 
 const QUICK_CITIES = [
   "Tiranë", "Durrës", "Vlorë", "Sarandë", "Shkodër", "Korçë",
@@ -10,10 +10,10 @@ const QUICK_CITIES = [
 
 export const dynamic = "force-dynamic";
 
-export default function HomePage() {
-  const stats = getStats();
+export default async function HomePage() {
+  const stats = await getStats();
   const sourceCount = Object.keys(stats.by_source).length;
-  const recentListings = getListings({ sort: "newest", limit: 6 }).listings;
+  const recentListings = (await getListings({ sort: "newest", limit: 6 })).listings;
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">

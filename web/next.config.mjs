@@ -4,24 +4,29 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "images.unsplash.com",
+        hostname: "media.merrjep.al",
       },
       {
         protocol: "https",
-        hostname: "picsum.photos",
+        hostname: "media.mirlir.com",
       },
       {
         protocol: "https",
-        hostname: "**.picsum.photos",
+        hostname: "www.njoftime.com",
+      },
+      {
+        protocol: "https",
+        hostname: "duashpi.al",
+      },
+      {
+        protocol: "https",
+        hostname: "d1ia6vt0h4qxok.cloudfront.net",
+      },
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
       },
     ],
-  },
-  experimental: {
-    outputFileTracingIncludes: {
-      "/api/*": ["./data/**"],
-      "/": ["./data/**"],
-      "/listings/*": ["./data/**"],
-    },
   },
 };
 

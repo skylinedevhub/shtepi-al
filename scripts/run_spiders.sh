@@ -1,40 +1,48 @@
 #!/usr/bin/env bash
-# Run all Tier 1 spiders sequentially
-# Intended for cron: 0 */6 * * * /path/to/run_spiders.sh
+# Run production spiders against Neon PostgreSQL
+# Usage: DATABASE_URL="postgresql://..." ./scripts/run_spiders.sh
+# Cron:  0 */6 * * * DATABASE_URL="postgresql://..." /path/to/run_spiders.sh
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 LOG_DIR="$PROJECT_DIR/logs"
-DB_PATH="$PROJECT_DIR/db/shtepi.db"
 
 mkdir -p "$LOG_DIR"
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="$LOG_DIR/scrape_$TIMESTAMP.log"
 
-export SQLITE_DB_PATH="$DB_PATH"
+if [ -z "${DATABASE_URL:-}" ]; then
+    echo "ERROR: DATABASE_URL environment variable required" | tee -a "$LOG_FILE"
+    exit 1
+fi
 
 cd "$PROJECT_DIR/scrapy_project"
 
-echo "[$TIMESTAMP] Starting spider run" | tee -a "$LOG_FILE"
+# Production spiders (celesi excluded — Cloudflare blocks Scrapy)
+SPIDERS="merrjep mirlir njoftime duashpi"
 
-# Initialize DB if needed
-if [ ! -f "$DB_PATH" ]; then
-    echo "Initializing database..." | tee -a "$LOG_FILE"
-    sqlite3 "$DB_PATH" < "$PROJECT_DIR/db/schema.sql"
-fi
+echo "[$TIMESTAMP] Starting spider run (PostgreSQL)" | tee -a "$LOG_FILE"
+echo "  Spiders: $SPIDERS" | tee -a "$LOG_FILE"
 
-# Run each spider
-for spider in merrjep celesi mirlir njoftime; do
+TOTAL=0
+FAILED=0
+
+for spider in $SPIDERS; do
     echo "[$(date +%H:%M:%S)] Running $spider spider..." | tee -a "$LOG_FILE"
-    scrapy crawl "$spider" --logfile "$LOG_DIR/${spider}_$TIMESTAMP.log" 2>&1 || {
+    if DATABASE_URL="$DATABASE_URL" scrapy crawl "$spider" \
+        --logfile "$LOG_DIR/${spider}_$TIMESTAMP.log" 2>&1; then
+        TOTAL=$((TOTAL + 1))
+        echo "[$(date +%H:%M:%S)] $spider completed" | tee -a "$LOG_FILE"
+    else
+        FAILED=$((FAILED + 1))
         echo "[$(date +%H:%M:%S)] WARNING: $spider spider failed" | tee -a "$LOG_FILE"
-    }
+    fi
 done
 
-echo "[$(date +%H:%M:%S)] Spider run complete" | tee -a "$LOG_FILE"
+echo "[$(date +%H:%M:%S)] Spider run complete: $TOTAL succeeded, $FAILED failed" | tee -a "$LOG_FILE"
 
 # Cleanup old logs (keep 7 days)
 find "$LOG_DIR" -name "*.log" -mtime +7 -delete 2>/dev/null || true

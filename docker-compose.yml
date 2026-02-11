@@ -7,24 +7,19 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
-    volumes:
-      - db-data:/app/db:ro
     environment:
       - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     restart: unless-stopped
 
   scrapy:
     build:
-      context: ./scrapy_project
-      dockerfile: Dockerfile
-    volumes:
-      - db-data:/app/db
+      context: .
+      dockerfile: docker/scrapy.Dockerfile
     environment:
-      - SQLITE_DB_PATH=/app/db/shtepi.db
+      - DATABASE_URL=${DATABASE_URL}
     restart: "no"
     profiles:
       - scrape
-
-volumes:
-  db-data:
-    driver: local

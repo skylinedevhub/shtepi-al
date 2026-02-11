@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
 import Link from "next/link";
 import MobileMenu from "@/components/MobileMenu";
+import AuthButton from "@/components/AuthButton";
+import Providers from "@/components/Providers";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -32,6 +34,7 @@ export default function RootLayout({
   return (
     <html lang="sq">
       <body className={`${playfair.variable} ${dmSans.variable} font-sans antialiased`}>
+        <Providers>
         <a href="#main-content" className="skip-to-content">
           Kalo te përmbajtja
         </a>
@@ -61,7 +64,10 @@ export default function RootLayout({
                 Qira
               </Link>
             </nav>
-            <MobileMenu />
+            <div className="flex items-center gap-4">
+              <AuthButton />
+              <MobileMenu />
+            </div>
           </div>
         </header>
 
@@ -129,6 +135,7 @@ export default function RootLayout({
             </div>
           </div>
         </footer>
+        </Providers>
       </body>
     </html>
   );

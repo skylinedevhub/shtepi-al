@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getListings, getListingById } from "@/lib/db";
+import { getListings, getListingById } from "@/lib/db/queries";
+import { getDb } from "@/lib/db/drizzle";
+import { listings } from "@/lib/db/schema";
+import { auth } from "@/lib/auth";
+import { listingCreateSchema } from "@/lib/validators";
 import type { ListingFilters } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
@@ -8,9 +12,9 @@ export async function GET(request: NextRequest) {
   // Single listing by ID
   const id = params.get("id");
   if (id) {
-    const listing = getListingById(id);
+    const listing = await getListingById(id);
     if (!listing) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "Njoftimi nuk u gjet" }, { status: 404 });
     }
     return NextResponse.json(listing);
   }
@@ -43,6 +47,100 @@ export async function GET(request: NextRequest) {
   if (params.get("page")) filters.page = Number(params.get("page"));
   if (params.get("limit")) filters.limit = Number(params.get("limit"));
 
-  const result = getListings(filters);
+  const result = await getListings(filters);
   return NextResponse.json(result);
+}
+
+const EUR_ALL_RATE = 100;
+
+export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { error: "Duhet të jeni i kyçur" },
+      { status: 401 }
+    );
+  }
+
+  const db = getDb();
+  if (!db) {
+    return NextResponse.json(
+      { error: "Databaza nuk është e disponueshme" },
+      { status: 503 }
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Kërkesë e pavlefshme" },
+      { status: 400 }
+    );
+  }
+
+  const result = listingCreateSchema.safeParse(body);
+  if (!result.success) {
+    return NextResponse.json(
+      { error: result.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+
+  const data = result.data;
+
+  // Price conversion
+  let priceEur = data.price ?? null;
+  let priceAll = null;
+  if (data.price) {
+    if (data.currency_original === "ALL") {
+      priceAll = data.price;
+      priceEur = Math.round(data.price / EUR_ALL_RATE);
+    } else {
+      priceEur = data.price;
+      priceAll = data.price * EUR_ALL_RATE;
+    }
+  }
+
+  const [newListing] = await db
+    .insert(listings)
+    .values({
+      title: data.title,
+      description: data.description,
+      price: priceEur,
+      priceAll: priceAll,
+      currencyOriginal: data.currency_original,
+      pricePeriod: data.price_period,
+      transactionType: data.transaction_type,
+      propertyType: data.property_type,
+      roomConfig: data.room_config,
+      areaSqm: data.area_sqm,
+      floor: data.floor,
+      totalFloors: data.total_floors,
+      rooms: data.rooms,
+      bathrooms: data.bathrooms,
+      city: data.city,
+      neighborhood: data.neighborhood,
+      addressRaw: data.address_raw,
+      images: data.images,
+      imageCount: data.images.length,
+      posterName: data.poster_name ?? session.user.name,
+      posterPhone: data.poster_phone,
+      posterType: "private",
+      hasElevator: data.has_elevator,
+      hasParking: data.has_parking,
+      isFurnished: data.is_furnished,
+      isNewBuild: data.is_new_build,
+      origin: "user",
+      userId: session.user.id,
+      status: "pending",
+      isActive: false,
+    })
+    .returning({ id: listings.id });
+
+  return NextResponse.json(
+    { id: newListing.id, message: "Njoftimi u krijua me sukses" },
+    { status: 201 }
+  );
 }

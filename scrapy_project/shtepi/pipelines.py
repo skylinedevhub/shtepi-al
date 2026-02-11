@@ -271,6 +271,158 @@ class SQLitePipeline:
         return item
 
 
+class PostgreSQLPipeline:
+    """Store listings in PostgreSQL (Neon) with batch upsert."""
+
+    BUFFER_SIZE = 50
+
+    @staticmethod
+    def _to_bool(val):
+        """Cast int/str to bool for PostgreSQL BOOLEAN columns, preserving None."""
+        if val is None:
+            return None
+        return bool(val)
+
+    def __init__(self, database_url):
+        self.database_url = database_url
+        self.conn = None
+        self.buffer = []
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        database_url = os.environ.get("DATABASE_URL")
+        if not database_url:
+            raise ValueError("DATABASE_URL environment variable required for PostgreSQLPipeline")
+        return cls(database_url)
+
+    def open_spider(self, spider):
+        import psycopg2
+        self.conn = psycopg2.connect(self.database_url)
+        self.buffer = []
+
+    def close_spider(self, spider):
+        if self.buffer:
+            self._flush()
+        if self.conn:
+            self.conn.close()
+
+    def process_item(self, item, spider):
+        self.buffer.append(dict(item))
+        if len(self.buffer) >= self.BUFFER_SIZE:
+            self._flush()
+        return item
+
+    def _flush(self):
+        if not self.buffer:
+            return
+
+        now = datetime.now(timezone.utc).isoformat()
+        cursor = self.conn.cursor()
+
+        for item in self.buffer:
+            images_json = json.dumps(item.get("images", []))
+            listing_id = str(uuid.uuid4())
+
+            cursor.execute(
+                """INSERT INTO listings (
+                    id, source, source_url, source_id,
+                    title, description, price, price_all,
+                    currency_original, price_period,
+                    transaction_type, property_type, room_config,
+                    area_sqm, area_net_sqm, floor, total_floors,
+                    rooms, bathrooms,
+                    city, neighborhood, address_raw,
+                    images, image_count,
+                    poster_name, poster_phone, poster_type,
+                    is_active, origin, status,
+                    first_seen, last_seen, created_at,
+                    has_elevator, has_parking, is_furnished, is_new_build
+                ) VALUES (
+                    %(id)s, %(source)s, %(source_url)s, %(source_id)s,
+                    %(title)s, %(description)s, %(price)s, %(price_all)s,
+                    %(currency_original)s, %(price_period)s,
+                    %(transaction_type)s, %(property_type)s, %(room_config)s,
+                    %(area_sqm)s, %(area_net_sqm)s, %(floor)s, %(total_floors)s,
+                    %(rooms)s, %(bathrooms)s,
+                    %(city)s, %(neighborhood)s, %(address_raw)s,
+                    %(images)s, %(image_count)s,
+                    %(poster_name)s, %(poster_phone)s, %(poster_type)s,
+                    true, 'scraped', 'active',
+                    %(now)s, %(now)s, %(now)s,
+                    %(has_elevator)s, %(has_parking)s, %(is_furnished)s, %(is_new_build)s
+                )
+                ON CONFLICT (source, source_id) WHERE source IS NOT NULL
+                DO UPDATE SET
+                    title = EXCLUDED.title,
+                    description = EXCLUDED.description,
+                    price = EXCLUDED.price,
+                    price_all = EXCLUDED.price_all,
+                    currency_original = EXCLUDED.currency_original,
+                    price_period = EXCLUDED.price_period,
+                    property_type = EXCLUDED.property_type,
+                    room_config = EXCLUDED.room_config,
+                    area_sqm = EXCLUDED.area_sqm,
+                    area_net_sqm = EXCLUDED.area_net_sqm,
+                    floor = EXCLUDED.floor,
+                    total_floors = EXCLUDED.total_floors,
+                    rooms = EXCLUDED.rooms,
+                    bathrooms = EXCLUDED.bathrooms,
+                    city = EXCLUDED.city,
+                    neighborhood = EXCLUDED.neighborhood,
+                    address_raw = EXCLUDED.address_raw,
+                    images = EXCLUDED.images,
+                    image_count = EXCLUDED.image_count,
+                    poster_name = EXCLUDED.poster_name,
+                    poster_phone = EXCLUDED.poster_phone,
+                    poster_type = EXCLUDED.poster_type,
+                    is_active = true,
+                    last_seen = EXCLUDED.last_seen,
+                    has_elevator = EXCLUDED.has_elevator,
+                    has_parking = EXCLUDED.has_parking,
+                    is_furnished = EXCLUDED.is_furnished,
+                    is_new_build = EXCLUDED.is_new_build
+                """,
+                {
+                    "id": listing_id,
+                    "source": item.get("source"),
+                    "source_url": item.get("source_url"),
+                    "source_id": item.get("source_id"),
+                    "title": item.get("title"),
+                    "description": item.get("description"),
+                    "price": item.get("price"),
+                    "price_all": item.get("price_all"),
+                    "currency_original": item.get("currency_original", "EUR"),
+                    "price_period": item.get("price_period", "total"),
+                    "transaction_type": item.get("transaction_type"),
+                    "property_type": item.get("property_type"),
+                    "room_config": item.get("room_config"),
+                    "area_sqm": item.get("area_sqm"),
+                    "area_net_sqm": item.get("area_net_sqm"),
+                    "floor": item.get("floor"),
+                    "total_floors": item.get("total_floors"),
+                    "rooms": item.get("rooms"),
+                    "bathrooms": item.get("bathrooms"),
+                    "city": item.get("city"),
+                    "neighborhood": item.get("neighborhood"),
+                    "address_raw": item.get("address_raw"),
+                    "images": images_json,
+                    "image_count": item.get("image_count", 0),
+                    "poster_name": item.get("poster_name"),
+                    "poster_phone": item.get("poster_phone"),
+                    "poster_type": item.get("poster_type", "private"),
+                    "now": now,
+                    "has_elevator": self._to_bool(item.get("has_elevator")),
+                    "has_parking": self._to_bool(item.get("has_parking")),
+                    "is_furnished": self._to_bool(item.get("is_furnished")),
+                    "is_new_build": self._to_bool(item.get("is_new_build")),
+                },
+            )
+
+        self.conn.commit()
+        cursor.close()
+        self.buffer = []
+
+
 class DropItem(Exception):
     """Raised to drop an item from the pipeline."""
     pass
