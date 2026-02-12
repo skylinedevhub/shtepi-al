@@ -6,7 +6,7 @@ const DATABASE_URL = process.env.DATABASE_URL;
 
 function createDb() {
   if (!DATABASE_URL) return null;
-  const sql = neon(DATABASE_URL);
+  const sql = neon(DATABASE_URL, { fetchOptions: { cache: "no-store" } });
   return drizzle(sql, { schema });
 }
 
