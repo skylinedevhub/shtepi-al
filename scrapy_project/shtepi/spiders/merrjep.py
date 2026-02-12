@@ -20,6 +20,9 @@ class MerrjepSpider(scrapy.Spider):
 
     BASE = "https://www.merrjep.al/njoftime/imobiliare-vendbanime"
 
+    # Max listing pages per category/transaction combo (0 = unlimited)
+    MAX_PAGES = 10
+
     # Property categories on merrjep.al (Albania)
     PROPERTY_CATEGORIES = {
         "apartamente": "apartment",
@@ -45,6 +48,7 @@ class MerrjepSpider(scrapy.Spider):
                     meta={
                         "property_type": prop_type,
                         "transaction_type": txn_type,
+                        "page": 1,
                     },
                 )
 
@@ -66,17 +70,21 @@ class MerrjepSpider(scrapy.Spider):
                 )
 
         # Follow pagination -- look for "Tjetra" (Next) link
-        for a_tag in response.css("li.prevnext a.page-link"):
-            text = a_tag.css("::text").get("")
-            if "Tjetra" in text:
-                next_url = a_tag.attrib.get("href")
-                if next_url:
-                    yield scrapy.Request(
-                        response.urljoin(next_url),
-                        callback=self.parse,
-                        meta=response.meta.copy(),
-                    )
-                break
+        current_page = response.meta.get("page", 1)
+        if self.MAX_PAGES == 0 or current_page < self.MAX_PAGES:
+            for a_tag in response.css("li.prevnext a.page-link"):
+                text = a_tag.css("::text").get("")
+                if "Tjetra" in text:
+                    next_url = a_tag.attrib.get("href")
+                    if next_url:
+                        meta = response.meta.copy()
+                        meta["page"] = current_page + 1
+                        yield scrapy.Request(
+                            response.urljoin(next_url),
+                            callback=self.parse,
+                            meta=meta,
+                        )
+                    break
 
     def parse_detail(self, response):
         """Parse a listing detail page and yield a ListingItem.

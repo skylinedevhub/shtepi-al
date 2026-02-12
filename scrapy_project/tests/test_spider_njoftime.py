@@ -525,13 +525,21 @@ class TestTransactionTypeFromTitle:
 
 
 class TestStartUrls:
-    """Test that start_urls point to the correct forum categories."""
+    """Test that start_requests point to the correct forum categories."""
 
-    def test_start_urls_contain_real_forums(self):
+    def test_start_requests_contain_real_forums(self):
         spider = NjoftimeSpider()
-        assert "https://njoftime.com/forums/shtepi-ne-shitje.4/" in spider.start_urls
-        assert "https://njoftime.com/forums/shtepi-me-qera.36/" in spider.start_urls
+        urls = list(spider.FORUMS.keys())
+        assert "https://njoftime.com/forums/shtepi-ne-shitje.4/" in urls
+        assert "https://njoftime.com/forums/shtepi-me-qera.36/" in urls
 
-    def test_start_urls_count(self):
+    def test_start_requests_count(self):
         spider = NjoftimeSpider()
-        assert len(spider.start_urls) == 2
+        assert len(spider.FORUMS) == 2
+
+    def test_start_requests_have_transaction_type(self):
+        spider = NjoftimeSpider()
+        requests = list(spider.start_requests())
+        assert len(requests) == 2
+        txn_types = {r.meta["transaction_type"] for r in requests}
+        assert txn_types == {"sale", "rent"}

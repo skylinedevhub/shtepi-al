@@ -312,11 +312,28 @@ class PostgreSQLPipeline:
             self._flush()
         return item
 
+    def _reconnect(self):
+        """Reconnect to PostgreSQL if connection was lost (e.g. Neon idle timeout)."""
+        import psycopg2
+        try:
+            if self.conn and not self.conn.closed:
+                self.conn.close()
+        except Exception:
+            pass
+        self.conn = psycopg2.connect(self.database_url)
+
     def _flush(self):
         if not self.buffer:
             return
 
         now = datetime.now(timezone.utc).isoformat()
+        try:
+            cursor = self.conn.cursor()
+            # Test the connection is alive
+            cursor.execute("SELECT 1")
+            cursor.close()
+        except Exception:
+            self._reconnect()
         cursor = self.conn.cursor()
 
         for item in self.buffer:

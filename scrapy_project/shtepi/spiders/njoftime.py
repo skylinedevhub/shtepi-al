@@ -23,10 +23,19 @@ from shtepi.normalizers import parse_area, parse_floor
 class NjoftimeSpider(scrapy.Spider):
     name = "njoftime"
     allowed_domains = ["njoftime.com", "www.njoftime.com"]
-    start_urls = [
-        "https://njoftime.com/forums/shtepi-ne-shitje.4/",
-        "https://njoftime.com/forums/shtepi-me-qera.36/",
-    ]
+    # Forum ID → transaction type mapping
+    FORUMS = {
+        "https://njoftime.com/forums/shtepi-ne-shitje.4/": "sale",
+        "https://njoftime.com/forums/shtepi-me-qera.36/": "rent",
+    }
+
+    def start_requests(self):
+        for url, txn_type in self.FORUMS.items():
+            yield scrapy.Request(
+                url,
+                callback=self.parse,
+                meta={"transaction_type": txn_type},
+            )
 
     # ─── Regex for parsing structured thread titles ─────────────────
     #
@@ -77,6 +86,7 @@ class NjoftimeSpider(scrapy.Spider):
                 yield scrapy.Request(
                     url=full_url,
                     callback=self.parse_thread,
+                    meta=response.meta.copy(),
                 )
 
         # Follow pagination ("Next" link)
@@ -87,6 +97,7 @@ class NjoftimeSpider(scrapy.Spider):
             yield scrapy.Request(
                 url=response.urljoin(next_page),
                 callback=self.parse,
+                meta=response.meta.copy(),
             )
 
     def parse_thread(self, response):
@@ -181,7 +192,11 @@ class NjoftimeSpider(scrapy.Spider):
 
         # From custom fields (primary) or title parser (fallback)
         item["city"] = city
-        item["transaction_type"] = parsed.get("transaction_type")
+        item["transaction_type"] = (
+            response.meta.get("transaction_type")
+            or parsed.get("transaction_type")
+            or self._infer_transaction_type(title)
+        )
         item["property_type"] = property_type
         item["room_config"] = room_config
         item["floor"] = floor
@@ -363,6 +378,22 @@ class NjoftimeSpider(scrapy.Spider):
             result["neighborhood"] = neighborhood.strip()
 
         return result
+
+    @staticmethod
+    def _infer_transaction_type(title):
+        """Infer transaction type from title keywords as last resort."""
+        if not title:
+            return None
+        lower = title.lower()
+        rent_keywords = ["qera", "qira", "jepet", "me qera", "me qira"]
+        for kw in rent_keywords:
+            if kw in lower:
+                return "rent"
+        sale_keywords = ["shitet", "shitje", "ne shitje", "në shitje"]
+        for kw in sale_keywords:
+            if kw in lower:
+                return "sale"
+        return None
 
     def _extract_thread_id(self, url):
         """Extract the numeric thread ID from a XenForo thread URL.
