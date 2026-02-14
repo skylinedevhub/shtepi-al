@@ -143,11 +143,9 @@ export async function searchListings(
 
   const offset = (page - 1) * limit;
 
-  // Use PostgreSQL tsvector full-text search
-  const searchCondition = sql`
-    to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(city, '') || ' ' || coalesce(neighborhood, ''))
-    @@ plainto_tsquery('simple', ${query})
-  `;
+  // Use stored search_vector column + GIN index
+  const tsquery = sql`plainto_tsquery('simple', ${query})`;
+  const searchCondition = sql`search_vector @@ ${tsquery}`;
 
   const [countResult] = await db
     .select({ count: sql<number>`count(*)` })
@@ -159,14 +157,7 @@ export async function searchListings(
     .select()
     .from(listings)
     .where(and(eq(listings.isActive, true), searchCondition))
-    .orderBy(
-      desc(
-        sql`ts_rank(
-          to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(city, '') || ' ' || coalesce(neighborhood, '')),
-          plainto_tsquery('simple', ${query})
-        )`
-      )
-    )
+    .orderBy(desc(sql`ts_rank(search_vector, ${tsquery})`))
     .limit(limit)
     .offset(offset);
 
