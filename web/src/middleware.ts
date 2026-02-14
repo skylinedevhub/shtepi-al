@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 const PROTECTED_PATHS = ["/dashboard", "/listings/new", "/listings/edit", "/admin"];
-const ADMIN_PATHS = ["/admin"];
 
 export async function middleware(request: NextRequest) {
   const { supabaseResponse, user } = await updateSession(request);
