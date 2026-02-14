@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import { auth } from "@/lib/auth";
-import { users } from "@/lib/db/schema";
+import { getDb } from "@/lib/db/drizzle";
+import { createClient } from "@/lib/supabase/server";
+import { profiles } from "@/lib/db/schema";
 import { z } from "zod";
 
 const updateProfileSchema = z.object({
@@ -11,22 +10,20 @@ const updateProfileSchema = z.object({
   phone: z.string().max(50).optional(),
 });
 
-function getProfileDb() {
-  const url = process.env.DATABASE_URL;
-  if (!url) return null;
-  return drizzle(neon(url));
-}
-
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     return NextResponse.json(
       { error: "Duhet të jeni i kyçur" },
       { status: 401 }
     );
   }
 
-  const db = getProfileDb();
+  const db = getDb();
   if (!db) {
     return NextResponse.json(
       { error: "Databaza nuk është e disponueshme" },
@@ -34,38 +31,42 @@ export async function GET() {
     );
   }
 
-  const [user] = await db
+  const [profile] = await db
     .select({
-      id: users.id,
-      name: users.name,
-      email: users.email,
-      phone: users.phone,
-      role: users.role,
-      createdAt: users.createdAt,
+      id: profiles.id,
+      name: profiles.name,
+      email: profiles.email,
+      phone: profiles.phone,
+      role: profiles.role,
+      createdAt: profiles.createdAt,
     })
-    .from(users)
-    .where(eq(users.id, session.user.id));
+    .from(profiles)
+    .where(eq(profiles.id, user.id));
 
-  if (!user) {
+  if (!profile) {
     return NextResponse.json(
       { error: "Përdoruesi nuk u gjet" },
       { status: 404 }
     );
   }
 
-  return NextResponse.json({ user });
+  return NextResponse.json({ user: profile });
 }
 
 export async function PUT(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     return NextResponse.json(
       { error: "Duhet të jeni i kyçur" },
       { status: 401 }
     );
   }
 
-  const db = getProfileDb();
+  const db = getDb();
   if (!db) {
     return NextResponse.json(
       { error: "Databaza nuk është e disponueshme" },
@@ -92,9 +93,9 @@ export async function PUT(request: NextRequest) {
   }
 
   await db
-    .update(users)
+    .update(profiles)
     .set({ ...result.data, updatedAt: new Date() })
-    .where(eq(users.id, session.user.id));
+    .where(eq(profiles.id, user.id));
 
   return NextResponse.json({ message: "Profili u përditësua me sukses" });
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getListings, getListingById } from "@/lib/db/queries";
 import { getDb } from "@/lib/db/drizzle";
 import { listings } from "@/lib/db/schema";
-import { auth } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { listingCreateSchema } from "@/lib/validators";
 import type { ListingFilters } from "@/lib/types";
 
@@ -54,8 +54,12 @@ export async function GET(request: NextRequest) {
 const EUR_ALL_RATE = 100;
 
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     return NextResponse.json(
       { error: "Duhet të jeni i kyçur" },
       { status: 401 }
@@ -103,6 +107,9 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const displayName =
+    user.user_metadata?.full_name ?? user.user_metadata?.name ?? null;
+
   const [newListing] = await db
     .insert(listings)
     .values({
@@ -125,7 +132,7 @@ export async function POST(request: NextRequest) {
       addressRaw: data.address_raw,
       images: data.images,
       imageCount: data.images.length,
-      posterName: data.poster_name ?? session.user.name,
+      posterName: data.poster_name ?? displayName,
       posterPhone: data.poster_phone,
       posterType: "private",
       hasElevator: data.has_elevator,
@@ -133,7 +140,7 @@ export async function POST(request: NextRequest) {
       isFurnished: data.is_furnished,
       isNewBuild: data.is_new_build,
       origin: "user",
-      userId: session.user.id,
+      userId: user.id,
       status: "pending",
       isActive: false,
     })

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 interface DashboardListing {
   id: string;
@@ -25,11 +26,14 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
+  const supabase = createClient();
+  const [user, setUser] = useState<User | null>(null);
   const [listings, setListings] = useState<DashboardListing[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+
     async function load() {
       try {
         const res = await fetch("/api/listings/my");
@@ -42,7 +46,7 @@ export default function DashboardPage() {
       }
     }
     load();
-  }, []);
+  }, [supabase.auth]);
 
   async function handleDelete(id: string) {
     if (!confirm("Jeni i sigurt që doni ta fshini këtë njoftim?")) return;
@@ -61,7 +65,7 @@ export default function DashboardPage() {
             Paneli im
           </h1>
           <p className="mt-1 text-sm text-warm-gray">
-            Mirë se vini, {session?.user?.name ?? "Përdorues"}
+            Mirë se vini, {user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? "Përdorues"}
           </p>
         </div>
         <Link

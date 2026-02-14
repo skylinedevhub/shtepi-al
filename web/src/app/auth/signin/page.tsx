@@ -1,11 +1,13 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
 function SignInForm() {
+  const supabase = createClient();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
   const [email, setEmail] = useState("");
@@ -18,19 +20,27 @@ function SignInForm() {
     setError("");
     setLoading(true);
 
-    const result = await signIn("credentials", {
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
-      redirect: false,
-      callbackUrl,
     });
 
-    if (result?.error) {
+    if (error) {
       setError("Email ose fjalëkalimi i gabuar");
       setLoading(false);
-    } else if (result?.url) {
-      window.location.href = result.url;
+    } else {
+      router.push(callbackUrl);
+      router.refresh();
     }
+  }
+
+  async function handleGoogleSignIn() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(callbackUrl)}`,
+      },
+    });
   }
 
   return (
@@ -105,7 +115,7 @@ function SignInForm() {
         </div>
 
         <button
-          onClick={() => signIn("google", { callbackUrl })}
+          onClick={handleGoogleSignIn}
           className="flex w-full items-center justify-center gap-3 rounded-btn border border-warm-gray-light px-6 py-3 text-sm font-medium text-navy transition hover:bg-cream-dark"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">

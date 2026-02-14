@@ -83,7 +83,7 @@ export const listings = pgTable(
     isNewBuild: boolean("is_new_build"),
     // Platform fields
     origin: originEnum("origin").default("scraped"),
-    userId: uuid("user_id").references(() => users.id, {
+    userId: uuid("user_id").references(() => profiles.id, {
       onDelete: "set null",
     }),
     status: listingStatusEnum("status").default("active"),
@@ -111,18 +111,13 @@ export const listings = pgTable(
   ]
 );
 
-// --- Users (NextAuth-compatible) ---
+// --- Profiles (linked to Supabase auth.users) ---
 
-export const users = pgTable("users", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const profiles = pgTable("profiles", {
+  id: uuid("id").primaryKey(), // References auth.users(id) — enforced via SQL migration
   name: varchar("name", { length: 255 }),
-  email: varchar("email", { length: 255 }).unique(),
-  emailVerified: timestamp("email_verified", {
-    mode: "date",
-    withTimezone: true,
-  }),
+  email: varchar("email", { length: 255 }),
   image: text("image"),
-  hashedPassword: text("hashed_password"),
   role: userRoleEnum("role").default("user"),
   phone: varchar("phone", { length: 50 }),
   agencyId: uuid("agency_id").references(() => agencies.id, {
@@ -132,54 +127,6 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
-
-// --- NextAuth: accounts ---
-
-export const accounts = pgTable(
-  "accounts",
-  {
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    type: varchar("type", { length: 255 }).notNull(),
-    provider: varchar("provider", { length: 255 }).notNull(),
-    providerAccountId: varchar("provider_account_id", {
-      length: 255,
-    }).notNull(),
-    refresh_token: text("refresh_token"),
-    access_token: text("access_token"),
-    expires_at: integer("expires_at"),
-    token_type: varchar("token_type", { length: 255 }),
-    scope: text("scope"),
-    id_token: text("id_token"),
-    session_state: text("session_state"),
-  },
-  (table) => [
-    primaryKey({ columns: [table.provider, table.providerAccountId] }),
-  ]
-);
-
-// --- NextAuth: sessions ---
-
-export const sessions = pgTable("sessions", {
-  sessionToken: text("session_token").primaryKey(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  expires: timestamp("expires", { withTimezone: true }).notNull(),
-});
-
-// --- NextAuth: verification tokens ---
-
-export const verificationTokens = pgTable(
-  "verification_tokens",
-  {
-    identifier: text("identifier").notNull(),
-    token: text("token").notNull(),
-    expires: timestamp("expires", { withTimezone: true }).notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.identifier, table.token] })]
-);
 
 // --- Agencies ---
 
@@ -197,7 +144,7 @@ export const agencies = pgTable("agencies", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
-// --- Listing images (user-uploaded via Vercel Blob) ---
+// --- Listing images ---
 
 export const listingImages = pgTable(
   "listing_images",
@@ -216,14 +163,14 @@ export const listingImages = pgTable(
   (table) => [index("idx_listing_images_listing").on(table.listingId)]
 );
 
-// --- Favorites (schema only, future use) ---
+// --- Favorites ---
 
 export const favorites = pgTable(
   "favorites",
   {
     userId: uuid("user_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => profiles.id, { onDelete: "cascade" }),
     listingId: uuid("listing_id")
       .notNull()
       .references(() => listings.id, { onDelete: "cascade" }),

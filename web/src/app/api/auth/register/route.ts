@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import { eq } from "drizzle-orm";
-import bcrypt from "bcryptjs";
+import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
-import { users } from "@/lib/db/schema";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Emri duhet të ketë të paktën 2 karaktere"),
@@ -15,14 +11,6 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    return NextResponse.json(
-      { error: "Serveri nuk është konfiguruar" },
-      { status: 500 }
-    );
-  }
-
   let body: unknown;
   try {
     body = await request.json();
@@ -43,36 +31,36 @@ export async function POST(request: NextRequest) {
 
   const { name, email, password } = result.data;
 
-  const sql = neon(url);
-  const db = drizzle(sql);
+  const supabase = await createClient();
 
-  // Check if user already exists
-  const [existing] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, email));
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: name,
+      },
+    },
+  });
 
-  if (existing) {
-    return NextResponse.json(
-      { error: "Ky email është i regjistruar tashmë" },
-      { status: 409 }
-    );
+  if (error) {
+    if (error.message.includes("already registered")) {
+      return NextResponse.json(
+        { error: "Ky email është i regjistruar tashmë" },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const hashedPassword = await bcrypt.hash(password, 12);
-
-  const [newUser] = await db
-    .insert(users)
-    .values({
-      name,
-      email,
-      hashedPassword,
-      role: "user",
-    })
-    .returning({ id: users.id, email: users.email, name: users.name });
-
   return NextResponse.json(
-    { user: { id: newUser.id, email: newUser.email, name: newUser.name } },
+    {
+      user: {
+        id: data.user?.id,
+        email: data.user?.email,
+        name,
+      },
+    },
     { status: 201 }
   );
 }

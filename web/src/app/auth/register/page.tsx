@@ -1,10 +1,13 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function RegisterPage() {
+  const supabase = createClient();
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,36 +19,38 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
 
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+        },
+      },
+    });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Diçka shkoi gabim");
-        setLoading(false);
-        return;
+    if (error) {
+      if (error.message.includes("already registered")) {
+        setError("Ky email është i regjistruar tashmë");
+      } else {
+        setError(error.message);
       }
-
-      // Auto sign-in after registration
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-        callbackUrl: "/",
-      });
-
-      if (result?.url) {
-        window.location.href = result.url;
-      }
-    } catch {
-      setError("Diçka shkoi gabim. Provoni përsëri.");
       setLoading(false);
+      return;
     }
+
+    // Auto-signed in after registration
+    router.push("/");
+    router.refresh();
+  }
+
+  async function handleGoogleSignIn() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
   }
 
   return (
@@ -140,7 +145,7 @@ export default function RegisterPage() {
         </div>
 
         <button
-          onClick={() => signIn("google", { callbackUrl: "/" })}
+          onClick={handleGoogleSignIn}
           className="flex w-full items-center justify-center gap-3 rounded-btn border border-warm-gray-light px-6 py-3 text-sm font-medium text-navy transition hover:bg-cream-dark"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">

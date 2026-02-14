@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/drizzle";
 import { listings } from "@/lib/db/schema";
-import { auth } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { listingUpdateSchema } from "@/lib/validators";
 
 interface RouteContext {
@@ -10,8 +10,12 @@ interface RouteContext {
 }
 
 export async function PUT(request: NextRequest, { params }: RouteContext) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     return NextResponse.json(
       { error: "Duhet të jeni i kyçur" },
       { status: 401 }
@@ -39,7 +43,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     );
   }
 
-  if (existing.origin !== "user" || existing.userId !== session.user.id) {
+  if (existing.origin !== "user" || existing.userId !== user.id) {
     return NextResponse.json(
       { error: "Nuk keni leje për të ndryshuar këtë njoftim" },
       { status: 403 }
@@ -120,8 +124,12 @@ export async function DELETE(
   _request: NextRequest,
   { params }: RouteContext
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     return NextResponse.json(
       { error: "Duhet të jeni i kyçur" },
       { status: 401 }
@@ -148,7 +156,7 @@ export async function DELETE(
     );
   }
 
-  if (existing.origin !== "user" || existing.userId !== session.user.id) {
+  if (existing.origin !== "user" || existing.userId !== user.id) {
     return NextResponse.json(
       { error: "Nuk keni leje për të fshirë këtë njoftim" },
       { status: 403 }

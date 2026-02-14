@@ -1,13 +1,33 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
+import type { User } from "@supabase/supabase-js";
 
 export default function AuthButton() {
-  const { data: session, status } = useSession();
+  const supabase = createClient();
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      setLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase.auth]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -19,13 +39,18 @@ export default function AuthButton() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (status === "loading") {
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.refresh();
+  }
+
+  if (loading) {
     return (
       <div className="h-8 w-8 animate-pulse rounded-full bg-cream/20" />
     );
   }
 
-  if (!session) {
+  if (!user) {
     return (
       <Link
         href="/auth/signin"
@@ -36,12 +61,15 @@ export default function AuthButton() {
     );
   }
 
-  const initials = (session.user.name ?? session.user.email ?? "?")
+  const displayName =
+    user.user_metadata?.full_name ?? user.user_metadata?.name ?? user.email ?? "?";
+  const initials = displayName
     .split(" ")
-    .map((w) => w[0])
+    .map((w: string) => w[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
+  const avatarUrl = user.user_metadata?.avatar_url;
 
   return (
     <div className="relative" ref={menuRef}>
@@ -50,10 +78,10 @@ export default function AuthButton() {
         className="flex h-9 w-9 items-center justify-center rounded-full bg-terracotta text-sm font-bold text-white transition hover:bg-terracotta-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
         aria-label="Menuja e llogarisë"
       >
-        {session.user.image ? (
+        {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={session.user.image}
+            src={avatarUrl}
             alt=""
             className="h-9 w-9 rounded-full object-cover"
           />
@@ -66,10 +94,10 @@ export default function AuthButton() {
         <div className="absolute right-0 z-50 mt-2 w-48 rounded-card border border-warm-gray-light bg-white py-1 shadow-lg">
           <div className="border-b border-warm-gray-light/50 px-4 py-2">
             <p className="text-sm font-medium text-navy">
-              {session.user.name}
+              {displayName}
             </p>
             <p className="truncate text-xs text-warm-gray">
-              {session.user.email}
+              {user.email}
             </p>
           </div>
 
@@ -90,7 +118,7 @@ export default function AuthButton() {
 
           <div className="border-t border-warm-gray-light/50">
             <button
-              onClick={() => signOut({ callbackUrl: "/" })}
+              onClick={handleSignOut}
               className="block w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
             >
               Dil

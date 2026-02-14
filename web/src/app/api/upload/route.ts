@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { put, del } from "@vercel/blob";
-import { auth } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const BUCKET = "listing-images";
 
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     return NextResponse.json(
       { error: "Duhet të jeni i kyçur" },
       { status: 401 }
@@ -39,33 +43,65 @@ export async function POST(request: NextRequest) {
   }
 
   const ext = file.name.split(".").pop() ?? "jpg";
-  const path = `listings/${session.user.id}/${Date.now()}.${ext}`;
+  const path = `${user.id}/${Date.now()}.${ext}`;
 
-  const blob = await put(path, file, {
-    access: "public",
-    contentType: file.type,
-  });
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, {
+      contentType: file.type,
+      upsert: false,
+    });
 
-  return NextResponse.json({ url: blob.url, path });
+  if (error) {
+    return NextResponse.json(
+      { error: "Ngarkimi dështoi: " + error.message },
+      { status: 500 }
+    );
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(BUCKET).getPublicUrl(data.path);
+
+  return NextResponse.json({ url: publicUrl, path: data.path });
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     return NextResponse.json(
       { error: "Duhet të jeni i kyçur" },
       { status: 401 }
     );
   }
 
-  const { url } = await request.json();
-  if (!url) {
+  const { path } = await request.json();
+  if (!path) {
     return NextResponse.json(
-      { error: "URL e skedarit mungon" },
+      { error: "Rruga e skedarit mungon" },
       { status: 400 }
     );
   }
 
-  await del(url);
+  // Ensure user can only delete their own files
+  if (!path.startsWith(`${user.id}/`)) {
+    return NextResponse.json(
+      { error: "Nuk keni leje" },
+      { status: 403 }
+    );
+  }
+
+  const { error } = await supabase.storage.from(BUCKET).remove([path]);
+  if (error) {
+    return NextResponse.json(
+      { error: "Fshirja dështoi: " + error.message },
+      { status: 500 }
+    );
+  }
+
   return NextResponse.json({ success: true });
 }
