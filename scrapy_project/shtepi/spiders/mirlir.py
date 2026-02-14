@@ -55,6 +55,7 @@ class MirLirSpider(scrapy.Spider):
     # Chrome impersonation needed to bypass Cloudflare TLS fingerprinting.
     # robots.txt disabled because Cloudflare blocks the robots.txt fetch itself.
     custom_settings = {
+        "DOWNLOAD_HANDLERS": {"https": "scrapy_impersonate.ImpersonateDownloadHandler"},
         "IMPERSONATE_BROWSER": "chrome",
         "ROBOTSTXT_OBEY": False,
     }

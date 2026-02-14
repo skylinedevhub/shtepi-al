@@ -52,11 +52,9 @@ HTTPCACHE_DIR = "httpcache"
 # Logging
 LOG_LEVEL = "INFO"
 
-# Browser impersonation (for Cloudflare-protected sites like mirlir.com)
-# Uses curl_cffi to reproduce real browser TLS fingerprints
-DOWNLOAD_HANDLERS = {
-    "https": "scrapy_impersonate.ImpersonateDownloadHandler",
-}
+# Browser impersonation for Cloudflare-protected sites (mirlir, duashpi).
+# Enabled per-spider via custom_settings, not globally, to avoid breaking
+# spiders that don't need it.
 
 # Request fingerprinting
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"

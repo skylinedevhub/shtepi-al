@@ -20,10 +20,22 @@ from shtepi.normalizers import parse_area, parse_floor
 class DuashpiSpider(scrapy.Spider):
     name = "duashpi"
     allowed_domains = ["duashpi.al"]
-    start_urls = [
+
+    # Chrome impersonation needed to bypass Cloudflare TLS fingerprinting.
+    custom_settings = {
+        "DOWNLOAD_HANDLERS": {"https": "scrapy_impersonate.ImpersonateDownloadHandler"},
+        "IMPERSONATE_BROWSER": "chrome",
+        "ROBOTSTXT_OBEY": False,
+    }
+
+    START_URLS = [
         "https://duashpi.al/shtepi-ne-shitje",
         "https://duashpi.al/shtepi-me-qera",
     ]
+
+    def start_requests(self):
+        for url in self.START_URLS:
+            yield scrapy.Request(url, meta={"impersonate": "chrome"})
 
     def parse(self, response):
         """Parse a category listing page.
@@ -41,7 +53,7 @@ class DuashpiSpider(scrapy.Spider):
                 yield scrapy.Request(
                     response.urljoin(detail_url),
                     callback=self.parse_listing,
-                    meta={"transaction_type": txn_type},
+                    meta={"transaction_type": txn_type, "impersonate": "chrome"},
                 )
 
         # Follow pagination
@@ -59,10 +71,12 @@ class DuashpiSpider(scrapy.Spider):
                     break
 
         if next_page:
+            meta = response.meta.copy()
+            meta["impersonate"] = "chrome"
             yield scrapy.Request(
                 response.urljoin(next_page),
                 callback=self.parse,
-                meta=response.meta.copy(),
+                meta=meta,
             )
 
     def parse_listing(self, response):
@@ -135,20 +149,28 @@ class DuashpiSpider(scrapy.Spider):
                 item["room_config"] = room_match.group(1).replace(" ", "")
 
         # -- Images --
+        # Primary: CDN images (crm-cdn.ams3.cdn.digitaloceanspaces.com)
         images = response.css(
-            'img[src*="uploads/images/main"]::attr(src)'
+            'img[src*="crm-cdn"]::attr(src)'
         ).getall()
+        # Fallback: old-style uploads/images/main
+        if not images:
+            images = response.css(
+                'img[src*="uploads/images/main"]::attr(src)'
+            ).getall()
         if not images:
             images = response.css(
                 'img[src*="uploads/images"]::attr(src)'
             ).getall()
-        # Filter out thumbnails, keep main/full images
-        images = [
-            img for img in images
-            if "thumbnail" not in img
-        ]
-        item["images"] = images
-        item["image_count"] = len(images)
+        # Filter out thumbnails and deduplicate
+        seen = set()
+        unique_images = []
+        for img in images:
+            if img not in seen and "thumbnail" not in img:
+                seen.add(img)
+                unique_images.append(img)
+        item["images"] = unique_images
+        item["image_count"] = len(unique_images)
 
         # -- Description --
         desc_parts = response.css(
