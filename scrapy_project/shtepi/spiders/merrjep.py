@@ -20,8 +20,17 @@ class MerrjepSpider(scrapy.Spider):
 
     BASE = "https://www.merrjep.al/njoftime/imobiliare-vendbanime"
 
-    # Max listing pages per category/transaction combo (0 = unlimited)
+    # Max listing pages per category/transaction combo (0 = unlimited).
+    # Override via: scrapy crawl merrjep -s MAX_PAGES=0
     MAX_PAGES = 10
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super().from_crawler(crawler, *args, **kwargs)
+        max_pages = crawler.settings.getint("MAX_PAGES", None)
+        if max_pages is not None:
+            spider.MAX_PAGES = max_pages
+        return spider
 
     # Property categories on merrjep.al (Albania)
     PROPERTY_CATEGORIES = {

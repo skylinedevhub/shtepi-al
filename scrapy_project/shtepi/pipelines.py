@@ -28,6 +28,10 @@ class ValidationPipeline:
         for field in self.REQUIRED_FIELDS:
             if not item.get(field):
                 raise DropItem(f"Missing required field: {field}")
+        # Drop listings with no images
+        images = item.get("images")
+        if not images or (isinstance(images, list) and len(images) == 0):
+            raise DropItem(f"No images: {item.get('source')}/{item.get('source_id')}")
         return item
 
 
