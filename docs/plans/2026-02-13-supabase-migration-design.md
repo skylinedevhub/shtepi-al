@@ -368,18 +368,27 @@ python3 -m scrapy crawl merrjep -s HTTPCACHE_ENABLED=False
 for spider in merrjep mirlir celesi duashpi njoftime; do python3 -m scrapy crawl $spider -s HTTPCACHE_ENABLED=False; done
 ```
 
-### Automated Daily Scraping (GitHub Actions)
+### GitHub Actions Workflows
 
-- **Workflow:** `.github/workflows/scrape.yml`
-- **Schedule:** Daily at 03:00 UTC via cron
-- **Manual trigger:** GitHub UI > Actions > Daily Scrape > Run workflow
+| Workflow | File | Trigger | Design | Timeout |
+|----------|------|---------|--------|---------|
+| **Seed Scrape** | `scrape-seed.yml` | Manual only | 5 parallel jobs (one per spider) | 2 hrs/job |
+| **Daily Scrape** | `scrape.yml` | Daily 03:00 UTC + manual | 1 sequential job | 60 min |
+
 - **Secret:** `SCRAPER_DATABASE_URL` — Supabase session mode pooler connection string
-- **Timeout:** 30 minutes max
-- **Spiders:** merrjep, mirlir, celesi, duashpi, njoftime (run sequentially)
-- **Pipeline:** `PostgreSQLPipeline` with batch upsert (50 items/batch), per-item error isolation
+- **Seed scrape:** merrjep runs with `MAX_PAGES=0` (unlimited pagination); other spiders have no page caps by default
+- **Daily scrape:** merrjep uses default `MAX_PAGES=10` (recent listings only)
+
+### Cloudflare Bypass
+
+mirlir.com and duashpi.al are behind Cloudflare Bot Management. These spiders use `scrapy-impersonate` (curl_cffi) to reproduce Chrome TLS fingerprints. Configured per-spider via `custom_settings`:
+- `DOWNLOAD_HANDLERS`: `{"https": "scrapy_impersonate.ImpersonateDownloadHandler"}`
+- `IMPERSONATE_BROWSER`: `"chrome"`
+- `ROBOTSTXT_OBEY`: `False` (Cloudflare blocks robots.txt fetch)
 
 ### Pipeline Behavior
 
+- **Validation:** Items missing required fields or with 0 images are dropped before storage
 - **Upsert:** `ON CONFLICT (source, source_id)` — updates existing listings, inserts new ones
 - **Timestamps:** Sets `last_seen` and `updated_at` on every upsert
 - **Error handling:** Bad items are rolled back individually and logged as warnings; the spider continues
@@ -408,4 +417,8 @@ for spider in merrjep mirlir celesi duashpi njoftime; do python3 -m scrapy crawl
 | Scrapy connection string | Use session mode pooler (port 5432) — verified working with psycopg2 |
 | Pooler hostname mismatch | Always check Dashboard — project uses `aws-1`, not `aws-0` |
 | Spider crash on bad data | Per-item error isolation with rollback + warning log |
+| Cloudflare blocking spiders | scrapy-impersonate with Chrome TLS fingerprint (mirlir, duashpi) |
+| Image CDN migration | duashpi moved to crm-cdn; selector updated to match |
+| Imageless listings | ValidationPipeline drops items with 0 images |
+| Vercel root directory | Must be set to `web` in Dashboard > Settings > General |
 | Seed fallback | Unchanged — works when DATABASE_URL is missing |
