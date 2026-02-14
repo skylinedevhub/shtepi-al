@@ -52,6 +52,13 @@ class MirLirSpider(scrapy.Spider):
         "pogradec", "kamez", "kavaje", "lezhe", "gjirokaster",
     ]
 
+    # Chrome impersonation needed to bypass Cloudflare TLS fingerprinting.
+    # robots.txt disabled because Cloudflare blocks the robots.txt fetch itself.
+    custom_settings = {
+        "IMPERSONATE_BROWSER": "chrome",
+        "ROBOTSTXT_OBEY": False,
+    }
+
     def start_requests(self):
         """Generate start URLs for each category + city combination."""
         for cat_slug in self.CATEGORIES:
@@ -63,6 +70,7 @@ class MirLirSpider(scrapy.Spider):
                     meta={
                         "category_slug": cat_slug,
                         "city_slug": city,
+                        "impersonate": "chrome",
                     },
                 )
 
@@ -100,16 +108,19 @@ class MirLirSpider(scrapy.Spider):
                     "city": card_city,
                     "transaction_type": cat_info[0],
                     "property_type": cat_info[1],
+                    "impersonate": "chrome",
                 },
             )
 
         # Follow pagination: the "Next" link
         next_link = response.css('ul.pagination a[aria-label="Next"]::attr(href)').get()
         if next_link:
+            meta = response.meta.copy()
+            meta["impersonate"] = "chrome"
             yield scrapy.Request(
                 response.urljoin(next_link),
                 callback=self.parse,
-                meta=response.meta.copy(),
+                meta=meta,
             )
 
     def parse_detail(self, response):

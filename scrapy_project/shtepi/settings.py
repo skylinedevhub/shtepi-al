@@ -52,6 +52,12 @@ HTTPCACHE_DIR = "httpcache"
 # Logging
 LOG_LEVEL = "INFO"
 
+# Browser impersonation (for Cloudflare-protected sites like mirlir.com)
+# Uses curl_cffi to reproduce real browser TLS fingerprints
+DOWNLOAD_HANDLERS = {
+    "https": "scrapy_impersonate.ImpersonateDownloadHandler",
+}
+
 # Request fingerprinting
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"

@@ -331,21 +331,63 @@ drizzle-kit
 
 ---
 
-## 8. Data Migration Strategy
+## 8. Data Migration — Completed 2026-02-13
 
-1. Create Supabase project
-2. Run Drizzle schema push (`drizzle-kit push`) against Supabase
-3. Apply RLS policies + profiles trigger via SQL migration
-4. Export Neon data: `pg_dump` from Neon
-5. Import to Supabase: `psql` or Supabase Dashboard SQL editor
-6. Verify listing counts match
-7. Run spider test crawl against Supabase
-8. Update Vercel env vars
-9. Deploy and verify
+1. Created Supabase project `shtepi-al` (ref: `cuavbqbazncfwhvlvfaw`, region: `eu-central-1`)
+2. Applied SQL migration `001_create_profiles_and_rls.sql` (enums, tables, trigger, RLS, storage bucket)
+3. Applied FTS migration `0001_add_fts.sql` (stored `search_vector` tsvector + GIN index)
+4. Exported 2086 listings from Neon (`lively-grass-33038506`) via Node.js batch script
+5. Imported all 2086 listings into Supabase — verified counts match
+6. Updated Vercel env vars (removed 17 Neon/NextAuth vars, added 4 Supabase vars)
+7. Deployed to Vercel — production API verified at `shtepi-al.vercel.app`
+8. Ran test spider crawl — 9 items upserted, `PostgreSQLPipeline` confirmed working
+
+**Note:** Pooler hostname is `aws-1-eu-central-1.pooler.supabase.com` (not `aws-0`).
+Always verify the exact hostname from Supabase Dashboard > Settings > Database > Connection String.
 
 ---
 
-## 9. Tooling
+## 9. Scraping Infrastructure
+
+### Connection Strings
+
+| Use Case | Pooler Mode | Port | Why |
+|----------|-------------|------|-----|
+| Next.js app (Drizzle) | Transaction mode | 6543 | Short-lived serverless requests, `prepare: false` required |
+| Scrapy spiders | Session mode | 5432 | Long-running crawl sessions, persistent connection |
+| GitHub Actions scraper | Session mode | 5432 | Same as spiders — runs as a batch job |
+
+### Local Crawling
+
+```bash
+cd scrapy_project
+export $(grep -v '^#' ../.env.crawl | xargs)
+# Run one spider:
+python3 -m scrapy crawl merrjep -s HTTPCACHE_ENABLED=False
+# Run all spiders:
+for spider in merrjep mirlir celesi duashpi njoftime; do python3 -m scrapy crawl $spider -s HTTPCACHE_ENABLED=False; done
+```
+
+### Automated Daily Scraping (GitHub Actions)
+
+- **Workflow:** `.github/workflows/scrape.yml`
+- **Schedule:** Daily at 03:00 UTC via cron
+- **Manual trigger:** GitHub UI > Actions > Daily Scrape > Run workflow
+- **Secret:** `SCRAPER_DATABASE_URL` — Supabase session mode pooler connection string
+- **Timeout:** 30 minutes max
+- **Spiders:** merrjep, mirlir, celesi, duashpi, njoftime (run sequentially)
+- **Pipeline:** `PostgreSQLPipeline` with batch upsert (50 items/batch), per-item error isolation
+
+### Pipeline Behavior
+
+- **Upsert:** `ON CONFLICT (source, source_id)` — updates existing listings, inserts new ones
+- **Timestamps:** Sets `last_seen` and `updated_at` on every upsert
+- **Error handling:** Bad items are rolled back individually and logged as warnings; the spider continues
+- **Dedup:** In-memory `DedupPipeline` prevents duplicate inserts within the same crawl session
+
+---
+
+## 10. Tooling
 
 | Tool | Type | Install | Purpose |
 |------|------|---------|---------|
@@ -355,7 +397,7 @@ drizzle-kit
 
 ---
 
-## 10. Risks & Mitigations
+## 11. Risks & Mitigations
 
 | Risk | Mitigation |
 |------|------------|
@@ -363,5 +405,7 @@ drizzle-kit
 | Existing user data in Neon | Manual migration of users into `auth.users` via Supabase Admin API |
 | Storage URL format change | Only affects user-uploaded images (few/none in prod currently) |
 | RLS misconfiguration | Test with both anon and service_role keys before enabling |
-| Scrapy connection string | Test psycopg2 with Supabase direct connection (port 5432, not pooler 6543) |
+| Scrapy connection string | Use session mode pooler (port 5432) — verified working with psycopg2 |
+| Pooler hostname mismatch | Always check Dashboard — project uses `aws-1`, not `aws-0` |
+| Spider crash on bad data | Per-item error isolation with rollback + warning log |
 | Seed fallback | Unchanged — works when DATABASE_URL is missing |
