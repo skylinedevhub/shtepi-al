@@ -1,4 +1,4 @@
-# Database (local dev only — production uses Neon PostgreSQL, Vercel uses JSON seed fallback)
+# Database (local dev only — production uses Supabase PostgreSQL, Vercel uses JSON seed fallback)
 db/*.db
 db/*.db-wal
 db/*.db-shm
@@ -23,6 +23,7 @@ logs/
 # Environment
 .env
 .env.local
+.env.crawl
 
 # IDE
 .vscode/

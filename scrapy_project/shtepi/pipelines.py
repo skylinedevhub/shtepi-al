@@ -272,7 +272,7 @@ class SQLitePipeline:
 
 
 class PostgreSQLPipeline:
-    """Store listings in PostgreSQL (Neon) with batch upsert."""
+    """Store listings in PostgreSQL (Supabase) with batch upsert."""
 
     BUFFER_SIZE = 50
 
@@ -313,7 +313,7 @@ class PostgreSQLPipeline:
         return item
 
     def _reconnect(self):
-        """Reconnect to PostgreSQL if connection was lost (e.g. Neon idle timeout)."""
+        """Reconnect to PostgreSQL if connection was lost (e.g. idle timeout)."""
         import psycopg2
         try:
             if self.conn and not self.conn.closed:
