@@ -4,6 +4,7 @@ import Link from "next/link";
 import MobileMenu from "@/components/MobileMenu";
 import AuthButton from "@/components/AuthButton";
 import Providers from "@/components/Providers";
+import { cityToSlug } from "@/lib/seo/slugs";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -134,7 +135,7 @@ export default function RootLayout({
                   {QUICK_CITIES.map((city) => (
                     <li key={city}>
                       <Link
-                        href={`/listings?city=${encodeURIComponent(city)}`}
+                        href={`/${cityToSlug(city)}`}
                         className="transition hover:text-terracotta"
                       >
                         {city}
