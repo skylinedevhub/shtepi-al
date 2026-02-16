@@ -8,6 +8,7 @@ import {
   seedSearchListings,
   seedGetStats,
   seedGetAllActiveListingSlugs,
+  seedGetListingByShortId,
 } from "./seed";
 
 type DbRow = typeof listings.$inferSelect;
@@ -268,4 +269,19 @@ export async function getAllActiveListingSlugs(): Promise<ListingSlugRow[]> {
     city: r.city,
     last_seen: r.lastSeen?.toISOString() ?? "",
   }));
+}
+
+export async function getListingByShortId(
+  shortId: string
+): Promise<Listing | null> {
+  const db = getDb();
+  if (!db) return seedGetListingByShortId(shortId);
+
+  const [row] = await db
+    .select()
+    .from(listings)
+    .where(sql`${listings.id}::text LIKE ${shortId + "%"}`)
+    .limit(1);
+
+  return row ? dbRowToListing(row) : null;
 }

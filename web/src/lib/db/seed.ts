@@ -132,6 +132,14 @@ export function seedSearchListings(
   };
 }
 
+export function seedGetListingByShortId(shortId: string): Listing | null {
+  return (
+    getSeedListings().find((l) =>
+      l.id.replace(/-/g, "").startsWith(shortId)
+    ) ?? null
+  );
+}
+
 export function seedGetAllActiveListingSlugs(): Array<{
   id: string;
   title: string;
