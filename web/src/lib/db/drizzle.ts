@@ -19,5 +19,3 @@ export function getDb() {
   }
   return _db;
 }
-
-export type DrizzleDb = NonNullable<ReturnType<typeof createDb>>;

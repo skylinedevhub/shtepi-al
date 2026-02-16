@@ -243,7 +243,7 @@ export async function getStats(): Promise<Stats> {
   };
 }
 
-export interface ListingSlugRow {
+interface ListingSlugRow {
   id: string;
   title: string;
   city: string | null;

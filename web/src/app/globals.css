@@ -100,14 +100,3 @@ body {
   box-shadow: 0 4px 6px -1px rgba(27, 42, 74, 0.1) !important;
 }
 
-/* City marker — removes Leaflet default icon background */
-.city-marker {
-  background: none !important;
-  border: none !important;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}

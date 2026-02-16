@@ -33,6 +33,3 @@ export const listingCreateSchema = z.object({
 });
 
 export const listingUpdateSchema = listingCreateSchema.partial();
-
-export type ListingCreateInput = z.infer<typeof listingCreateSchema>;
-export type ListingUpdateInput = z.infer<typeof listingUpdateSchema>;

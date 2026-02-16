@@ -16,7 +16,3 @@ export const ALBANIAN_CITY_COORDS: Record<string, [number, number]> = {
 export const ALBANIA_CENTER: [number, number] = [41.1533, 20.1683];
 export const ALBANIA_DEFAULT_ZOOM = 7;
 export const CITY_ZOOM = 13;
-
-export function getCityCoords(city: string): [number, number] | null {
-  return ALBANIAN_CITY_COORDS[city] ?? null;
-}
