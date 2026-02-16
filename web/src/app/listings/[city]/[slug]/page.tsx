@@ -1,10 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getListingById } from "@/lib/db/queries";
+import { getListingByShortId } from "@/lib/db/queries";
+import { parseSlugId } from "@/lib/seo/slugs";
+import { buildListingMetadata } from "@/lib/seo/metadata";
+import { buildListingJsonLd, buildBreadcrumbJsonLd } from "@/lib/seo/jsonld";
+import { SITE_URL } from "@/lib/seo/constants";
+import { buildListingPath } from "@/lib/seo/slugs";
+import JsonLd from "@/components/JsonLd";
 import ImageGallery from "@/components/ImageGallery";
 import ShareButton from "@/components/ShareButton";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
   apartment: "Apartament",
@@ -23,15 +30,30 @@ const POSTER_TYPE_LABELS: Record<string, string> = {
 };
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ city: string; slug: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const shortId = parseSlugId(slug);
+  if (!shortId) return {};
+
+  const listing = await getListingByShortId(shortId);
+  if (!listing) return {};
+
+  return buildListingMetadata(listing);
 }
 
 export default async function ListingDetailPage({ params }: Props) {
-  const listing = await getListingById(params.id);
+  const { city, slug } = await params;
+  const shortId = parseSlugId(slug);
+  if (!shortId) notFound();
 
-  if (!listing) {
-    notFound();
-  }
+  const listing = await getListingByShortId(shortId);
+  if (!listing) notFound();
+
+  const canonicalPath = buildListingPath(listing.title, listing.city, listing.id);
+  const canonicalUrl = `${SITE_URL}${canonicalPath}`;
 
   const priceText = listing.price
     ? `€${listing.price.toLocaleString("de-DE", { maximumFractionDigits: 0 })}`
@@ -40,6 +62,17 @@ export default async function ListingDetailPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
+      <JsonLd data={buildListingJsonLd(listing, canonicalUrl)} />
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: "Kryefaqja", url: SITE_URL },
+          ...(listing.city
+            ? [{ name: listing.city, url: `${SITE_URL}/${city}` }]
+            : []),
+          { name: listing.title },
+        ])}
+      />
+
       {/* Breadcrumb */}
       <nav className="mb-4 flex items-center gap-1.5 text-sm text-warm-gray" aria-label="Breadcrumb">
         <Link href="/listings" className="transition hover:text-terracotta">
@@ -49,7 +82,7 @@ export default async function ListingDetailPage({ params }: Props) {
         {listing.city && (
           <>
             <Link
-              href={`/listings?city=${encodeURIComponent(listing.city)}`}
+              href={`/${city}`}
               className="transition hover:text-terracotta"
             >
               {listing.city}

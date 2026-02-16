@@ -4,6 +4,7 @@ import Link from "next/link";
 import MobileMenu from "@/components/MobileMenu";
 import AuthButton from "@/components/AuthButton";
 import Providers from "@/components/Providers";
+import { cityToSlug } from "@/lib/seo/slugs";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -19,9 +20,24 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "ShtëpiAL — Gjej shtëpinë tënde në Shqipëri",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://shtepial.al"),
+  title: {
+    template: "%s | ShtëpiAL",
+    default: "ShtëpiAL — Gjej shtëpinë tënde në Shqipëri",
+  },
   description:
     "Agregator i njoftimeve të pasurive të paluajtshme në Shqipëri. Kërko apartamente, shtëpi, vila dhe tokë nga të gjitha burimet në një vend.",
+  openGraph: {
+    siteName: "ShtëpiAL",
+    locale: "sq_AL",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+  alternates: {
+    canonical: "/",
+  },
 };
 
 const QUICK_CITIES = ["Tiranë", "Durrës", "Vlorë", "Sarandë", "Shkodër", "Korçë"];
@@ -119,7 +135,7 @@ export default function RootLayout({
                   {QUICK_CITIES.map((city) => (
                     <li key={city}>
                       <Link
-                        href={`/listings?city=${encodeURIComponent(city)}`}
+                        href={`/${cityToSlug(city)}`}
                         className="transition hover:text-terracotta"
                       >
                         {city}

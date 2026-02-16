@@ -132,6 +132,28 @@ export function seedSearchListings(
   };
 }
 
+export function seedGetListingByShortId(shortId: string): Listing | null {
+  return (
+    getSeedListings().find((l) =>
+      l.id.replace(/-/g, "").startsWith(shortId)
+    ) ?? null
+  );
+}
+
+export function seedGetAllActiveListingSlugs(): Array<{
+  id: string;
+  title: string;
+  city: string | null;
+  last_seen: string;
+}> {
+  return getSeedListings().map((l) => ({
+    id: l.id,
+    title: l.title,
+    city: l.city,
+    last_seen: l.last_seen,
+  }));
+}
+
 export function seedGetStats(): Stats {
   const listings = getSeedListings();
   const byCity: Record<string, number> = {};

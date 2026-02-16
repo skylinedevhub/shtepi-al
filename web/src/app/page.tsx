@@ -2,6 +2,9 @@ import { Suspense } from "react";
 import Link from "next/link";
 import SearchBar from "@/components/SearchBar";
 import ListingCard from "@/components/ListingCard";
+import JsonLd from "@/components/JsonLd";
+import { buildWebsiteJsonLd } from "@/lib/seo/jsonld";
+import { cityToSlug } from "@/lib/seo/slugs";
 import { getStats, getListings } from "@/lib/db/queries";
 
 const QUICK_CITIES = [
@@ -17,6 +20,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">
+      <JsonLd data={buildWebsiteJsonLd()} />
       {/* Hero — mesh gradient */}
       <section
         className="flex flex-1 flex-col items-center justify-center px-4 py-28"
@@ -66,7 +70,7 @@ export default async function HomePage() {
           {QUICK_CITIES.map((city) => (
             <Link
               key={city}
-              href={`/listings?city=${encodeURIComponent(city)}`}
+              href={`/${cityToSlug(city)}`}
               className="rounded-full border border-warm-gray-light bg-white px-4 py-1.5 text-sm text-warm-gray shadow-sm transition hover:border-terracotta/30 hover:text-terracotta hover:shadow-md"
             >
               {city}

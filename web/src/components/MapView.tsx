@@ -5,6 +5,7 @@ import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Listing } from "@/lib/types";
+import { buildListingPath, cityToSlug } from "@/lib/seo/slugs";
 import {
   ALBANIAN_CITY_COORDS,
   ALBANIA_CENTER,
@@ -105,7 +106,7 @@ function CityPopup({ city, listings }: { city: string; listings: Listing[] }) {
           return (
             <a
               key={l.id}
-              href={`/listings/${l.id}`}
+              href={buildListingPath(l.title, l.city, l.id)}
               style={{
                 display: "flex",
                 gap: 10,
@@ -156,7 +157,7 @@ function CityPopup({ city, listings }: { city: string; listings: Listing[] }) {
         })}
       </div>
       <a
-        href={`/listings?city=${encodeURIComponent(city)}`}
+        href={`/${cityToSlug(city)}`}
         style={{
           display: "block",
           textAlign: "center",

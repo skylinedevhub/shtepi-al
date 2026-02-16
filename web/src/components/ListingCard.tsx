@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Listing } from "@/lib/types";
+import { buildListingPath } from "@/lib/seo/slugs";
 
 const SOURCE_COLORS: Record<string, string> = {
   merrjep: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
@@ -30,7 +31,7 @@ export default function ListingCard({ listing, variant = "default" }: ListingCar
 
   return (
     <Link
-      href={`/listings/${listing.id}`}
+      href={buildListingPath(listing.title, listing.city, listing.id)}
       className={`group block overflow-hidden bg-white shadow-sm transition-all duration-200 hover:shadow-xl hover:-translate-y-1 ${
         isCompact
           ? "rounded-xl border border-warm-gray-light/60"
