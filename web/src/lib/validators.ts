@@ -21,6 +21,8 @@ export const listingCreateSchema = z.object({
   city: z.string().max(100).optional(),
   neighborhood: z.string().max(200).optional(),
   address_raw: z.string().max(500).optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   has_elevator: z.boolean().optional(),
   has_parking: z.boolean().optional(),
   is_furnished: z.boolean().optional(),

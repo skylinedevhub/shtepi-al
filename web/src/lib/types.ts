@@ -21,6 +21,8 @@ export interface Listing {
   city: string | null;
   neighborhood: string | null;
   address_raw: string | null;
+  latitude: number | null;
+  longitude: number | null;
   images: string[];
   image_count: number;
   poster_name: string | null;

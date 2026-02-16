@@ -130,6 +130,8 @@ export async function POST(request: NextRequest) {
       city: data.city,
       neighborhood: data.neighborhood,
       addressRaw: data.address_raw,
+      latitude: data.latitude,
+      longitude: data.longitude,
       images: data.images,
       imageCount: data.images.length,
       posterName: data.poster_name ?? displayName,
