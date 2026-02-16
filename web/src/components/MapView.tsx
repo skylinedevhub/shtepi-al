@@ -3,10 +3,10 @@
 import { useEffect } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import "leaflet/dist/leaflet.css";
 import type { Listing } from "@/lib/types";
 import {
-  ALBANIAN_CITY_COORDS,
   ALBANIA_CENTER,
   ALBANIA_DEFAULT_ZOOM,
 } from "@/lib/city-coords";
@@ -23,180 +23,84 @@ interface MapViewProps {
   listings: Listing[];
 }
 
-/**
- * Creates a custom Leaflet divIcon for a city marker.
- *
- * The icon is a navy circle with a gold border, showing the
- * listing count in cream text. Size scales with count.
- *
- * @param count — number of listings in this city
- * @returns L.DivIcon instance
- */
-function createCityIcon(count: number): L.DivIcon {
+function createClusterIcon(cluster: { getChildCount(): number }): L.DivIcon {
+  const count = cluster.getChildCount();
   const size = count > 50 ? 56 : count > 10 ? 48 : 40;
   const fontSize = count > 50 ? 16 : count > 10 ? 14 : 12;
 
   return L.divIcon({
-    className: "city-marker",
-    html: `
-      <div style="
-        width: ${size}px;
-        height: ${size}px;
-        border-radius: 50%;
-        background: #1B2A4A;
-        border: 3px solid #D4A843;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #FDF8F0;
-        font-weight: 700;
-        font-size: ${fontSize}px;
-        box-shadow: 0 4px 12px rgba(27, 42, 74, 0.4);
-        cursor: pointer;
-        transition: transform 0.2s;
-      ">
-        ${count}
-      </div>
-    `,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-    popupAnchor: [0, -(size / 2 + 4)],
+    html: `<div style="
+      width: ${size}px; height: ${size}px; border-radius: 50%;
+      background: #1B2A4A; border: 3px solid #D4A843;
+      display: flex; align-items: center; justify-content: center;
+      color: #FDF8F0; font-weight: 700; font-size: ${fontSize}px;
+      box-shadow: 0 4px 12px rgba(27,42,74,0.4);
+    ">${count}</div>`,
+    className: "cluster-marker",
+    iconSize: L.point(size, size),
+    iconAnchor: L.point(size / 2, size / 2),
   });
 }
 
-function FitBounds({ cities }: { cities: [number, number][] }) {
+function FitBounds({ positions }: { positions: [number, number][] }) {
   const map = useMap();
-
   useEffect(() => {
-    if (cities.length === 0) return;
-    if (cities.length === 1) {
-      map.setView(cities[0], 12);
+    if (positions.length === 0) return;
+    if (positions.length === 1) {
+      map.setView(positions[0], 14);
       return;
     }
-    const bounds = L.latLngBounds(cities.map(([lat, lng]) => [lat, lng]));
+    const bounds = L.latLngBounds(positions);
     map.fitBounds(bounds, { padding: [40, 40] });
-  }, [map, cities]);
-
+  }, [map, positions]);
   return null;
 }
 
-function CityPopup({ city, listings }: { city: string; listings: Listing[] }) {
-  const preview = listings.slice(0, 3);
+function ListingPopup({ listing }: { listing: Listing }) {
+  const img = listing.images[0];
+  const price = listing.price
+    ? `€${listing.price.toLocaleString("de-DE", { maximumFractionDigits: 0 })}`
+    : "Pa çmim";
+  const suffix = listing.price_period === "monthly" ? "/muaj" : "";
+  const details = [listing.room_config, listing.area_sqm ? `${listing.area_sqm} m²` : null]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div style={{ fontFamily: "var(--font-dm-sans),system-ui,sans-serif" }}>
-      <div style={{ padding: "12px 14px", background: "#1B2A4A", color: "#FDF8F0" }}>
-        <div style={{ fontSize: 16, fontWeight: 700 }}>{city}</div>
-        <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>
-          {listings.length} njoftime
+    <a
+      href={`/listings/${listing.id}`}
+      style={{ display: "block", textDecoration: "none", color: "inherit", width: 220 }}
+    >
+      {img && (
+        <img
+          src={img}
+          alt=""
+          style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: "8px 8px 0 0" }}
+        />
+      )}
+      <div style={{ padding: 10 }}>
+        <div style={{ fontWeight: 700, color: "#1B2A4A", fontSize: 16 }}>
+          {price}
+          <span style={{ fontWeight: 400, color: "#8B8178", fontSize: 12 }}>{suffix}</span>
         </div>
+        {details && (
+          <div style={{ fontSize: 12, color: "#8B8178", marginTop: 4 }}>{details}</div>
+        )}
+        {listing.neighborhood && (
+          <div style={{ fontSize: 12, color: "#8B8178", marginTop: 2 }}>{listing.neighborhood}</div>
+        )}
       </div>
-      <div>
-        {preview.map((l) => {
-          const img = l.images[0];
-          const price = l.price
-            ? `€${l.price.toLocaleString("de-DE", { maximumFractionDigits: 0 })}`
-            : "Pa çmim";
-          const suffix = l.price_period === "monthly" ? "/muaj" : "";
-          const details = [l.room_config, l.area_sqm ? `${l.area_sqm} m²` : null]
-            .filter(Boolean)
-            .join(" · ");
-
-          return (
-            <a
-              key={l.id}
-              href={`/listings/${l.id}`}
-              style={{
-                display: "flex",
-                gap: 10,
-                padding: 10,
-                borderBottom: "1px solid #F5EDE0",
-                textDecoration: "none",
-                color: "inherit",
-              }}
-            >
-              {img ? (
-                <img
-                  src={img}
-                  alt=""
-                  style={{
-                    width: 64,
-                    height: 48,
-                    objectFit: "cover",
-                    borderRadius: 8,
-                    flexShrink: 0,
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 64,
-                    height: 48,
-                    background: "#F5EDE0",
-                    borderRadius: 8,
-                    flexShrink: 0,
-                  }}
-                />
-              )}
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 700, color: "#1B2A4A", fontSize: 14 }}>
-                  {price}
-                  <span style={{ fontWeight: 400, color: "#8B8178", fontSize: 12 }}>
-                    {suffix}
-                  </span>
-                </div>
-                {details && (
-                  <div style={{ fontSize: 12, color: "#8B8178", marginTop: 2 }}>
-                    {details}
-                  </div>
-                )}
-              </div>
-            </a>
-          );
-        })}
-      </div>
-      <a
-        href={`/listings?city=${encodeURIComponent(city)}`}
-        style={{
-          display: "block",
-          textAlign: "center",
-          padding: 10,
-          fontSize: 13,
-          fontWeight: 600,
-          color: "#C75B39",
-          textDecoration: "none",
-        }}
-      >
-        {listings.length > 3 ? `Shiko të gjitha në ${city} →` : `Shiko në ${city} →`}
-      </a>
-    </div>
+    </a>
   );
 }
 
 export default function MapView({ listings }: MapViewProps) {
-  // Group listings by city
-  const cityGroups = new Map<string, Listing[]>();
-  for (const listing of listings) {
-    if (!listing.city) continue;
-    const key = listing.city;
-    if (!cityGroups.has(key)) cityGroups.set(key, []);
-    cityGroups.get(key)!.push(listing);
-  }
+  const geoListings = listings.filter(
+    (l): l is Listing & { latitude: number; longitude: number } =>
+      l.latitude != null && l.longitude != null
+  );
 
-  // Build markers
-  const markers: {
-    city: string;
-    coords: [number, number];
-    listings: Listing[];
-  }[] = [];
-
-  Array.from(cityGroups.entries()).forEach(([city, cityListings]) => {
-    const coords = ALBANIAN_CITY_COORDS[city];
-    if (!coords) return;
-    markers.push({ city, coords, listings: cityListings });
-  });
-
-  const markerCoords = markers.map((m) => m.coords);
+  const positions: [number, number][] = geoListings.map((l) => [l.latitude, l.longitude]);
 
   return (
     <MapContainer
@@ -206,21 +110,19 @@ export default function MapView({ listings }: MapViewProps) {
       scrollWheelZoom={true}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <FitBounds cities={markerCoords} />
-      {markers.map((m) => (
-        <Marker
-          key={m.city}
-          position={m.coords}
-          icon={createCityIcon(m.listings.length)}
-        >
-          <Popup maxWidth={320} minWidth={280}>
-            <CityPopup city={m.city} listings={m.listings} />
-          </Popup>
-        </Marker>
-      ))}
+      <FitBounds positions={positions} />
+      <MarkerClusterGroup iconCreateFunction={createClusterIcon} maxClusterRadius={60}>
+        {geoListings.map((listing) => (
+          <Marker key={listing.id} position={[listing.latitude, listing.longitude]}>
+            <Popup maxWidth={240} minWidth={220}>
+              <ListingPopup listing={listing} />
+            </Popup>
+          </Marker>
+        ))}
+      </MarkerClusterGroup>
     </MapContainer>
   );
 }
