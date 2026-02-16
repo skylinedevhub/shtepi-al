@@ -7,6 +7,7 @@ import {
   seedGetListingById,
   seedSearchListings,
   seedGetStats,
+  seedGetAllActiveListingSlugs,
 } from "./seed";
 
 type DbRow = typeof listings.$inferSelect;
@@ -237,4 +238,34 @@ export async function getStats(): Promise<Stats> {
       transactionRows.map((r) => [r.transactionType, Number(r.count)])
     ),
   };
+}
+
+export interface ListingSlugRow {
+  id: string;
+  title: string;
+  city: string | null;
+  last_seen: string;
+}
+
+export async function getAllActiveListingSlugs(): Promise<ListingSlugRow[]> {
+  const db = getDb();
+  if (!db) return seedGetAllActiveListingSlugs();
+
+  const rows = await db
+    .select({
+      id: listings.id,
+      title: listings.title,
+      city: listings.city,
+      lastSeen: listings.lastSeen,
+    })
+    .from(listings)
+    .where(eq(listings.isActive, true))
+    .orderBy(desc(listings.firstSeen));
+
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    city: r.city,
+    last_seen: r.lastSeen?.toISOString() ?? "",
+  }));
 }
