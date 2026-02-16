@@ -1,13 +1,16 @@
 """Scrapy item pipelines for ShtëpiAL.
 
-Pipeline chain: Validate → Normalize → Dedup → Store
+Pipeline chain: Validate → Normalize → Geocode → Dedup → Store
 """
 
 import json
 import os
 import sqlite3
+import time
 import uuid
 from datetime import datetime, timezone
+
+import requests
 
 from shtepi.normalizers import (
     extract_features,
@@ -85,6 +88,100 @@ class NormalizationPipeline:
         item["image_count"] = len(images)
 
         return item
+
+
+# City center coordinates for fallback geocoding
+CITY_COORDS = {
+    "Tiranë": (41.3275, 19.8187),
+    "Durrës": (41.3246, 19.4565),
+    "Vlorë": (40.4660, 19.4913),
+    "Sarandë": (39.8661, 20.0050),
+    "Shkodër": (42.0693, 19.5126),
+    "Korçë": (40.6186, 20.7808),
+    "Elbasan": (41.1125, 20.0822),
+    "Fier": (40.7239, 19.5563),
+    "Berat": (40.7058, 19.9522),
+    "Lushnjë": (40.9419, 19.7050),
+    "Kamëz": (41.3817, 19.7600),
+    "Pogradec": (40.9025, 20.6525),
+    "Kavajë": (41.1856, 19.5569),
+    "Lezhë": (41.7836, 19.6436),
+    "Gjirokastër": (40.0758, 20.1389),
+}
+
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+NOMINATIM_HEADERS = {"User-Agent": "ShtëpiAL/1.0 (real estate aggregator)"}
+
+
+class GeocodingPipeline:
+    """Resolve latitude/longitude for listings.
+
+    Priority:
+    1. Spider-provided coords (passthrough)
+    2. Nominatim geocoding from address/neighborhood + city
+    3. City center fallback from CITY_COORDS
+    """
+
+    def __init__(self):
+        self._cache = {}       # address_key → (lat, lng) or None
+        self._last_request = 0  # timestamp for rate limiting
+
+    def process_item(self, item, spider):
+        # 1. Already has coordinates from spider
+        if item.get("latitude") and item.get("longitude"):
+            return item
+
+        city = item.get("city")
+        address = item.get("address_raw") or item.get("neighborhood")
+
+        # 2. Try Nominatim if we have address-level data
+        if address and city:
+            coords = self._geocode(address, city)
+            if coords:
+                item["latitude"], item["longitude"] = coords
+                return item
+
+        # 3. Fall back to city center
+        if city and city in CITY_COORDS:
+            item["latitude"], item["longitude"] = CITY_COORDS[city]
+            return item
+
+        return item
+
+    def _geocode(self, address, city):
+        """Geocode address via Nominatim with caching and rate limiting."""
+        cache_key = f"{address}|{city}".lower()
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+
+        # Rate limit: 1 req/sec
+        now = time.time()
+        elapsed = now - self._last_request
+        if elapsed < 1.0:
+            time.sleep(1.0 - elapsed)
+
+        try:
+            resp = requests.get(
+                NOMINATIM_URL,
+                params={"q": f"{address}, {city}, Albania", "format": "json", "limit": 1},
+                headers=NOMINATIM_HEADERS,
+                timeout=10,
+            )
+            self._last_request = time.time()
+
+            if resp.status_code == 200:
+                data = resp.json()
+                if data:
+                    coords = (float(data[0]["lat"]), float(data[0]["lon"]))
+                    self._cache[cache_key] = coords
+                    return coords
+
+            self._cache[cache_key] = None
+            return None
+
+        except Exception:
+            self._cache[cache_key] = None
+            return None
 
 
 class DedupPipeline:
