@@ -28,6 +28,7 @@ _store_pipeline = (
 ITEM_PIPELINES = {
     "shtepi.pipelines.ValidationPipeline": 100,
     "shtepi.pipelines.NormalizationPipeline": 200,
+    "shtepi.pipelines.GeocodingPipeline": 250,
     "shtepi.pipelines.DedupPipeline": 300,
     _store_pipeline: 400,
 }

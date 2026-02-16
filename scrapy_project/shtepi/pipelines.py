@@ -1,13 +1,16 @@
 """Scrapy item pipelines for ShtëpiAL.
 
-Pipeline chain: Validate → Normalize → Dedup → Store
+Pipeline chain: Validate → Normalize → Geocode → Dedup → Store
 """
 
 import json
 import os
 import sqlite3
+import time
 import uuid
 from datetime import datetime, timezone
+
+import requests
 
 from shtepi.normalizers import (
     extract_features,
@@ -87,6 +90,100 @@ class NormalizationPipeline:
         return item
 
 
+# City center coordinates for fallback geocoding
+CITY_COORDS = {
+    "Tiranë": (41.3275, 19.8187),
+    "Durrës": (41.3246, 19.4565),
+    "Vlorë": (40.4660, 19.4913),
+    "Sarandë": (39.8661, 20.0050),
+    "Shkodër": (42.0693, 19.5126),
+    "Korçë": (40.6186, 20.7808),
+    "Elbasan": (41.1125, 20.0822),
+    "Fier": (40.7239, 19.5563),
+    "Berat": (40.7058, 19.9522),
+    "Lushnjë": (40.9419, 19.7050),
+    "Kamëz": (41.3817, 19.7600),
+    "Pogradec": (40.9025, 20.6525),
+    "Kavajë": (41.1856, 19.5569),
+    "Lezhë": (41.7836, 19.6436),
+    "Gjirokastër": (40.0758, 20.1389),
+}
+
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+NOMINATIM_HEADERS = {"User-Agent": "ShtëpiAL/1.0 (real estate aggregator)"}
+
+
+class GeocodingPipeline:
+    """Resolve latitude/longitude for listings.
+
+    Priority:
+    1. Spider-provided coords (passthrough)
+    2. Nominatim geocoding from address/neighborhood + city
+    3. City center fallback from CITY_COORDS
+    """
+
+    def __init__(self):
+        self._cache = {}       # address_key → (lat, lng) or None
+        self._last_request = 0  # timestamp for rate limiting
+
+    def process_item(self, item, spider):
+        # 1. Already has coordinates from spider
+        if item.get("latitude") and item.get("longitude"):
+            return item
+
+        city = item.get("city")
+        address = item.get("address_raw") or item.get("neighborhood")
+
+        # 2. Try Nominatim if we have address-level data
+        if address and city:
+            coords = self._geocode(address, city)
+            if coords:
+                item["latitude"], item["longitude"] = coords
+                return item
+
+        # 3. Fall back to city center
+        if city and city in CITY_COORDS:
+            item["latitude"], item["longitude"] = CITY_COORDS[city]
+            return item
+
+        return item
+
+    def _geocode(self, address, city):
+        """Geocode address via Nominatim with caching and rate limiting."""
+        cache_key = f"{address}|{city}".lower()
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+
+        # Rate limit: 1 req/sec
+        now = time.time()
+        elapsed = now - self._last_request
+        if elapsed < 1.0:
+            time.sleep(1.0 - elapsed)
+
+        try:
+            resp = requests.get(
+                NOMINATIM_URL,
+                params={"q": f"{address}, {city}, Albania", "format": "json", "limit": 1},
+                headers=NOMINATIM_HEADERS,
+                timeout=10,
+            )
+            self._last_request = time.time()
+
+            if resp.status_code == 200:
+                data = resp.json()
+                if data:
+                    coords = (float(data[0]["lat"]), float(data[0]["lon"]))
+                    self._cache[cache_key] = coords
+                    return coords
+
+            self._cache[cache_key] = None
+            return None
+
+        except Exception:
+            self._cache[cache_key] = None
+            return None
+
+
 class DedupPipeline:
     """Same-source dedup: update existing listings, insert new ones."""
 
@@ -162,6 +259,7 @@ class SQLitePipeline:
                     area_sqm = ?, area_net_sqm = ?, floor = ?, total_floors = ?,
                     rooms = ?, bathrooms = ?,
                     city = ?, neighborhood = ?, address_raw = ?,
+                    latitude = ?, longitude = ?,
                     images = ?, image_count = ?,
                     poster_name = ?, poster_phone = ?, poster_type = ?,
                     is_active = 1, last_seen = ?,
@@ -187,6 +285,8 @@ class SQLitePipeline:
                     item.get("city"),
                     item.get("neighborhood"),
                     item.get("address_raw"),
+                    item.get("latitude"),
+                    item.get("longitude"),
                     images_json,
                     item.get("image_count", 0),
                     item.get("poster_name"),
@@ -213,6 +313,7 @@ class SQLitePipeline:
                     area_sqm, area_net_sqm, floor, total_floors,
                     rooms, bathrooms,
                     city, neighborhood, address_raw,
+                    latitude, longitude,
                     images, image_count,
                     poster_name, poster_phone, poster_type,
                     is_active, first_seen, last_seen, created_at,
@@ -226,6 +327,7 @@ class SQLitePipeline:
                     ?, ?, ?, ?,
                     ?, ?,
                     ?, ?, ?,
+                    ?, ?,
                     ?, ?,
                     ?, ?, ?,
                     1, ?, ?, ?,
@@ -255,6 +357,8 @@ class SQLitePipeline:
                     item.get("city"),
                     item.get("neighborhood"),
                     item.get("address_raw"),
+                    item.get("latitude"),
+                    item.get("longitude"),
                     images_json,
                     item.get("image_count", 0),
                     item.get("poster_name"),
@@ -367,6 +471,8 @@ class PostgreSQLPipeline:
                 "city": item.get("city"),
                 "neighborhood": item.get("neighborhood"),
                 "address_raw": item.get("address_raw"),
+                "latitude": item.get("latitude"),
+                "longitude": item.get("longitude"),
                 "images": images_json,
                 "image_count": item.get("image_count", 0),
                 "poster_name": item.get("poster_name"),
@@ -389,6 +495,7 @@ class PostgreSQLPipeline:
                         area_sqm, area_net_sqm, floor, total_floors,
                         rooms, bathrooms,
                         city, neighborhood, address_raw,
+                        latitude, longitude,
                         images, image_count,
                         poster_name, poster_phone, poster_type,
                         is_active, origin, status,
@@ -402,6 +509,7 @@ class PostgreSQLPipeline:
                         %(area_sqm)s, %(area_net_sqm)s, %(floor)s, %(total_floors)s,
                         %(rooms)s, %(bathrooms)s,
                         %(city)s, %(neighborhood)s, %(address_raw)s,
+                        %(latitude)s, %(longitude)s,
                         %(images)s, %(image_count)s,
                         %(poster_name)s, %(poster_phone)s, %(poster_type)s,
                         true, 'scraped', 'active',
@@ -427,6 +535,8 @@ class PostgreSQLPipeline:
                         city = EXCLUDED.city,
                         neighborhood = EXCLUDED.neighborhood,
                         address_raw = EXCLUDED.address_raw,
+                        latitude = EXCLUDED.latitude,
+                        longitude = EXCLUDED.longitude,
                         images = EXCLUDED.images,
                         image_count = EXCLUDED.image_count,
                         poster_name = EXCLUDED.poster_name,

@@ -37,6 +37,8 @@ function dbRowToListing(row: DbRow): Listing {
     city: row.city,
     neighborhood: row.neighborhood,
     address_raw: row.addressRaw,
+    latitude: row.latitude ?? null,
+    longitude: row.longitude ?? null,
     images: (row.images as string[]) ?? [],
     image_count: row.imageCount ?? 0,
     poster_name: row.posterName,

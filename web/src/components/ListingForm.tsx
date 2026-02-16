@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import ImageUploader from "./ImageUploader";
+
+const MapPinPicker = dynamic(() => import("@/components/MapPinPicker"), { ssr: false });
 
 interface ListingFormProps {
   initialData?: Partial<FormData>;
@@ -27,6 +30,8 @@ interface FormData {
   city: string;
   neighborhood: string;
   address_raw: string;
+  latitude: number | null;
+  longitude: number | null;
   has_elevator: boolean;
   has_parking: boolean;
   is_furnished: boolean;
@@ -53,6 +58,8 @@ const defaultData: FormData = {
   city: "",
   neighborhood: "",
   address_raw: "",
+  latitude: null,
+  longitude: null,
   has_elevator: false,
   has_parking: false,
   is_furnished: false,
@@ -116,6 +123,8 @@ export default function ListingForm({
       images: form.images,
     };
 
+    if (form.latitude != null) body.latitude = form.latitude;
+    if (form.longitude != null) body.longitude = form.longitude;
     if (form.price) body.price = Number(form.price);
     if (form.area_sqm) body.area_sqm = Number(form.area_sqm);
     if (form.floor) body.floor = Number(form.floor);
@@ -473,6 +482,20 @@ export default function ListingForm({
             onChange={(e) => updateField("address_raw", e.target.value)}
             className={inputClass}
           />
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className="mb-1 block text-sm font-medium text-navy">
+            Vendndodhja në hartë
+          </label>
+          <div className="mt-1">
+            <MapPinPicker
+              city={form.city}
+              latitude={form.latitude}
+              longitude={form.longitude}
+              onChange={(lat, lng) => setForm((prev) => ({ ...prev, latitude: lat, longitude: lng }))}
+            />
+          </div>
         </div>
       </fieldset>
 

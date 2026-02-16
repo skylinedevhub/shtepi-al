@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import nextDynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { getListingByShortId } from "@/lib/db/queries";
 import { parseSlugId } from "@/lib/seo/slugs";
@@ -10,6 +11,8 @@ import { buildListingPath } from "@/lib/seo/slugs";
 import JsonLd from "@/components/JsonLd";
 import ImageGallery from "@/components/ImageGallery";
 import ShareButton from "@/components/ShareButton";
+
+const DetailMap = nextDynamic(() => import("@/components/DetailMap"), { ssr: false });
 
 export const revalidate = 3600;
 
@@ -167,6 +170,11 @@ export default async function ListingDetailPage({ params }: Props) {
             .filter(Boolean)
             .join(", ")}
         </p>
+        {listing.latitude != null && listing.longitude != null && (
+          <div className="mt-3">
+            <DetailMap latitude={listing.latitude} longitude={listing.longitude} />
+          </div>
+        )}
       </div>
 
       {/* Description */}

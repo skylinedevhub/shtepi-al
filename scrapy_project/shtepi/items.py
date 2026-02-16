@@ -36,6 +36,8 @@ class ListingItem(scrapy.Item):
     city = scrapy.Field()
     neighborhood = scrapy.Field()
     address_raw = scrapy.Field()
+    latitude = scrapy.Field()      # float, WGS84
+    longitude = scrapy.Field()     # float, WGS84
 
     # Media
     images = scrapy.Field()         # list of image URLs
