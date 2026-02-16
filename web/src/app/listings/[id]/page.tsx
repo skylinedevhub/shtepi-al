@@ -1,8 +1,11 @@
 import Link from "next/link";
+import nextDynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { getListingById } from "@/lib/db/queries";
 import ImageGallery from "@/components/ImageGallery";
 import ShareButton from "@/components/ShareButton";
+
+const DetailMap = nextDynamic(() => import("@/components/DetailMap"), { ssr: false });
 
 export const dynamic = "force-dynamic";
 
@@ -134,6 +137,11 @@ export default async function ListingDetailPage({ params }: Props) {
             .filter(Boolean)
             .join(", ")}
         </p>
+        {listing.latitude != null && listing.longitude != null && (
+          <div className="mt-3">
+            <DetailMap latitude={listing.latitude} longitude={listing.longitude} />
+          </div>
+        )}
       </div>
 
       {/* Description */}
