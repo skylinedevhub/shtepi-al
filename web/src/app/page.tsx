@@ -11,7 +11,7 @@ const QUICK_CITIES = [
   "Tiranë", "Durrës", "Vlorë", "Sarandë", "Shkodër", "Korçë",
 ];
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const stats = await getStats();

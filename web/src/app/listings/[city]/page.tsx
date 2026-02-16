@@ -3,11 +3,11 @@ import { getListingById } from "@/lib/db/queries";
 import { buildListingPath } from "@/lib/seo/slugs";
 
 interface Props {
-  params: Promise<{ id: string }>;
+  params: Promise<{ city: string }>;
 }
 
 export default async function ListingRedirectPage({ params }: Props) {
-  const { id } = await params;
+  const { city: id } = await params;
   const listing = await getListingById(id);
 
   if (!listing) {

@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getListings } from "@/lib/db/queries";
-import { slugToCity, CITY_SLUGS } from "@/lib/seo/slugs";
+import { slugToCity } from "@/lib/seo/slugs";
 import { buildCityMetadata } from "@/lib/seo/metadata";
 import { buildBreadcrumbJsonLd } from "@/lib/seo/jsonld";
 import {
   SITE_URL,
-  TRANSACTION_TYPE_URL,
   URL_TO_TRANSACTION,
   TRANSACTION_TYPE_SQ,
 } from "@/lib/seo/constants";
@@ -15,14 +14,6 @@ import JsonLd from "@/components/JsonLd";
 import ListingCard from "@/components/ListingCard";
 
 export const revalidate = 3600;
-
-export function generateStaticParams() {
-  const citySlugs = Object.values(CITY_SLUGS);
-  const txSlugs = Object.values(TRANSACTION_TYPE_URL);
-  return citySlugs.flatMap((city) =>
-    txSlugs.map((tx) => ({ city, transactionType: tx }))
-  );
-}
 
 interface Props {
   params: Promise<{ city: string; transactionType: string }>;
