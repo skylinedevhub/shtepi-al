@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS listings (
     city TEXT,
     neighborhood TEXT,
     address_raw TEXT,
+    latitude REAL,
+    longitude REAL,
 
     -- Media
     images TEXT DEFAULT '[]',                      -- JSON array of image URLs
