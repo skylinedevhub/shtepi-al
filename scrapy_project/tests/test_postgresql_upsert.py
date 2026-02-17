@@ -1,13 +1,13 @@
-"""Tests for PostgreSQLPipeline COALESCE guard on coordinate upsert.
+"""Tests for COALESCE guard on coordinate upsert (PostgreSQL + SQLite).
 
-These tests verify the SQL template contains COALESCE guards to prevent
+These tests verify the SQL templates contain COALESCE guards to prevent
 NULL coordinates from overwriting existing good coordinates.
 We test the SQL string directly rather than hitting a real database.
 """
 
 import re
 
-from shtepi.pipelines import PostgreSQLPipeline
+from shtepi.pipelines import PostgreSQLPipeline, SQLitePipeline
 
 
 class TestCoalesceGuard:
@@ -38,3 +38,21 @@ class TestCoalesceGuard:
         for line in update_section.split("\n"):
             if "latitude = EXCLUDED.latitude" in line and "COALESCE" not in line:
                 assert False, f"Found bare latitude = EXCLUDED.latitude without COALESCE: {line.strip()}"
+
+
+class TestSQLiteCoalesceGuard:
+    """Verify SQLite UPDATE uses COALESCE for latitude/longitude."""
+
+    def _get_update_sql(self):
+        import inspect
+        return inspect.getsource(SQLitePipeline.process_item)
+
+    def test_latitude_uses_coalesce(self):
+        source = self._get_update_sql()
+        assert "COALESCE" in source and "latitude" in source, \
+            "SQLite UPDATE should use COALESCE for latitude"
+
+    def test_longitude_uses_coalesce(self):
+        source = self._get_update_sql()
+        assert "COALESCE" in source and "longitude" in source, \
+            "SQLite UPDATE should use COALESCE for longitude"

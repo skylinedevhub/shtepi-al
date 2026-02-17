@@ -241,7 +241,7 @@ class SQLitePipeline:
                     area_sqm = ?, area_net_sqm = ?, floor = ?, total_floors = ?,
                     rooms = ?, bathrooms = ?,
                     city = ?, neighborhood = ?, address_raw = ?,
-                    latitude = ?, longitude = ?,
+                    latitude = COALESCE(?, latitude), longitude = COALESCE(?, longitude),
                     images = ?, image_count = ?,
                     poster_name = ?, poster_phone = ?, poster_type = ?,
                     is_active = 1, last_seen = ?,
