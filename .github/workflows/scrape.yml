@@ -9,7 +9,11 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        spider: [merrjep, mirlir, celesi, duashpi, njoftime]
 
     steps:
       - uses: actions/checkout@v4
@@ -23,39 +27,23 @@ jobs:
       - name: Install dependencies
         run: pip install -r scrapy_project/requirements.txt
 
-      - name: Run spiders
+      - name: "Crawl: ${{ matrix.spider }}"
         working-directory: scrapy_project
         env:
           DATABASE_URL: ${{ secrets.SCRAPER_DATABASE_URL }}
+          SPIDER_NAME: ${{ matrix.spider }}
         run: |
-          total=0
-          failed_spiders=""
+          echo "Starting ${SPIDER_NAME} at $(date -u +%H:%M:%S)"
 
-          for spider in merrjep mirlir celesi duashpi njoftime; do
-            echo "::group::Spider: $spider"
-            echo "Starting $spider at $(date -u +%H:%M:%S)"
+          python -m scrapy crawl "${SPIDER_NAME}" \
+            -s HTTPCACHE_ENABLED=False \
+            -s LOG_LEVEL=INFO 2>&1 | tee "/tmp/${SPIDER_NAME}.log"
 
-            python -m scrapy crawl "$spider" \
-              -s HTTPCACHE_ENABLED=False \
-              -s LOG_LEVEL=INFO 2>&1 | tee "/tmp/${spider}.log"
+          count=$(grep -oP "'item_scraped_count': \K\d+" "/tmp/${SPIDER_NAME}.log" || echo "0")
+          reason=$(grep -oP "'finish_reason': '\K[^']+" "/tmp/${SPIDER_NAME}.log" || echo "unknown")
 
-            count=$(grep -oP "'item_scraped_count': \K\d+" "/tmp/${spider}.log" || echo "0")
-            reason=$(grep -oP "'finish_reason': '\K[^']+" "/tmp/${spider}.log" || echo "unknown")
+          echo "Result: $count items ($reason)"
 
-            echo "Result: $count items ($reason)"
-            echo "::endgroup::"
-
-            total=$((total + count))
-
-            if [ "$reason" != "finished" ] && [ "$reason" != "closespider_itemcount" ]; then
-              failed_spiders="$failed_spiders $spider"
-            fi
-          done
-
-          echo ""
-          echo "=== Summary ==="
-          echo "Total items scraped: $total"
-
-          if [ -n "$failed_spiders" ]; then
-            echo "::warning::Spiders with issues:$failed_spiders"
+          if [ "$reason" != "finished" ] && [ "$reason" != "closespider_itemcount" ]; then
+            echo "::warning::Spider ${SPIDER_NAME} finished with: $reason"
           fi
