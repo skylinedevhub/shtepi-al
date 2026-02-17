@@ -28,7 +28,7 @@ export default function MobileMenu() {
 
       {/* Drawer */}
       <div
-        className={`fixed right-0 top-0 z-50 h-full w-72 bg-white shadow-xl transition-transform duration-300 ${
+        className={`fixed right-0 top-0 z-50 h-full w-72 bg-white pb-[env(safe-area-inset-bottom)] shadow-xl transition-transform duration-300 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >

@@ -99,7 +99,7 @@ export default async function ListingDetailPage({ params }: Props) {
       <ImageGallery images={listing.images} alt={listing.title} />
 
       {/* Header */}
-      <div className="mt-6 flex items-start justify-between gap-4">
+      <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-navy md:text-3xl">{listing.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-4">
@@ -125,7 +125,7 @@ export default async function ListingDetailPage({ params }: Props) {
       </div>
 
       {/* Details grid */}
-      <div className="mt-6 grid grid-cols-2 gap-4 rounded-2xl border border-warm-gray-light/40 bg-cream-dark p-5 sm:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-3 rounded-2xl border border-warm-gray-light/40 bg-cream-dark p-4 sm:grid-cols-3 sm:gap-4 sm:p-5 lg:grid-cols-4">
         {listing.room_config && (
           <Detail icon={<RoomIcon />} label="Dhoma" value={listing.room_config} />
         )}
@@ -204,7 +204,7 @@ export default async function ListingDetailPage({ params }: Props) {
           {listing.poster_phone && (
             <a
               href={`tel:${listing.poster_phone}`}
-              className="mt-3 inline-flex items-center gap-2 rounded-btn bg-terracotta px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-terracotta-dark hover:shadow-md"
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-btn bg-terracotta px-5 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-terracotta-dark hover:shadow-md sm:w-auto sm:justify-start sm:py-2.5"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />

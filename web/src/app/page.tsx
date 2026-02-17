@@ -23,7 +23,7 @@ export default async function HomePage() {
       <JsonLd data={buildWebsiteJsonLd()} />
       {/* Hero — mesh gradient */}
       <section
-        className="flex flex-1 flex-col items-center justify-center px-4 py-28"
+        className="flex flex-1 flex-col items-center justify-center px-4 py-16 sm:py-28"
         style={{
           background: `
             radial-gradient(ellipse 60% 50% at 80% 20%, rgba(199,91,57,0.08) 0%, transparent 70%),
@@ -32,10 +32,10 @@ export default async function HomePage() {
           `,
         }}
       >
-        <h1 className="mb-4 text-center font-display text-5xl font-bold tracking-tight text-navy md:text-7xl">
+        <h1 className="mb-4 text-center font-display text-3xl font-bold tracking-tight text-navy sm:text-5xl md:text-7xl">
           Gjej shtëpinë tënde
         </h1>
-        <p className="mb-10 max-w-xl text-center text-lg leading-relaxed text-warm-gray">
+        <p className="mb-6 max-w-xl text-center text-base leading-relaxed text-warm-gray sm:mb-10 sm:text-lg">
           Të gjitha njoftimet e pasurive të paluajtshme në Shqipëri, në një vend.
         </p>
 

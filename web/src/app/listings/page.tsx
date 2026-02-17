@@ -153,7 +153,7 @@ function ListingsContent() {
         <div className="flex-1">
           <SearchBar />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* View toggle */}
           <div className="flex overflow-hidden rounded-btn border border-warm-gray-light">
             <button
@@ -183,7 +183,7 @@ function ListingsContent() {
           <select
             value={currentSort}
             onChange={(e) => handleSort(e.target.value)}
-            className="rounded-btn border border-warm-gray-light bg-white px-3 py-2.5 text-sm text-navy focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
+            className="min-w-0 rounded-btn border border-warm-gray-light bg-white px-2 py-2.5 text-xs text-navy focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20 sm:px-3 sm:text-sm"
           >
             {SORT_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -264,39 +264,50 @@ function ListingsContent() {
         </div>
       ) : (
         /* Map mode — split layout */
-        <div className="flex gap-4" style={{ height: "calc(100vh - 200px)" }}>
-          {/* Sidebar — desktop only */}
-          <div className="hidden w-96 shrink-0 overflow-y-auto rounded-2xl border border-warm-gray-light/40 bg-white p-3 md:block">
-            <p className="mb-3 px-1 text-sm font-medium text-warm-gray">
-              {total > 0 ? `${total.toLocaleString()} njoftime` : "Duke ngarkuar..."}
-            </p>
-            {loading && listings.length === 0 ? (
-              <div className="space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <SkeletonCard key={i} />
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {listings.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} variant="compact" />
-                ))}
-                {hasMore && (
-                  <button
-                    onClick={loadMore}
-                    disabled={loading}
-                    className="w-full rounded-btn bg-terracotta px-4 py-2 text-sm font-medium text-white transition hover:bg-terracotta-dark disabled:opacity-50"
-                  >
-                    {loading ? "Duke ngarkuar..." : "Shfaq më shumë"}
-                  </button>
-                )}
-              </div>
-            )}
+        <div className="flex flex-col gap-4" style={{ height: "calc(100vh - 200px)" }}>
+          <div className="flex flex-1 gap-4">
+            {/* Sidebar — desktop only */}
+            <div className="hidden w-96 shrink-0 overflow-y-auto rounded-2xl border border-warm-gray-light/40 bg-white p-3 md:block">
+              <p className="mb-3 px-1 text-sm font-medium text-warm-gray">
+                {total > 0 ? `${total.toLocaleString()} njoftime` : "Duke ngarkuar..."}
+              </p>
+              {loading && listings.length === 0 ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <SkeletonCard key={i} />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {listings.map((listing) => (
+                    <ListingCard key={listing.id} listing={listing} variant="compact" />
+                  ))}
+                  {hasMore && (
+                    <button
+                      onClick={loadMore}
+                      disabled={loading}
+                      className="w-full rounded-btn bg-terracotta px-4 py-2 text-sm font-medium text-white transition hover:bg-terracotta-dark disabled:opacity-50"
+                    >
+                      {loading ? "Duke ngarkuar..." : "Shfaq më shumë"}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Map */}
+            <div className="flex-1 overflow-hidden rounded-2xl border border-warm-gray-light/40">
+              <MapView listings={listings} />
+            </div>
           </div>
 
-          {/* Map */}
-          <div className="flex-1 overflow-hidden rounded-2xl border border-warm-gray-light/40">
-            <MapView listings={listings} />
+          {/* Mobile listing strip — below map */}
+          <div className="flex gap-3 overflow-x-auto pb-2 md:hidden">
+            {listings.slice(0, 10).map((listing) => (
+              <div key={listing.id} className="w-64 shrink-0">
+                <ListingCard listing={listing} variant="compact" />
+              </div>
+            ))}
           </div>
         </div>
       )}

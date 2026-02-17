@@ -59,7 +59,7 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold text-navy">
             Paneli im
@@ -70,7 +70,7 @@ export default function DashboardPage() {
         </div>
         <Link
           href="/listings/new"
-          className="inline-flex items-center gap-2 rounded-btn bg-terracotta px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-terracotta-dark hover:shadow-md"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-btn bg-terracotta px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-terracotta-dark hover:shadow-md sm:w-auto"
         >
           <svg
             className="h-4 w-4"

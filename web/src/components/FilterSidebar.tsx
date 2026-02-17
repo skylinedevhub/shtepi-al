@@ -263,7 +263,7 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
         />
       )}
       <aside
-        className={`fixed right-0 top-0 z-50 h-full w-80 overflow-y-auto bg-cream p-5 shadow-xl transition-transform duration-300 md:hidden ${
+        className={`fixed right-0 top-0 z-50 h-full w-80 overflow-y-auto bg-cream p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl transition-transform duration-300 md:hidden ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >

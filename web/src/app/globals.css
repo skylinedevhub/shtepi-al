@@ -100,3 +100,10 @@ body {
   box-shadow: 0 4px 6px -1px rgba(27, 42, 74, 0.1) !important;
 }
 
+/* Safe area for notch phones */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+

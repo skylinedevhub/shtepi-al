@@ -269,7 +269,7 @@ export default function ListingForm({
           Çmimi
         </legend>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label htmlFor="price" className={labelClass}>
               Çmimi
@@ -322,7 +322,7 @@ export default function ListingForm({
           Detaje
         </legend>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
           <div>
             <label htmlFor="rooms" className={labelClass}>
               Dhoma
@@ -535,11 +535,11 @@ export default function ListingForm({
       </fieldset>
 
       {/* Submit */}
-      <div className="flex items-center gap-4 border-t border-warm-gray-light pt-6">
+      <div className="flex flex-col gap-3 border-t border-warm-gray-light pt-6 sm:flex-row sm:items-center sm:gap-4">
         <button
           type="submit"
           disabled={loading}
-          className="rounded-btn bg-terracotta px-8 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-terracotta-dark hover:shadow-md disabled:opacity-50"
+          className="w-full rounded-btn bg-terracotta px-8 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-terracotta-dark hover:shadow-md disabled:opacity-50 sm:w-auto"
         >
           {loading
             ? "Po ruhet..."
@@ -550,7 +550,7 @@ export default function ListingForm({
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded-btn border border-warm-gray-light px-6 py-3 text-sm font-medium text-navy transition hover:bg-cream-dark"
+          className="w-full rounded-btn border border-warm-gray-light px-6 py-3 text-sm font-medium text-navy transition hover:bg-cream-dark sm:w-auto"
         >
           Anullo
         </button>
