@@ -16,6 +16,10 @@ import time
 import psycopg2
 import requests
 
+# Add scrapy_project to path so we can import the shared city_coords module
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scrapy_project"))
+from shtepi.city_coords import CITY_COORDS
+
 # City name normalization (from scrapy_project/shtepi/normalizers.py CITY_MAP)
 CITY_MAP = {
     "tirane": "Tiranë", "tirana": "Tiranë", "tiranë": "Tiranë", "tirané": "Tiranë",
@@ -37,33 +41,6 @@ CITY_MAP = {
     "prishtine": "Prishtinë", "prishtinë": "Prishtinë",
     "shqiperi": "Shqipëri",
 }
-
-# Same coords as scrapy_project/shtepi/pipelines.py CITY_COORDS + extras from DB
-CITY_COORDS = {
-    "Tiranë": (41.3275, 19.8187),
-    "Durrës": (41.3246, 19.4565),
-    "Vlorë": (40.4660, 19.4913),
-    "Sarandë": (39.8661, 20.0050),
-    "Shkodër": (42.0693, 19.5126),
-    "Korçë": (40.6186, 20.7808),
-    "Elbasan": (41.1125, 20.0822),
-    "Fier": (40.7239, 19.5563),
-    "Berat": (40.7058, 19.9522),
-    "Lushnjë": (40.9419, 19.7050),
-    "Kamëz": (41.3817, 19.7600),
-    "Pogradec": (40.9025, 20.6525),
-    "Kavajë": (41.1856, 19.5569),
-    "Lezhë": (41.7836, 19.6436),
-    "Gjirokastër": (40.0758, 20.1389),
-    "Vorë": (41.3939, 19.6522),
-    "Golem": (41.2514, 19.4756),
-    "Himarë": (40.1008, 19.7453),
-    "Ksamil": (39.7831, 20.0003),
-    "Dhërmi": (40.1525, 19.6097),
-    "Përmet": (40.2336, 20.3517),
-    "Prishtinë": (42.6629, 21.1655),
-}
-
 
 def normalize_city(raw):
     """Normalize city name — strip scraping artifacts and map to canonical form."""

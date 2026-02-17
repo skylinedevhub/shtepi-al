@@ -43,3 +43,16 @@ class TestPipelineUsesSharedCoords:
         from shtepi.pipelines import CITY_COORDS as pipeline_coords
         from shtepi.city_coords import CITY_COORDS as shared_coords
         assert pipeline_coords is shared_coords
+
+
+class TestBackfillUsesSharedCoords:
+    """Verify the backfill script uses the shared CITY_COORDS."""
+
+    def test_backfill_imports_from_city_coords(self):
+        import os
+        backfill_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", "scripts", "backfill_geocode.py"
+        )
+        with open(backfill_path) as f:
+            content = f.read()
+        assert "from shtepi.city_coords import CITY_COORDS" in content
