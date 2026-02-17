@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 
 import requests
 
+from shtepi.city_coords import CITY_COORDS
 from shtepi.normalizers import (
     extract_features,
     normalize_city,
@@ -89,25 +90,6 @@ class NormalizationPipeline:
 
         return item
 
-
-# City center coordinates for fallback geocoding
-CITY_COORDS = {
-    "Tiranë": (41.3275, 19.8187),
-    "Durrës": (41.3246, 19.4565),
-    "Vlorë": (40.4660, 19.4913),
-    "Sarandë": (39.8661, 20.0050),
-    "Shkodër": (42.0693, 19.5126),
-    "Korçë": (40.6186, 20.7808),
-    "Elbasan": (41.1125, 20.0822),
-    "Fier": (40.7239, 19.5563),
-    "Berat": (40.7058, 19.9522),
-    "Lushnjë": (40.9419, 19.7050),
-    "Kamëz": (41.3817, 19.7600),
-    "Pogradec": (40.9025, 20.6525),
-    "Kavajë": (41.1856, 19.5569),
-    "Lezhë": (41.7836, 19.6436),
-    "Gjirokastër": (40.0758, 20.1389),
-}
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 NOMINATIM_HEADERS = {"User-Agent": "ShtëpiAL/1.0 (real estate aggregator)"}

@@ -34,3 +34,12 @@ class TestCityCoords:
         for city, (lat, lng) in CITY_COORDS.items():
             assert 39.0 <= lat <= 43.0, f"{city}: latitude {lat} out of range"
             assert 19.0 <= lng <= 22.0, f"{city}: longitude {lng} out of range"
+
+
+class TestPipelineUsesSharedCoords:
+    """Verify the pipeline uses the shared CITY_COORDS, not its own copy."""
+
+    def test_pipeline_city_coords_is_shared(self):
+        from shtepi.pipelines import CITY_COORDS as pipeline_coords
+        from shtepi.city_coords import CITY_COORDS as shared_coords
+        assert pipeline_coords is shared_coords
