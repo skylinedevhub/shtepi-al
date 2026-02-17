@@ -264,8 +264,18 @@ function ListingsContent() {
         </div>
       ) : (
         /* Map mode — split layout */
-        <div className="flex flex-col gap-4" style={{ height: "calc(100vh - 200px)" }}>
-          <div className="flex flex-1 gap-4">
+        <div
+          className="flex flex-col"
+          style={{ height: "calc(100dvh - 4.0625rem)" }}
+        >
+          {/* Mobile filter drawer — overlays the map */}
+          <FilterSidebar
+            isOpen={filtersOpen}
+            onClose={() => setFiltersOpen(false)}
+            mobileOnly
+          />
+
+          <div className="flex min-h-0 flex-1 gap-4 p-4 pb-0 md:pb-4">
             {/* Sidebar — desktop only */}
             <div className="hidden w-96 shrink-0 overflow-y-auto rounded-2xl border border-warm-gray-light/40 bg-white p-3 md:block">
               <p className="mb-3 px-1 text-sm font-medium text-warm-gray">
@@ -296,18 +306,31 @@ function ListingsContent() {
             </div>
 
             {/* Map */}
-            <div className="flex-1 overflow-hidden rounded-2xl border border-warm-gray-light/40">
+            <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-warm-gray-light/40">
               <MapView listings={listings} />
             </div>
           </div>
 
           {/* Mobile listing strip — below map */}
-          <div className="flex gap-3 overflow-x-auto pb-2 md:hidden">
-            {listings.slice(0, 10).map((listing) => (
-              <div key={listing.id} className="w-64 shrink-0">
-                <ListingCard listing={listing} variant="compact" />
-              </div>
-            ))}
+          <div className="shrink-0 md:hidden">
+            <div className="flex gap-3 overflow-x-auto px-4 py-3">
+              {listings.map((listing) => (
+                <div key={listing.id} className="w-56 shrink-0">
+                  <ListingCard listing={listing} variant="compact" />
+                </div>
+              ))}
+              {hasMore && (
+                <div className="flex w-40 shrink-0 items-center justify-center">
+                  <button
+                    onClick={loadMore}
+                    disabled={loading}
+                    className="rounded-btn bg-terracotta px-4 py-2 text-sm font-medium text-white transition hover:bg-terracotta-dark disabled:opacity-50"
+                  >
+                    {loading ? "..." : "Shfaq më shumë"}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

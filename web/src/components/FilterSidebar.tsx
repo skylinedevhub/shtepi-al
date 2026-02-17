@@ -3,17 +3,24 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { CITIES, PROPERTY_TYPES } from "@/lib/constants";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 const SOURCES = ["merrjep", "celesi", "mirlir", "njoftime"];
 
 interface FilterSidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
+  /** When true, only render the mobile drawer (skip desktop aside). Used in map mode. */
+  mobileOnly?: boolean;
 }
 
-export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
+export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSidebarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  useBodyScrollLock(!!isOpen);
+  useEscapeKey(onClose ?? (() => {}), !!isOpen);
 
   const updateFilter = useCallback(
     (key: string, value: string | null) => {
@@ -237,20 +244,28 @@ export default function FilterSidebar({ isOpen, onClose }: FilterSidebarProps) {
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 md:block">
-        {filterContent}
-      </aside>
+      {/* Desktop sidebar — skip in mobileOnly mode */}
+      {!mobileOnly && (
+        <aside className="hidden w-64 shrink-0 md:block">
+          {filterContent}
+        </aside>
+      )}
+
+      {/* Mobile drawer overlay — always rendered, transition opacity */}
+      <div
+        className={`fixed inset-0 z-50 bg-navy/40 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
       {/* Mobile drawer */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-navy/40 backdrop-blur-sm md:hidden"
-          onClick={onClose}
-        />
-      )}
       <aside
-        className={`fixed right-0 top-0 z-50 h-full w-80 overflow-y-auto bg-cream p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl transition-transform duration-300 md:hidden ${
+        role="dialog"
+        aria-modal="true"
+        aria-label="Filtrat"
+        className={`fixed right-0 top-0 z-50 h-full w-80 max-w-[85vw] overflow-y-auto bg-cream p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl transition-transform duration-300 md:hidden ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >

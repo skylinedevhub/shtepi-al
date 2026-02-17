@@ -57,6 +57,16 @@ function FitBounds({ positions }: { positions: [number, number][] }) {
   return null;
 }
 
+/** Forces Leaflet to recalculate container size after mount/resize. */
+function InvalidateSize() {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => map.invalidateSize(), 100);
+    return () => clearTimeout(timer);
+  }, [map]);
+  return null;
+}
+
 function ListingPopup({ listing }: { listing: Listing }) {
   const img = listing.images[0];
   const price = listing.price
@@ -70,7 +80,7 @@ function ListingPopup({ listing }: { listing: Listing }) {
   return (
     <a
       href={buildListingPath(listing.title, listing.city, listing.id)}
-      style={{ display: "block", textDecoration: "none", color: "inherit", width: 220 }}
+      style={{ display: "block", textDecoration: "none", color: "inherit", width: "100%", maxWidth: 220 }}
     >
       {img && (
         <img
@@ -115,10 +125,11 @@ export default function MapView({ listings }: MapViewProps) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <FitBounds positions={positions} />
+      <InvalidateSize />
       <MarkerClusterGroup iconCreateFunction={createClusterIcon} maxClusterRadius={60}>
         {geoListings.map((listing) => (
           <Marker key={listing.id} position={[listing.latitude, listing.longitude]}>
-            <Popup maxWidth={240} minWidth={220}>
+            <Popup maxWidth={240} minWidth={180}>
               <ListingPopup listing={listing} />
             </Popup>
           </Marker>

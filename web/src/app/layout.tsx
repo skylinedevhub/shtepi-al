@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
 import Link from "next/link";
+import DesktopNav from "@/components/DesktopNav";
 import MobileMenu from "@/components/MobileMenu";
 import AuthButton from "@/components/AuthButton";
 import Providers from "@/components/Providers";
@@ -59,26 +60,7 @@ export default function RootLayout({
             <Link href="/" className="font-display text-xl font-bold tracking-tight text-cream">
               <span className="text-gold">Shtëpi</span>AL
             </Link>
-            <nav className="hidden items-center gap-1 text-sm font-medium md:flex">
-              <Link
-                href="/listings"
-                className="rounded-lg px-3 py-2 text-cream/70 transition-colors duration-200 hover:bg-white/5 hover:text-cream"
-              >
-                Të gjitha
-              </Link>
-              <Link
-                href="/listings?transaction_type=sale"
-                className="rounded-lg px-3 py-2 text-cream/70 transition-colors duration-200 hover:bg-white/5 hover:text-cream"
-              >
-                Shitje
-              </Link>
-              <Link
-                href="/listings?transaction_type=rent"
-                className="rounded-lg px-3 py-2 text-cream/70 transition-colors duration-200 hover:bg-white/5 hover:text-cream"
-              >
-                Qira
-              </Link>
-            </nav>
+            <DesktopNav />
             <div className="flex items-center gap-3">
               <AuthButton />
               <MobileMenu />
