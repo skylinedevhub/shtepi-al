@@ -24,13 +24,13 @@ export default function SearchBar() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="relative w-full max-w-2xl">
+    <form onSubmit={handleSubmit} className="search-glow relative w-full max-w-2xl rounded-btn transition-shadow duration-300">
       <input
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Kërko sipas lagjes, qytetit, ose përshkrimit..."
-        className="w-full rounded-btn border border-warm-gray-light bg-white px-4 py-3.5 pr-20 text-navy shadow-lg placeholder:text-warm-gray transition focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
+        className="w-full rounded-btn border border-warm-gray-light bg-white px-4 py-3.5 pr-20 text-navy shadow-lg placeholder:text-warm-gray/60 transition focus:border-terracotta focus:outline-none focus:ring-0"
       />
       {query && (
         <button
@@ -47,7 +47,7 @@ export default function SearchBar() {
       <button
         type="submit"
         aria-label="Kërko"
-        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-btn bg-terracotta p-2.5 text-white transition hover:bg-terracotta-dark"
+        className="btn-press absolute right-2 top-1/2 -translate-y-1/2 rounded-btn bg-terracotta p-2.5 text-white transition-all duration-200 hover:bg-terracotta-dark hover:shadow-md"
       >
         <svg
           className="h-5 w-5"

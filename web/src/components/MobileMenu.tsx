@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { cityToSlug } from "@/lib/seo/slugs";
 
 export default function MobileMenu() {
   const [open, setOpen] = useState(false);
@@ -34,7 +35,7 @@ export default function MobileMenu() {
       >
         <div className="flex items-center justify-between border-b border-cream-dark px-4 py-4">
           <span className="font-display text-lg font-bold text-navy">
-            <span className="text-terracotta">Shtëpi</span>AL
+            <span className="text-gold">Shtëpi</span>AL
           </span>
           <button
             onClick={() => setOpen(false)}
@@ -75,7 +76,7 @@ export default function MobileMenu() {
           {["Tiranë", "Durrës", "Vlorë", "Sarandë", "Shkodër", "Korçë"].map((city) => (
             <Link
               key={city}
-              href={`/listings?city=${encodeURIComponent(city)}`}
+              href={`/${cityToSlug(city)}`}
               onClick={() => setOpen(false)}
               className="rounded-lg px-3 py-2 text-sm text-warm-gray transition hover:bg-cream-dark hover:text-terracotta"
             >

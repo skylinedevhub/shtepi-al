@@ -55,47 +55,51 @@ export default function RootLayout({
           Kalo te përmbajtja
         </a>
 
-        <header className="sticky top-0 z-40 border-b border-navy-light/30 bg-navy/95 backdrop-blur-md">
+        <header className="sticky top-0 z-40 bg-navy/95 backdrop-blur-md">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
             <Link href="/" className="font-display text-xl font-bold tracking-tight text-cream">
               <span className="text-gold">Shtëpi</span>AL
             </Link>
-            <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
+            <nav className="hidden items-center gap-1 text-sm font-medium md:flex">
               <Link
                 href="/listings"
-                className="text-cream/70 transition hover:text-cream"
+                className="rounded-lg px-3 py-2 text-cream/70 transition-colors duration-200 hover:bg-white/5 hover:text-cream"
               >
                 Të gjitha
               </Link>
               <Link
                 href="/listings?transaction_type=sale"
-                className="text-cream/70 transition hover:text-cream"
+                className="rounded-lg px-3 py-2 text-cream/70 transition-colors duration-200 hover:bg-white/5 hover:text-cream"
               >
                 Shitje
               </Link>
               <Link
                 href="/listings?transaction_type=rent"
-                className="text-cream/70 transition hover:text-cream"
+                className="rounded-lg px-3 py-2 text-cream/70 transition-colors duration-200 hover:bg-white/5 hover:text-cream"
               >
                 Qira
               </Link>
             </nav>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <AuthButton />
               <MobileMenu />
             </div>
           </div>
+          {/* Subtle bottom gradient line */}
+          <div className="h-px bg-gradient-to-r from-transparent via-navy-light/40 to-transparent" />
         </header>
 
         <main id="main-content">{children}</main>
 
-        <footer className="border-t border-navy-light/30 bg-navy">
-          <div className="mx-auto max-w-7xl px-4 py-10">
+        {/* Accent divider between content and footer */}
+        <div className="accent-divider" />
+        <footer className="bg-navy">
+          <div className="mx-auto max-w-7xl px-4 py-12">
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
               {/* About */}
               <div>
-                <h3 className="font-display text-sm font-semibold text-gold">ShtëpiAL</h3>
-                <p className="mt-2 text-sm leading-relaxed text-cream/50">
+                <h3 className="font-display text-base font-semibold text-gold">ShtëpiAL</h3>
+                <p className="mt-3 text-sm leading-relaxed text-cream/50">
                   Agregator i njoftimeve të pasurive të paluajtshme në Shqipëri.
                   Gjeni apartamente, shtëpi, vila dhe tokë nga burime të ndryshme, në një vend.
                 </p>
@@ -103,25 +107,25 @@ export default function RootLayout({
 
               {/* Sources */}
               <div>
-                <h3 className="font-display text-sm font-semibold text-gold">Burimet</h3>
-                <ul className="mt-2 space-y-1 text-sm text-cream/50">
+                <h3 className="font-display text-base font-semibold text-gold">Burimet</h3>
+                <ul className="mt-3 space-y-2 text-sm text-cream/50">
                   <li>
-                    <a href="https://merrjep.al" target="_blank" rel="noopener noreferrer" className="transition hover:text-terracotta">
+                    <a href="https://merrjep.al" target="_blank" rel="noopener noreferrer" className="transition-colors duration-200 hover:text-cream/80">
                       merrjep.al
                     </a>
                   </li>
                   <li>
-                    <a href="https://gazetacelesi.al" target="_blank" rel="noopener noreferrer" className="transition hover:text-terracotta">
+                    <a href="https://gazetacelesi.al" target="_blank" rel="noopener noreferrer" className="transition-colors duration-200 hover:text-cream/80">
                       gazetacelesi.al
                     </a>
                   </li>
                   <li>
-                    <a href="https://mirlir.com" target="_blank" rel="noopener noreferrer" className="transition hover:text-terracotta">
+                    <a href="https://mirlir.com" target="_blank" rel="noopener noreferrer" className="transition-colors duration-200 hover:text-cream/80">
                       mirlir.com
                     </a>
                   </li>
                   <li>
-                    <a href="https://njoftime.com" target="_blank" rel="noopener noreferrer" className="transition hover:text-terracotta">
+                    <a href="https://njoftime.com" target="_blank" rel="noopener noreferrer" className="transition-colors duration-200 hover:text-cream/80">
                       njoftime.com
                     </a>
                   </li>
@@ -130,13 +134,13 @@ export default function RootLayout({
 
               {/* Quick cities */}
               <div>
-                <h3 className="font-display text-sm font-semibold text-gold">Qytete</h3>
-                <ul className="mt-2 space-y-1 text-sm text-cream/50">
+                <h3 className="font-display text-base font-semibold text-gold">Qytete</h3>
+                <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-cream/50">
                   {QUICK_CITIES.map((city) => (
                     <li key={city}>
                       <Link
                         href={`/${cityToSlug(city)}`}
-                        className="transition hover:text-terracotta"
+                        className="transition-colors duration-200 hover:text-cream/80"
                       >
                         {city}
                       </Link>
@@ -146,7 +150,7 @@ export default function RootLayout({
               </div>
             </div>
 
-            <div className="mt-8 border-t border-navy-light/30 pt-6 text-center text-xs text-cream/30">
+            <div className="mt-10 border-t border-cream/10 pt-6 text-center text-xs text-cream/25">
               © {new Date().getFullYear()} ShtëpiAL. Të gjitha të drejtat e rezervuara.
             </div>
           </div>

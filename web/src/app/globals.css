@@ -107,3 +107,76 @@ body {
   }
 }
 
+/* ─── Entrance Animations ─── */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease both;
+}
+
+/* Staggered children — add .stagger-children to the grid parent */
+.stagger-children > * {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(n+7) { animation-delay: 350ms; }
+
+/* ─── Search bar focus glow ─── */
+.search-glow:focus-within {
+  box-shadow: 0 0 0 3px rgba(199, 91, 57, 0.12), 0 4px 20px -4px rgba(199, 91, 57, 0.15);
+  border-color: #C75B39;
+}
+
+/* ─── Button press feedback ─── */
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* ─── Decorative accent line (footer divider) ─── */
+.accent-divider {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #D4A843 20%,
+    #C75B39 50%,
+    #D4A843 80%,
+    transparent 100%
+  );
+}
+
+/* ─── Subtle noise texture for depth ─── */
+.noise-texture::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  pointer-events: none;
+}
+

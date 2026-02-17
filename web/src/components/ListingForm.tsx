@@ -539,7 +539,7 @@ export default function ListingForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-btn bg-terracotta px-8 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-terracotta-dark hover:shadow-md disabled:opacity-50 sm:w-auto"
+          className="btn-press w-full rounded-btn bg-terracotta px-8 py-3 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-terracotta-dark hover:shadow-md disabled:opacity-50 sm:w-auto"
         >
           {loading
             ? "Po ruhet..."

@@ -32,10 +32,10 @@ export default function ListingCard({ listing, variant = "default" }: ListingCar
   return (
     <Link
       href={buildListingPath(listing.title, listing.city, listing.id)}
-      className={`group block overflow-hidden bg-white shadow-sm transition-all duration-200 hover:shadow-xl hover:-translate-y-1 ${
+      className={`group block overflow-hidden bg-white shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_12px_32px_-8px_rgba(27,42,74,0.12)] ${
         isCompact
-          ? "rounded-xl border border-warm-gray-light/60"
-          : "rounded-2xl border border-warm-gray-light/40"
+          ? "rounded-xl border border-warm-gray-light/60 hover:border-warm-gray-light"
+          : "rounded-2xl border border-warm-gray-light/40 hover:border-warm-gray-light"
       }`}
     >
       {/* Image */}

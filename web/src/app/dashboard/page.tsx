@@ -70,7 +70,7 @@ export default function DashboardPage() {
         </div>
         <Link
           href="/listings/new"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-btn bg-terracotta px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-terracotta-dark hover:shadow-md sm:w-auto"
+          className="btn-press inline-flex w-full items-center justify-center gap-2 rounded-btn bg-terracotta px-6 py-3 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-terracotta-dark hover:shadow-md sm:w-auto"
         >
           <svg
             className="h-4 w-4"

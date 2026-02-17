@@ -55,7 +55,7 @@ function EmptyState() {
       </p>
       <button
         onClick={() => router.push("/listings")}
-        className="mt-4 rounded-btn bg-terracotta px-5 py-2.5 text-sm font-medium text-white transition hover:bg-terracotta-dark"
+        className="btn-press mt-4 rounded-btn bg-terracotta px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-terracotta-dark hover:shadow-md"
       >
         Pastro filtrat
       </button>
@@ -241,7 +241,7 @@ function ListingsContent() {
               <EmptyState />
             ) : (
               <>
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="stagger-children grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   {listings.map((listing) => (
                     <ListingCard key={listing.id} listing={listing} />
                   ))}
@@ -252,7 +252,7 @@ function ListingsContent() {
                     <button
                       onClick={loadMore}
                       disabled={loading}
-                      className="rounded-btn bg-terracotta px-6 py-2.5 text-sm font-medium text-white transition hover:bg-terracotta-dark disabled:opacity-50"
+                      className="btn-press rounded-btn bg-terracotta px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-terracotta-dark hover:shadow-md disabled:opacity-50"
                     >
                       {loading ? "Duke ngarkuar..." : "Shfaq më shumë"}
                     </button>
