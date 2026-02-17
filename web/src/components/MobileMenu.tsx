@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, Suspense } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import NavLink from "./NavLink";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
@@ -41,26 +42,18 @@ function MobileNavLinks({ close }: { close: () => void }) {
 
 export default function MobileMenu() {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const close = useCallback(() => setOpen(false), []);
 
+  useEffect(() => setMounted(true), []);
   useBodyScrollLock(open);
   useEscapeKey(close, open);
 
-  return (
-    <div className="md:hidden">
-      <button
-        onClick={() => setOpen(true)}
-        aria-label="Hap menunë"
-        className="rounded-lg p-2 text-cream/70 transition hover:text-cream"
-      >
-        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
-
+  const overlay = (
+    <>
       {/* Overlay — always rendered, transition opacity */}
       <div
-        className={`fixed inset-0 z-50 bg-navy/40 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 z-50 bg-navy/40 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={close}
@@ -72,7 +65,7 @@ export default function MobileMenu() {
         role="dialog"
         aria-modal="true"
         aria-label="Menuja kryesore"
-        className={`fixed right-0 top-0 z-50 h-full w-72 max-w-[80vw] bg-white pb-[env(safe-area-inset-bottom)] shadow-xl transition-transform duration-300 ${
+        className={`fixed right-0 top-0 z-50 h-full w-72 max-w-[80vw] bg-white pb-[env(safe-area-inset-bottom)] shadow-xl transition-transform duration-300 md:hidden ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -116,6 +109,23 @@ export default function MobileMenu() {
           ))}
         </nav>
       </div>
+    </>
+  );
+
+  return (
+    <div className="md:hidden">
+      <button
+        onClick={() => setOpen(true)}
+        aria-label="Hap menunë"
+        className="rounded-lg p-2 text-cream/70 transition hover:text-cream"
+      >
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      {/* Portal overlay+drawer to body so they escape header's backdrop-filter containing block */}
+      {mounted && createPortal(overlay, document.body)}
     </div>
   );
 }
