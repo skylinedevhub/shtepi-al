@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import ImageUploader from "./ImageUploader";
+import { CITIES, PROPERTY_TYPES } from "@/lib/constants";
 
 const MapPinPicker = dynamic(() => import("@/components/MapPinPicker"), { ssr: false });
 
@@ -68,21 +69,6 @@ const defaultData: FormData = {
   poster_phone: "",
   images: [],
 };
-
-const CITIES = [
-  "Tiranë", "Durrës", "Vlorë", "Sarandë", "Shkodër", "Korçë",
-  "Elbasan", "Fier", "Berat", "Lushnjë", "Kamëz", "Pogradec",
-];
-
-const PROPERTY_TYPES = [
-  { value: "apartment", label: "Apartament" },
-  { value: "house", label: "Shtëpi" },
-  { value: "villa", label: "Vilë" },
-  { value: "land", label: "Truall" },
-  { value: "commercial", label: "Komercial" },
-  { value: "garage", label: "Garazh" },
-  { value: "studio", label: "Garsoniere" },
-];
 
 export default function ListingForm({
   initialData,

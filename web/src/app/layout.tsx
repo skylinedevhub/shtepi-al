@@ -5,6 +5,7 @@ import MobileMenu from "@/components/MobileMenu";
 import AuthButton from "@/components/AuthButton";
 import Providers from "@/components/Providers";
 import { cityToSlug } from "@/lib/seo/slugs";
+import { QUICK_CITIES } from "@/lib/constants";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -39,8 +40,6 @@ export const metadata: Metadata = {
     canonical: "/",
   },
 };
-
-const QUICK_CITIES = ["Tiranë", "Durrës", "Vlorë", "Sarandë", "Shkodër", "Korçë"];
 
 export default function RootLayout({
   children,

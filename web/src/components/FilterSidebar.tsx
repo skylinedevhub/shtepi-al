@@ -2,20 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
-
-const CITIES = [
-  "Tiranë", "Durrës", "Vlorë", "Sarandë", "Shkodër", "Korçë",
-  "Elbasan", "Fier", "Berat", "Lushnjë", "Kamëz", "Pogradec",
-];
-
-const PROPERTY_TYPES = [
-  { value: "apartment", label: "Apartament" },
-  { value: "house", label: "Shtëpi" },
-  { value: "villa", label: "Vilë" },
-  { value: "land", label: "Truall" },
-  { value: "commercial", label: "Komercial" },
-  { value: "garage", label: "Garazh" },
-];
+import { CITIES, PROPERTY_TYPES } from "@/lib/constants";
 
 const SOURCES = ["merrjep", "celesi", "mirlir", "njoftime"];
 

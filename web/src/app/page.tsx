@@ -6,10 +6,7 @@ import JsonLd from "@/components/JsonLd";
 import { buildWebsiteJsonLd } from "@/lib/seo/jsonld";
 import { cityToSlug } from "@/lib/seo/slugs";
 import { getStats, getListings } from "@/lib/db/queries";
-
-const QUICK_CITIES = [
-  "Tiranë", "Durrës", "Vlorë", "Sarandë", "Shkodër", "Korçë",
-];
+import { QUICK_CITIES } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 

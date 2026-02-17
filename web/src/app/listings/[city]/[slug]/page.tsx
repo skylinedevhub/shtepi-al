@@ -6,25 +6,16 @@ import { getListingByShortId } from "@/lib/db/queries";
 import { parseSlugId } from "@/lib/seo/slugs";
 import { buildListingMetadata } from "@/lib/seo/metadata";
 import { buildListingJsonLd, buildBreadcrumbJsonLd } from "@/lib/seo/jsonld";
-import { SITE_URL } from "@/lib/seo/constants";
+import { SITE_URL, PROPERTY_TYPE_SQ } from "@/lib/seo/constants";
 import { buildListingPath } from "@/lib/seo/slugs";
 import JsonLd from "@/components/JsonLd";
 import ImageGallery from "@/components/ImageGallery";
 import ShareButton from "@/components/ShareButton";
+import { ChevronIcon } from "@/components/icons/ChevronIcon";
 
 const DetailMap = nextDynamic(() => import("@/components/DetailMap"), { ssr: false });
 
 export const revalidate = 3600;
-
-const PROPERTY_TYPE_LABELS: Record<string, string> = {
-  apartment: "Apartament",
-  house: "Shtëpi",
-  villa: "Vilë",
-  land: "Truall",
-  commercial: "Komercial",
-  garage: "Garazh",
-  studio: "Garsoniere",
-};
 
 const POSTER_TYPE_LABELS: Record<string, string> = {
   agency: "Agjenci",
@@ -143,7 +134,7 @@ export default async function ListingDetailPage({ params }: Props) {
           <Detail
             icon={<TypeIcon />}
             label="Lloji"
-            value={PROPERTY_TYPE_LABELS[listing.property_type] ?? listing.property_type}
+            value={PROPERTY_TYPE_SQ[listing.property_type] ?? listing.property_type}
           />
         )}
         {listing.transaction_type && (
@@ -234,14 +225,6 @@ export default async function ListingDetailPage({ params }: Props) {
         </a>
       </div>
     </div>
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <svg className="h-4 w-4 shrink-0 text-warm-gray-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-    </svg>
   );
 }
 
