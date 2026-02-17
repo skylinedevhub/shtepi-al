@@ -420,19 +420,41 @@ class TestDetectPropertyType:
 
 
 class TestStartUrls:
-    """Test that start_urls are configured correctly."""
+    """Test that START_URLS are configured correctly."""
 
     def test_contains_sale_url(self):
         spider = DuashpiSpider()
-        assert "https://duashpi.al/shtepi-ne-shitje" in spider.start_urls
+        assert "https://duashpi.al/shtepi-ne-shitje" in spider.START_URLS
 
     def test_contains_rent_url(self):
         spider = DuashpiSpider()
-        assert "https://duashpi.al/shtepi-me-qera" in spider.start_urls
+        assert "https://duashpi.al/shtepi-me-qera" in spider.START_URLS
 
     def test_start_urls_count(self):
         spider = DuashpiSpider()
-        assert len(spider.start_urls) == 2
+        assert len(spider.START_URLS) == 2
+
+
+class TestStartRequests:
+    """Test that start_requests() produces correct requests."""
+
+    def test_yields_requests_for_all_start_urls(self):
+        spider = DuashpiSpider()
+        requests = list(spider.start_requests())
+        assert len(requests) == 2
+
+    def test_requests_have_impersonate_meta(self):
+        spider = DuashpiSpider()
+        requests = list(spider.start_requests())
+        for req in requests:
+            assert req.meta.get("impersonate") == "chrome"
+
+    def test_request_urls_match_start_urls(self):
+        spider = DuashpiSpider()
+        requests = list(spider.start_requests())
+        urls = [r.url for r in requests]
+        assert "https://duashpi.al/shtepi-ne-shitje" in urls
+        assert "https://duashpi.al/shtepi-me-qera" in urls
 
 
 # ─── Metadata extraction ──────────────────────────────────────
