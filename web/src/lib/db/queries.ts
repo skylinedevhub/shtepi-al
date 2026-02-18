@@ -6,6 +6,7 @@ import {
   seedGetListings,
   seedGetListingById,
   seedSearchListings,
+  seedGetMapListings,
   seedGetStats,
   seedGetAllActiveListingSlugs,
   seedGetListingByShortId,
@@ -55,12 +56,7 @@ function dbRowToListing(row: DbRow): Listing {
   };
 }
 
-export async function getListings(
-  filters: ListingFilters
-): Promise<ListingsResponse> {
-  const db = getDb();
-  if (!db) return seedGetListings(filters);
-
+function buildFilterConditions(filters: ListingFilters) {
   const conditions = [eq(listings.isActive, true)];
 
   if (filters.city) conditions.push(eq(listings.city, filters.city));
@@ -84,7 +80,16 @@ export async function getListings(
     conditions.push(eq(listings.neighborhood, filters.neighborhood));
   if (filters.source) conditions.push(eq(listings.source, filters.source));
 
-  const where = and(...conditions);
+  return conditions;
+}
+
+export async function getListings(
+  filters: ListingFilters
+): Promise<ListingsResponse> {
+  const db = getDb();
+  if (!db) return seedGetListings(filters);
+
+  const where = and(...buildFilterConditions(filters));
 
   const [countResult] = await db
     .select({ count: sql<number>`count(*)` })
@@ -127,6 +132,26 @@ export async function getListings(
     limit,
     has_more: offset + rows.length < total,
   };
+}
+
+/** Returns ALL geocoded listings matching filters (no pagination). Used for map pins. */
+export async function getMapListings(
+  filters: ListingFilters
+): Promise<Listing[]> {
+  const db = getDb();
+  if (!db) return seedGetMapListings(filters);
+
+  const conditions = buildFilterConditions(filters);
+  conditions.push(sql`${listings.latitude} IS NOT NULL`);
+  conditions.push(sql`${listings.longitude} IS NOT NULL`);
+
+  const rows = await db
+    .select()
+    .from(listings)
+    .where(and(...conditions))
+    .orderBy(desc(listings.firstSeen));
+
+  return rows.map(dbRowToListing);
 }
 
 export async function getListingById(id: string): Promise<Listing | null> {

@@ -102,6 +102,38 @@ export function seedGetListings(filters: ListingFilters): ListingsResponse {
   };
 }
 
+export function seedGetMapListings(filters: ListingFilters): Listing[] {
+  let all = getSeedListings();
+
+  if (filters.city) all = all.filter((l) => l.city === filters.city);
+  if (filters.transaction_type)
+    all = all.filter((l) => l.transaction_type === filters.transaction_type);
+  if (filters.property_type)
+    all = all.filter((l) => l.property_type === filters.property_type);
+  if (filters.price_min != null)
+    all = all.filter((l) => l.price != null && l.price >= filters.price_min!);
+  if (filters.price_max != null)
+    all = all.filter((l) => l.price != null && l.price <= filters.price_max!);
+  if (filters.rooms_min != null)
+    all = all.filter((l) => l.rooms != null && l.rooms >= filters.rooms_min!);
+  if (filters.rooms_max != null)
+    all = all.filter((l) => l.rooms != null && l.rooms <= filters.rooms_max!);
+  if (filters.area_min != null)
+    all = all.filter(
+      (l) => l.area_sqm != null && l.area_sqm >= filters.area_min!
+    );
+  if (filters.area_max != null)
+    all = all.filter(
+      (l) => l.area_sqm != null && l.area_sqm <= filters.area_max!
+    );
+  if (filters.neighborhood)
+    all = all.filter((l) => l.neighborhood === filters.neighborhood);
+  if (filters.source)
+    all = all.filter((l) => l.source === filters.source);
+
+  return all.filter((l) => l.latitude != null && l.longitude != null);
+}
+
 export function seedGetListingById(id: string): Listing | null {
   return getSeedListings().find((l) => l.id === id) ?? null;
 }

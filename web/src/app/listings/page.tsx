@@ -89,6 +89,7 @@ function ListingsContent() {
   const [hasMore, setHasMore] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "map">("grid");
+  const [mapListings, setMapListings] = useState<Listing[]>([]);
 
   const currentSort = searchParams.get("sort") ?? "newest";
 
@@ -124,6 +125,18 @@ function ListingsContent() {
     setPage(1);
     fetchListings(1);
   }, [fetchListings]);
+
+  // Fetch ALL geocoded listings for map pins (separate from paginated list)
+  useEffect(() => {
+    if (viewMode !== "map") return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
+    params.delete("sort");
+    fetch(`/api/listings/map-pins?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data: Listing[]) => setMapListings(data))
+      .catch(() => {});
+  }, [viewMode, searchParams]);
 
   function loadMore() {
     const nextPage = page + 1;
@@ -307,7 +320,7 @@ function ListingsContent() {
 
             {/* Map */}
             <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-warm-gray-light/40">
-              <MapView listings={listings} />
+              <MapView listings={mapListings} />
             </div>
           </div>
 
