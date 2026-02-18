@@ -1,8 +1,8 @@
 # ShtëpiAL
 
-Albanian real estate aggregator and listing platform. Scrapy spiders collect listings from major Albanian property sites, while users can register and post their own listings. Built with Next.js 14, Neon PostgreSQL, and Drizzle ORM.
+Albanian real estate aggregator and listing platform. Scrapy spiders collect listings from major Albanian property sites, while users can register and post their own listings. Built with Next.js 14, Supabase PostgreSQL, and Drizzle ORM.
 
-**Live:** [web-sigma-six-65.vercel.app](https://web-sigma-six-65.vercel.app)
+**Live:** [shtepi-al.vercel.app](https://shtepi-al.vercel.app)
 **Project Board:** [Production Readiness](https://github.com/users/phoebusdev/projects/3)
 
 ## Architecture
@@ -18,12 +18,12 @@ Albanian real estate aggregator and listing platform. Scrapy spiders collect lis
                         │ PostgreSQLPipeline (batch upsert)
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Neon PostgreSQL                                            │
+│  Supabase PostgreSQL                                            │
 │  Drizzle ORM schema: listings, users, accounts, agencies    │
 │  Full-text search: tsvector + GIN index                     │
 │  Partial unique index: (source, source_id) for dedup        │
 └───────────────────────┬─────────────────────────────────────┘
-                        │ @neondatabase/serverless (HTTP)
+                        │ Drizzle ORM (postgres-js driver)
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  Next.js 14 App Router (TypeScript)                         │
@@ -41,8 +41,8 @@ Albanian real estate aggregator and listing platform. Scrapy spiders collect lis
 | Layer | Technology |
 |-------|-----------|
 | Frontend | Next.js 14, React 18, Tailwind CSS, Leaflet |
-| Database | Neon PostgreSQL (prod), JSON seed fallback (dev) |
-| ORM | Drizzle ORM with Neon HTTP driver |
+| Database | Supabase PostgreSQL (prod), JSON seed fallback (dev) |
+| ORM | Drizzle ORM with postgres-js driver |
 | Auth | NextAuth v5 (JWT strategy, Credentials + Google) |
 | Image Storage | Vercel Blob (user uploads), raw URLs (scraped) |
 | Scraping | Scrapy 2.11, Python 3.12 |
@@ -54,7 +54,7 @@ Albanian real estate aggregator and listing platform. Scrapy spiders collect lis
 
 - Node.js 18+
 - Python 3.9+
-- A Neon PostgreSQL database (or run locally with seed data)
+- A Supabase PostgreSQL database (or run locally with seed data)
 
 ### Web App
 
@@ -86,15 +86,20 @@ DATABASE_URL=postgresql://... ../scripts/run_spiders.sh
 ### Running Tests
 
 ```bash
+# Python spider tests
 cd scrapy_project
-python -m pytest tests/ -q   # 352 tests
+python -m pytest tests/ -q   # 377 tests
+
+# Web frontend tests
+cd web
+npx vitest run               # 55 tests
 ```
 
 ## Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | No* | Neon PostgreSQL connection string |
+| `DATABASE_URL` | No* | Supabase PostgreSQL connection string |
 | `NEXTAUTH_URL` | Yes | App URL (`http://localhost:3000` for dev) |
 | `NEXTAUTH_SECRET` | Yes | Random 32-char secret for session signing |
 | `GOOGLE_CLIENT_ID` | No | Google OAuth client ID |
@@ -137,6 +142,7 @@ Pipeline selection is automatic: `DATABASE_URL` set → PostgreSQL, otherwise SQ
 | Method | Route | Auth | Description |
 |--------|-------|------|-------------|
 | GET | `/api/listings` | No | Filtered listings with pagination |
+| GET | `/api/listings/map-pins` | No | All geocoded listings for map (no pagination) |
 | POST | `/api/listings` | Yes | Create a new user listing |
 | PUT | `/api/listings/[id]` | Yes | Update own listing |
 | DELETE | `/api/listings/[id]` | Yes | Soft-delete own listing |
@@ -192,13 +198,13 @@ shtepi-al/
 │   └── tests/
 │       ├── fixtures/            # HTML fixtures for each spider
 │       ├── test_normalizers.py  # Normalizer unit tests
-│       └── test_spider_*.py     # Spider-specific tests (352 total)
+│       └── test_spider_*.py     # Spider-specific tests (377 total)
 ├── web/
 │   ├── data/
 │   │   └── seed-listings.json   # 91 real listings (fallback without DB)
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── api/             # 10 API route files
+│   │   │   ├── api/             # 11 API route files
 │   │   │   ├── auth/            # signin, register pages
 │   │   │   ├── dashboard/       # user dashboard
 │   │   │   ├── listings/        # browse, detail, new, edit
@@ -206,16 +212,21 @@ shtepi-al/
 │   │   │   └── page.tsx         # homepage
 │   │   ├── components/
 │   │   │   ├── AuthButton.tsx   # header auth toggle
-│   │   │   ├── FilterSidebar.tsx
+│   │   │   ├── DesktopNav.tsx   # desktop nav with active link highlighting
+│   │   │   ├── FilterSidebar.tsx# mobile drawer + desktop aside (scroll lock, escape key)
 │   │   │   ├── ImageGallery.tsx # listing image carousel
 │   │   │   ├── ImageUploader.tsx# drag-drop upload
 │   │   │   ├── ListingCard.tsx
 │   │   │   ├── ListingForm.tsx  # create/edit form
-│   │   │   ├── MapView.tsx      # Leaflet map
-│   │   │   ├── MobileMenu.tsx
+│   │   │   ├── MapView.tsx      # Leaflet map with clustering
+│   │   │   ├── MobileMenu.tsx   # portal-based mobile drawer (escapes backdrop-filter)
+│   │   │   ├── NavLink.tsx      # active link detection via pathname + search params
 │   │   │   ├── Providers.tsx    # SessionProvider wrapper
 │   │   │   ├── SearchBar.tsx
 │   │   │   └── ShareButton.tsx
+│   │   ├── hooks/
+│   │   │   ├── useBodyScrollLock.ts # iOS Safari compatible body scroll lock
+│   │   │   └── useEscapeKey.ts      # escape key handler with enabled gate
 │   │   ├── lib/
 │   │   │   ├── auth.ts          # NextAuth config (Node.js, bcrypt)
 │   │   │   ├── auth.config.ts   # Edge-safe auth (middleware)
@@ -224,7 +235,7 @@ shtepi-al/
 │   │   │   ├── validators.ts    # Zod schemas
 │   │   │   └── db/
 │   │   │       ├── schema.ts    # Drizzle schema (all tables)
-│   │   │       ├── drizzle.ts   # Neon HTTP connection
+│   │   │       ├── drizzle.ts   # Supabase PostgreSQL connection
 │   │   │       ├── queries.ts   # DB query functions + seed fallback
 │   │   │       ├── seed.ts      # JSON seed data loader
 │   │   │       └── migrations/  # FTS migration SQL
@@ -236,26 +247,33 @@ shtepi-al/
 │   └── package.json
 ├── scripts/
 │   ├── run_spiders.sh           # Run all production spiders
-│   └── migrate-sqlite-to-pg.py  # One-time SQLite → Neon migration
+│   ├── backfill_geocode.py      # One-time geocode backfill (Nominatim + city fallback)
+│   └── migrate-sqlite-to-pg.py  # One-time SQLite → PostgreSQL migration
 ├── db/
 │   └── schema.sql               # SQLite schema (local dev reference)
 ├── docs/
 │   ├── shtepial-prd.md          # Product requirements document
+│   ├── plans/                   # Design + implementation plan docs
 │   └── screenshots/             # UI screenshots
 └── README.md
 ```
 
 ## What's Done
 
-- 5 Scrapy spiders built and tested (352 tests passing)
+- 5 Scrapy spiders built and tested (377 Python tests + 55 web tests passing)
 - Full pipeline chain with Albanian-aware normalization
 - PostgreSQLPipeline with batch upsert and boolean casting
-- Neon PostgreSQL schema deployed via Drizzle
+- Supabase PostgreSQL schema deployed via Drizzle
 - Full-text search (tsvector + GIN index)
 - NextAuth v5 with email/password registration
 - User listing CRUD (create, edit, delete with image upload)
 - Dashboard for managing user listings
-- Responsive frontend with search, filters, map view
+- Responsive frontend with search, filters, grid/map toggle
+- Map view with clustered markers for ALL geocoded listings
+- Navigation active states (desktop + mobile), mobile menu with portal rendering
+- SEO: structured data (JSON-LD), meta tags, OG images, sitemap, city/listing slugs
+- Geocode backfill pipeline (Nominatim + city-center fallback)
+- Daily automated scrape via GitHub Actions (parallelized, one job per spider)
 - JSON seed fallback (works without database)
 - Deployed on Vercel with all env vars configured
 
@@ -265,7 +283,7 @@ See the [project board](https://github.com/users/phoebusdev/projects/3) for full
 
 | Issue | Area | Description |
 |-------|------|-------------|
-| [#5](https://github.com/phoebusdev/shtepi-al/issues/5) | Scraping | Run initial production scrape to populate Neon DB |
+| [#5](https://github.com/phoebusdev/shtepi-al/issues/5) | Scraping | Run initial production scrape to populate Supabase DB |
 | [#6](https://github.com/phoebusdev/shtepi-al/issues/6) | Scraping | Scheduled scraping (cron / GitHub Actions) |
 | [#9](https://github.com/phoebusdev/shtepi-al/issues/9) | Auth | Google OAuth credentials |
 | [#10](https://github.com/phoebusdev/shtepi-al/issues/10) | Auth | Rate limiting on auth endpoints |
