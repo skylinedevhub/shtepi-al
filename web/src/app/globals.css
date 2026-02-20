@@ -7,14 +7,17 @@
   --foreground: #374151;
 }
 
-html {
-  scroll-behavior: smooth;
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
 }
+
+h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
+p, li, dd, figcaption { text-wrap: pretty; }
 
 /* Focus-visible accessibility ring */
 *:focus-visible {
@@ -143,6 +146,7 @@ body {
 .stagger-children > *:nth-child(5) { animation-delay: 240ms; }
 .stagger-children > *:nth-child(6) { animation-delay: 300ms; }
 .stagger-children > *:nth-child(n+7) { animation-delay: 350ms; }
+.stagger-children > *:nth-child(n+13) { animation: none; }
 
 /* ─── Search bar focus glow ─── */
 .search-glow:focus-within {
@@ -178,5 +182,15 @@ body {
   background-repeat: repeat;
   background-size: 256px 256px;
   pointer-events: none;
+}
+
+/* ─── Reduced motion — global safety net ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 

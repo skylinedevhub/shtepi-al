@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Listing } from "@/lib/types";
 import { buildListingPath } from "@/lib/seo/slugs";
+import { cn } from "@/lib/cn";
 
 const SOURCE_COLORS: Record<string, string> = {
   merrjep: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
@@ -32,14 +33,15 @@ export default function ListingCard({ listing, variant = "default" }: ListingCar
   return (
     <Link
       href={buildListingPath(listing.title, listing.city, listing.id)}
-      className={`group block overflow-hidden bg-white shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_12px_32px_-8px_rgba(27,42,74,0.12)] ${
+      className={cn(
+        "group block overflow-hidden bg-white shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_12px_32px_-8px_rgba(27,42,74,0.12)]",
         isCompact
-          ? "rounded-xl border border-warm-gray-light/60 hover:border-warm-gray-light"
-          : "rounded-2xl border border-warm-gray-light/40 hover:border-warm-gray-light"
-      }`}
+          ? "rounded-xl border border-warm-gray-light/50"
+          : "rounded-2xl border border-warm-gray-light/50"
+      )}
     >
       {/* Image */}
-      <div className={`relative overflow-hidden bg-cream-dark ${isCompact ? "aspect-[3/2]" : "aspect-[4/3]"}`}>
+      <div className={cn("relative overflow-hidden bg-cream-dark", isCompact ? "aspect-[3/2]" : "aspect-[4/3]")}>
         {firstImage && !imgError ? (
           <Image
             src={firstImage}
@@ -53,7 +55,7 @@ export default function ListingCard({ listing, variant = "default" }: ListingCar
           />
         ) : (
           <div className="flex h-full items-center justify-center text-warm-gray-light">
-            <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="size-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -65,19 +67,23 @@ export default function ListingCard({ listing, variant = "default" }: ListingCar
         )}
 
         {/* Badges */}
-        <div className={`absolute left-2 top-2 flex gap-1.5 ${isCompact ? "text-[10px]" : ""}`}>
+        <div className={cn("absolute left-2 top-2 flex gap-1.5", isCompact && "text-[10px]")}>
           <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${SOURCE_COLORS[listing.source] ?? "bg-gray-50 text-gray-700 ring-1 ring-gray-200"}`}
+            className={cn(
+              "rounded-full px-2 py-0.5 text-xs font-medium",
+              SOURCE_COLORS[listing.source] ?? "bg-gray-50 text-gray-700 ring-1 ring-gray-200"
+            )}
           >
             {listing.source}
           </span>
           {listing.transaction_type && (
             <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+              className={cn(
+                "rounded-full px-2 py-0.5 text-xs font-medium",
                 listing.transaction_type === "sale"
                   ? "bg-terracotta text-white"
                   : "bg-gold text-navy"
-              }`}
+              )}
             >
               {listing.transaction_type === "sale" ? "Shitje" : "Qira"}
             </span>
@@ -95,7 +101,7 @@ export default function ListingCard({ listing, variant = "default" }: ListingCar
       {/* Content */}
       <div className={isCompact ? "p-3" : "p-4"}>
         {/* Price */}
-        <div className={`font-bold text-navy ${isCompact ? "text-base" : "text-lg"}`}>
+        <div className={cn("font-bold tabular-nums text-navy", isCompact ? "text-base" : "text-lg")}>
           {priceText}
           {periodSuffix && (
             <span className="text-sm font-normal text-warm-gray">
@@ -108,7 +114,7 @@ export default function ListingCard({ listing, variant = "default" }: ListingCar
         <div className="mt-1.5 flex items-center gap-3 text-sm text-warm-gray">
           {listing.room_config && (
             <span className="flex items-center gap-1">
-              <svg className="h-3.5 w-3.5 text-warm-gray-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="size-3.5 text-warm-gray-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
               </svg>
               {listing.room_config}
@@ -116,7 +122,7 @@ export default function ListingCard({ listing, variant = "default" }: ListingCar
           )}
           {listing.area_sqm && (
             <span className="flex items-center gap-1">
-              <svg className="h-3.5 w-3.5 text-warm-gray-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="size-3.5 text-warm-gray-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
               </svg>
               {listing.area_sqm} m²
@@ -132,7 +138,7 @@ export default function ListingCard({ listing, variant = "default" }: ListingCar
 
         {/* Location */}
         <div className="mt-1.5 flex items-center gap-1 truncate text-sm text-warm-gray">
-          <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>

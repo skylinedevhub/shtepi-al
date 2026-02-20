@@ -46,7 +46,7 @@ export default function AuthButton() {
 
   if (loading) {
     return (
-      <div className="h-8 w-8 animate-pulse rounded-full bg-cream/20" />
+      <div className="size-8 animate-pulse rounded-full bg-cream/20" />
     );
   }
 
@@ -75,7 +75,8 @@ export default function AuthButton() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setMenuOpen(!menuOpen)}
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-terracotta text-sm font-bold text-white transition hover:bg-terracotta-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+        aria-expanded={menuOpen}
+        className="flex size-9 items-center justify-center rounded-full bg-terracotta text-sm font-bold text-white transition hover:bg-terracotta-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
         aria-label="Menuja e llogarisë"
       >
         {avatarUrl ? (
@@ -83,7 +84,7 @@ export default function AuthButton() {
           <img
             src={avatarUrl}
             alt=""
-            className="h-9 w-9 rounded-full object-cover"
+            className="size-9 rounded-full object-cover"
           />
         ) : (
           initials

@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { CITIES, PROPERTY_TYPES } from "@/lib/constants";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
+import { cn } from "@/lib/cn";
 
 const SOURCES = ["merrjep", "celesi", "mirlir", "njoftime"];
 
@@ -77,11 +78,12 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
                   currentValue("transaction_type") === t ? null : t
                 )
               }
-              className={`rounded-btn px-4 py-2 text-sm font-medium transition ${
+              className={cn(
+                "rounded-btn px-4 py-2 text-sm font-medium transition",
                 currentValue("transaction_type") === t
                   ? "bg-terracotta text-white shadow-sm"
                   : "bg-cream-dark text-navy hover:bg-warm-gray-light/50"
-              }`}
+              )}
             >
               {t === "sale" ? "Shitje" : "Qira"}
             </button>
@@ -122,11 +124,12 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
                   currentValue("property_type") === pt.value ? null : pt.value
                 )
               }
-              className={`rounded-btn px-3 py-1.5 text-xs font-medium transition ${
+              className={cn(
+                "rounded-btn px-3 py-1.5 text-xs font-medium transition",
                 currentValue("property_type") === pt.value
                   ? "bg-terracotta text-white shadow-sm"
                   : "bg-cream-dark text-navy hover:bg-warm-gray-light/50"
-              }`}
+              )}
             >
               {pt.label}
             </button>
@@ -143,6 +146,7 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
           <input
             type="number"
             placeholder="Min"
+            aria-label="Cmimi minimum (EUR)"
             value={currentValue("price_min")}
             onChange={(e) =>
               updateFilter("price_min", e.target.value || null)
@@ -152,6 +156,7 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
           <input
             type="number"
             placeholder="Max"
+            aria-label="Cmimi maksimum (EUR)"
             value={currentValue("price_max")}
             onChange={(e) =>
               updateFilter("price_max", e.target.value || null)
@@ -175,11 +180,12 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
                   currentValue("rooms_min") === r ? null : r
                 )
               }
-              className={`flex h-10 w-10 items-center justify-center rounded-btn text-sm font-medium transition ${
+              className={cn(
+                "flex size-10 items-center justify-center rounded-btn text-sm font-medium transition",
                 currentValue("rooms_min") === r
                   ? "bg-terracotta text-white shadow-sm"
                   : "bg-cream-dark text-navy hover:bg-warm-gray-light/50"
-              }`}
+              )}
             >
               {r === "0" ? "S" : `${r}+`}
             </button>
@@ -196,6 +202,7 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
           <input
             type="number"
             placeholder="Min"
+            aria-label="Siperfaqja minimale (m²)"
             value={currentValue("area_min")}
             onChange={(e) =>
               updateFilter("area_min", e.target.value || null)
@@ -205,6 +212,7 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
           <input
             type="number"
             placeholder="Max"
+            aria-label="Siperfaqja maksimale (m²)"
             value={currentValue("area_max")}
             onChange={(e) =>
               updateFilter("area_max", e.target.value || null)
@@ -228,11 +236,12 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
                   currentValue("source") === s ? null : s
                 )
               }
-              className={`rounded-btn px-3 py-1.5 text-xs font-medium transition ${
+              className={cn(
+                "rounded-btn px-3 py-1.5 text-xs font-medium transition",
                 currentValue("source") === s
                   ? "bg-terracotta text-white shadow-sm"
                   : "bg-cream-dark text-navy hover:bg-warm-gray-light/50"
-              }`}
+              )}
             >
               {s}
             </button>
@@ -253,21 +262,24 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
 
       {/* Mobile drawer overlay — always rendered, transition opacity */}
       <div
-        className={`fixed inset-0 z-50 bg-navy/40 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+        className={cn(
+          "fixed inset-0 z-50 bg-navy/40 backdrop-blur-sm transition-opacity duration-300 md:hidden",
           isOpen ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
+        )}
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Mobile drawer */}
       <aside
+        id="filter-drawer"
         role="dialog"
         aria-modal="true"
         aria-label="Filtrat"
-        className={`fixed right-0 top-0 z-50 h-full w-80 max-w-[85vw] overflow-y-auto bg-cream p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl transition-transform duration-300 md:hidden ${
+        className={cn(
+          "fixed right-0 top-0 z-50 h-full w-80 max-w-[85vw] overflow-y-auto bg-cream p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl transition-transform duration-300 md:hidden",
           isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        )}
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold text-navy">Filtra</h2>
@@ -277,7 +289,7 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
               aria-label="Mbyll filtrat"
               className="rounded-lg p-2 text-warm-gray transition hover:bg-cream-dark"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>

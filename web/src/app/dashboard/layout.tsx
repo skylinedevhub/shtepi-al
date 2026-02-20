@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
+  title: "Paneli im",
   robots: { index: false, follow: false },
 };
 

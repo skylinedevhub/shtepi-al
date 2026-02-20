@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
 import Link from "next/link";
 import DesktopNav from "@/components/DesktopNav";
@@ -33,6 +33,7 @@ export const metadata: Metadata = {
     siteName: "ShtëpiAL",
     locale: "sq_AL",
     type: "website",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
@@ -40,6 +41,10 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1B2A4A",
 };
 
 export default function RootLayout({
@@ -55,7 +60,7 @@ export default function RootLayout({
           Kalo te përmbajtja
         </a>
 
-        <header className="sticky top-0 z-40 bg-navy/95 backdrop-blur-md">
+        <header className="sticky top-0 z-40 bg-navy/95 backdrop-blur-sm">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
             <Link href="/" className="font-display text-xl font-bold tracking-tight text-cream">
               <span className="text-gold">Shtëpi</span>AL

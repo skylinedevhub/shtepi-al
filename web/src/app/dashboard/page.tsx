@@ -176,7 +176,7 @@ export default function DashboardPage() {
                   <div className="mt-1 flex items-center gap-2 text-sm text-warm-gray">
                     {listing.city && <span>{listing.city}</span>}
                     {listing.price && (
-                      <span className="font-medium text-terracotta">
+                      <span className="font-medium tabular-nums text-terracotta">
                         €{listing.price.toLocaleString("de-DE", { maximumFractionDigits: 0 })}
                       </span>
                     )}

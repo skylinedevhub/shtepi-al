@@ -7,6 +7,7 @@ import NavLink from "./NavLink";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { cityToSlug } from "@/lib/seo/slugs";
+import { cn } from "@/lib/cn";
 
 const linkBase =
   "rounded-lg px-3 py-3 text-sm font-medium text-navy transition hover:bg-cream-dark hover:text-terracotta";
@@ -53,9 +54,10 @@ export default function MobileMenu() {
     <>
       {/* Overlay — always rendered, transition opacity */}
       <div
-        className={`fixed inset-0 z-50 bg-navy/40 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+        className={cn(
+          "fixed inset-0 z-50 bg-navy/40 backdrop-blur-sm transition-opacity duration-300 md:hidden",
           open ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
+        )}
         onClick={close}
         aria-hidden="true"
       />
@@ -65,9 +67,10 @@ export default function MobileMenu() {
         role="dialog"
         aria-modal="true"
         aria-label="Menuja kryesore"
-        className={`fixed right-0 top-0 z-50 h-full w-72 max-w-[80vw] bg-white pb-[env(safe-area-inset-bottom)] shadow-xl transition-transform duration-300 md:hidden ${
+        className={cn(
+          "fixed right-0 top-0 z-50 h-full w-72 max-w-[80vw] bg-white pb-[env(safe-area-inset-bottom)] shadow-xl transition-transform duration-300 md:hidden",
           open ? "translate-x-0" : "translate-x-full"
-        }`}
+        )}
       >
         <div className="flex items-center justify-between border-b border-cream-dark px-4 py-4">
           <span className="font-display text-lg font-bold text-navy">
@@ -78,7 +81,7 @@ export default function MobileMenu() {
             aria-label="Mbyll menunë"
             className="rounded-lg p-2 text-warm-gray transition hover:bg-cream-dark"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -117,9 +120,10 @@ export default function MobileMenu() {
       <button
         onClick={() => setOpen(true)}
         aria-label="Hap menunë"
+        aria-expanded={open}
         className="rounded-lg p-2 text-cream/70 transition hover:text-cream"
       >
-        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>

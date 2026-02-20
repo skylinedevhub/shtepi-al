@@ -7,6 +7,7 @@ import ListingCard from "@/components/ListingCard";
 import FilterSidebar from "@/components/FilterSidebar";
 import SearchBar from "@/components/SearchBar";
 import type { Listing, ListingsResponse } from "@/lib/types";
+import { cn } from "@/lib/cn";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -35,10 +36,11 @@ function EmptyState() {
   return (
     <div className="flex flex-col items-center py-20 text-center">
       <svg
-        className="mb-4 h-20 w-20 text-warm-gray-light"
+        className="mb-4 size-20 text-warm-gray-light"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
+        aria-hidden="true"
       >
         <path
           strokeLinecap="round"
@@ -65,7 +67,7 @@ function EmptyState() {
 
 function GridIcon() {
   return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
     </svg>
   );
@@ -73,7 +75,7 @@ function GridIcon() {
 
 function MapIcon() {
   return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
     </svg>
   );
@@ -172,22 +174,26 @@ function ListingsContent() {
             <button
               onClick={() => setViewMode("grid")}
               aria-label="Shfaq si rrjetë"
-              className={`p-2.5 transition ${
+              aria-pressed={viewMode === "grid"}
+              className={cn(
+                "p-2.5 transition",
                 viewMode === "grid"
                   ? "bg-terracotta text-white"
                   : "bg-white text-warm-gray hover:text-navy"
-              }`}
+              )}
             >
               <GridIcon />
             </button>
             <button
               onClick={() => setViewMode("map")}
               aria-label="Shfaq në hartë"
-              className={`p-2.5 transition ${
+              aria-pressed={viewMode === "map"}
+              className={cn(
+                "p-2.5 transition",
                 viewMode === "map"
                   ? "bg-terracotta text-white"
                   : "bg-white text-warm-gray hover:text-navy"
-              }`}
+              )}
             >
               <MapIcon />
             </button>
@@ -196,6 +202,7 @@ function ListingsContent() {
           <select
             value={currentSort}
             onChange={(e) => handleSort(e.target.value)}
+            aria-label="Rendit sipas"
             className="min-w-0 rounded-btn border border-warm-gray-light bg-white px-2 py-2.5 text-xs text-navy focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20 sm:px-3 sm:text-sm"
           >
             {SORT_OPTIONS.map((opt) => (
@@ -206,11 +213,13 @@ function ListingsContent() {
           </select>
           <button
             onClick={() => setFiltersOpen(!filtersOpen)}
+            aria-expanded={filtersOpen}
+            aria-controls="filter-drawer"
             className="relative rounded-btn border border-warm-gray-light px-4 py-2.5 text-sm font-medium text-navy transition hover:bg-cream-dark md:hidden"
           >
             Filtra
             {activeFilterCount > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-terracotta text-[10px] font-bold text-white">
+              <span className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-terracotta text-[10px] font-bold text-white">
                 {activeFilterCount}
               </span>
             )}
@@ -228,7 +237,7 @@ function ListingsContent() {
 
           <div className="flex-1">
             {/* Results summary */}
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between" role="status" aria-live="polite">
               <p className="text-sm text-warm-gray">
                 {total > 0 ? (
                   <>

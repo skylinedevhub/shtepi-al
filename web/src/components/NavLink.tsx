@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { cn } from "@/lib/cn";
 
 interface NavLinkProps {
   href: string;
@@ -40,7 +41,7 @@ export default function NavLink({
     <Link
       href={href}
       onClick={onClick}
-      className={`${className} ${active ? activeClassName : ""}`}
+      className={cn(className, active && activeClassName)}
       aria-current={active ? "page" : undefined}
     >
       {children}

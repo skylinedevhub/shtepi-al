@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { cn } from "@/lib/cn";
 
 interface ImageGalleryProps {
   images: string[];
@@ -15,7 +16,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
   if (images.length === 0) {
     return (
       <div className="flex aspect-[16/9] items-center justify-center rounded-2xl bg-cream-dark text-warm-gray">
-        <svg className="mr-2 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="mr-2 size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
         </svg>
         Nuk ka foto
@@ -78,7 +79,10 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
         <img
           src={images[currentIndex]}
           alt={`${alt} - foto ${currentIndex + 1}`}
-          className={`h-full w-full object-cover transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+          className={cn(
+            "h-full w-full object-cover transition-opacity duration-300",
+            imageLoaded ? "opacity-100" : "opacity-0"
+          )}
           onLoad={() => setImageLoaded(true)}
         />
 
@@ -90,7 +94,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
               aria-label="Foto e mëparshme"
               className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-navy/50 p-3 text-white transition hover:bg-navy/70"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
@@ -99,7 +103,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
               aria-label="Foto tjetër"
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-navy/50 p-3 text-white transition hover:bg-navy/70"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -125,11 +129,12 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
                 setCurrentIndex(i);
               }}
               aria-label={`Shko te foto ${i + 1}`}
-              className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition ${
+              className={cn(
+                "size-16 shrink-0 overflow-hidden rounded-lg border-2 transition",
                 i === currentIndex
                   ? "border-terracotta shadow-sm"
                   : "border-transparent opacity-60 hover:opacity-100"
-              }`}
+              )}
             >
               <img
                 src={img}
