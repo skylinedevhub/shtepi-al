@@ -58,7 +58,7 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
       {hasActiveFilters && (
         <button
           onClick={clearAll}
-          className="w-full rounded-btn border border-warm-gray-light px-3 py-2 text-sm font-medium text-navy transition hover:bg-cream-dark"
+          className="w-full cursor-pointer rounded-btn border border-warm-gray-light px-3 py-2 text-sm font-medium text-navy transition hover:bg-cream-dark"
         >
           Pastro filtrat
         </button>
@@ -79,7 +79,7 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
                 )
               }
               className={cn(
-                "rounded-btn px-4 py-2 text-sm font-medium transition",
+                "cursor-pointer rounded-btn px-4 py-2 text-sm font-medium transition",
                 currentValue("transaction_type") === t
                   ? "bg-terracotta text-white shadow-sm"
                   : "bg-cream-dark text-navy hover:bg-warm-gray-light/50"
@@ -125,7 +125,7 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
                 )
               }
               className={cn(
-                "rounded-btn px-3 py-1.5 text-xs font-medium transition",
+                "cursor-pointer rounded-btn px-3 py-1.5 text-xs font-medium transition",
                 currentValue("property_type") === pt.value
                   ? "bg-terracotta text-white shadow-sm"
                   : "bg-cream-dark text-navy hover:bg-warm-gray-light/50"
@@ -181,7 +181,7 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
                 )
               }
               className={cn(
-                "flex size-10 items-center justify-center rounded-btn text-sm font-medium transition",
+                "flex size-10 cursor-pointer items-center justify-center rounded-btn text-sm font-medium transition",
                 currentValue("rooms_min") === r
                   ? "bg-terracotta text-white shadow-sm"
                   : "bg-cream-dark text-navy hover:bg-warm-gray-light/50"
@@ -237,7 +237,7 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
                 )
               }
               className={cn(
-                "rounded-btn px-3 py-1.5 text-xs font-medium transition",
+                "cursor-pointer rounded-btn px-3 py-1.5 text-xs font-medium transition",
                 currentValue("source") === s
                   ? "bg-terracotta text-white shadow-sm"
                   : "bg-cream-dark text-navy hover:bg-warm-gray-light/50"

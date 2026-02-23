@@ -19,7 +19,8 @@ body {
 h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
 p, li, dd, figcaption { text-wrap: pretty; }
 
-/* Focus-visible accessibility ring */
+/* Focus-visible accessibility ring — #C75B39 is the terracotta token value.
+   Raw hex required here because CSS can't reference Tailwind tokens. */
 *:focus-visible {
   outline: 2px solid #C75B39;
   outline-offset: 2px;

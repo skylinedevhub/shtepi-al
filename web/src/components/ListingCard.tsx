@@ -8,10 +8,11 @@ import { buildListingPath } from "@/lib/seo/slugs";
 import { cn } from "@/lib/cn";
 
 const SOURCE_COLORS: Record<string, string> = {
-  merrjep: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
-  celesi: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
-  mirlir: "bg-violet-50 text-violet-700 ring-1 ring-violet-200",
-  njoftime: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+  merrjep: "bg-terracotta-light text-terracotta ring-1 ring-terracotta/20",
+  celesi: "bg-gold-light text-navy ring-1 ring-gold/30",
+  mirlir: "bg-navy/5 text-navy ring-1 ring-navy/10",
+  njoftime: "bg-cream-dark text-warm-gray ring-1 ring-warm-gray-light",
+  duashpi: "bg-gold-light/60 text-navy ring-1 ring-gold/20",
 };
 
 interface ListingCardProps {

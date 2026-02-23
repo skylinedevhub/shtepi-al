@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import NavLink from "./NavLink";
 
 const linkBase =
-  "rounded-lg px-3 py-2 text-cream/70 transition-colors duration-200 hover:bg-white/5 hover:text-cream";
+  "rounded-lg px-3 py-2 text-cream/70 transition-colors duration-200 hover:bg-cream/5 hover:text-cream";
 const linkActive = "bg-white/10 text-cream font-semibold";
 
 function NavLinks() {
