@@ -40,7 +40,7 @@ Albanian real estate aggregator and listing platform. Scrapy spiders collect lis
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Next.js 14, React 18, Tailwind CSS, Leaflet |
+| Frontend | Next.js 14, React 18, Tailwind CSS, Leaflet, DM Sans + Playfair Display |
 | Database | Supabase PostgreSQL (prod), JSON seed fallback (dev) |
 | ORM | Drizzle ORM with postgres-js driver |
 | Auth | NextAuth v5 (JWT strategy, Credentials + Google) |
@@ -159,12 +159,30 @@ Pipeline selection is automatic: `DATABASE_URL` set → PostgreSQL, otherwise SQ
 |-------|------|-------------|
 | `/` | No | Homepage with search, quick filters, recent listings |
 | `/listings` | No | Browse with filters, sort, grid/map toggle |
-| `/listings/[id]` | No | Listing detail with gallery, specs, contact |
+| `/listings/[city]/[slug]` | No | Listing detail with gallery, specs, map, contact |
+| `/[city]` | No | City-specific listings page |
 | `/auth/signin` | No | Sign in (email + Google) |
 | `/auth/register` | No | Create account |
 | `/dashboard` | Yes | User's posted listings |
 | `/listings/new` | Yes | Post a new listing |
 | `/listings/edit/[id]` | Yes | Edit own listing |
+
+### Special App Router Files
+
+| File | Purpose |
+|------|---------|
+| `app/icon.tsx` | Dynamic favicon (navy bg, gold "S") via ImageResponse |
+| `app/apple-icon.tsx` | Apple touch icon (180x180) |
+| `app/manifest.ts` | PWA manifest with Albanian metadata |
+| `app/loading.tsx` | Root loading skeleton |
+| `app/listings/loading.tsx` | Listings grid skeleton (6 cards) |
+| `app/listings/[city]/[slug]/loading.tsx` | Detail page skeleton |
+| `app/dashboard/loading.tsx` | Dashboard skeleton |
+| `app/not-found.tsx` | Albanian 404 page ("Faqja nuk u gjet") |
+| `app/error.tsx` | Albanian 500 page ("Diçka shkoi keq") with retry |
+| `app/robots.ts` | robots.txt generation |
+| `app/sitemap.ts` | XML sitemap generation |
+| `app/opengraph-image/route.tsx` | Dynamic OG image |
 
 ## Database Schema
 
@@ -202,28 +220,45 @@ shtepi-al/
 ├── web/
 │   ├── data/
 │   │   └── seed-listings.json   # 91 real listings (fallback without DB)
+│   ├── design-system/
+│   │   └── MASTER.md            # Design system: colors, typography, components, a11y
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── api/             # 11 API route files
 │   │   │   ├── auth/            # signin, register pages
-│   │   │   ├── dashboard/       # user dashboard
-│   │   │   ├── listings/        # browse, detail, new, edit
+│   │   │   ├── dashboard/       # user dashboard + loading.tsx skeleton
+│   │   │   ├── listings/        # browse, detail, new, edit + loading.tsx skeletons
+│   │   │   ├── icon.tsx         # dynamic favicon (ImageResponse)
+│   │   │   ├── apple-icon.tsx   # Apple touch icon
+│   │   │   ├── manifest.ts     # PWA manifest
+│   │   │   ├── not-found.tsx    # Albanian 404 page
+│   │   │   ├── error.tsx        # Albanian 500 page with retry
+│   │   │   ├── loading.tsx      # root loading skeleton
+│   │   │   ├── robots.ts       # robots.txt
+│   │   │   ├── sitemap.ts      # XML sitemap
+│   │   │   ├── opengraph-image/ # dynamic OG image
 │   │   │   ├── layout.tsx       # root layout with nav + SessionProvider
+│   │   │   ├── globals.css      # custom properties, shimmer, animations, a11y
 │   │   │   └── page.tsx         # homepage
 │   │   ├── components/
 │   │   │   ├── AuthButton.tsx   # header auth toggle
 │   │   │   ├── DesktopNav.tsx   # desktop nav with active link highlighting
+│   │   │   ├── DetailMap.tsx    # single-listing Leaflet map
 │   │   │   ├── FilterSidebar.tsx# mobile drawer + desktop aside (scroll lock, escape key)
 │   │   │   ├── ImageGallery.tsx # listing image carousel
 │   │   │   ├── ImageUploader.tsx# drag-drop upload
-│   │   │   ├── ListingCard.tsx
+│   │   │   ├── JsonLd.tsx       # structured data component
+│   │   │   ├── ListingCard.tsx  # listing card with brand-aligned source badges
 │   │   │   ├── ListingForm.tsx  # create/edit form
+│   │   │   ├── MapPinPicker.tsx # map pin selector for listing forms
 │   │   │   ├── MapView.tsx      # Leaflet map with clustering
 │   │   │   ├── MobileMenu.tsx   # portal-based mobile drawer (escapes backdrop-filter)
 │   │   │   ├── NavLink.tsx      # active link detection via pathname + search params
 │   │   │   ├── Providers.tsx    # SessionProvider wrapper
 │   │   │   ├── SearchBar.tsx
 │   │   │   └── ShareButton.tsx
+│   │   ├── components/icons/
+│   │   │   └── ChevronIcon.tsx  # shared SVG icon
 │   │   ├── hooks/
 │   │   │   ├── useBodyScrollLock.ts # iOS Safari compatible body scroll lock
 │   │   │   └── useEscapeKey.ts      # escape key handler with enabled gate
@@ -231,8 +266,12 @@ shtepi-al/
 │   │   │   ├── auth.ts          # NextAuth config (Node.js, bcrypt)
 │   │   │   ├── auth.config.ts   # Edge-safe auth (middleware)
 │   │   │   ├── city-coords.ts   # Albanian city coordinates
+│   │   │   ├── cn.ts            # cn() utility (clsx + twMerge)
+│   │   │   ├── constants.ts     # CITIES, PROPERTY_TYPES, QUICK_CITIES
 │   │   │   ├── types.ts         # TypeScript interfaces
 │   │   │   ├── validators.ts    # Zod schemas
+│   │   │   ├── seo/             # SEO utilities: slugs, metadata, jsonld, constants
+│   │   │   ├── supabase/        # Supabase client (browser) + server helpers
 │   │   │   └── db/
 │   │   │       ├── schema.ts    # Drizzle schema (all tables)
 │   │   │       ├── drizzle.ts   # Supabase PostgreSQL connection
@@ -276,6 +315,26 @@ shtepi-al/
 - Daily automated scrape via GitHub Actions (parallelized, one job per spider)
 - JSON seed fallback (works without database)
 - Deployed on Vercel with all env vars configured
+- Design system documented (MASTER.md) with brand palette, typography, component patterns
+- Dynamic favicon + Apple touch icon via Next.js ImageResponse
+- PWA manifest with Albanian metadata
+- Loading skeletons for all major routes (root, listings, detail, dashboard)
+- Custom error pages in Albanian (404 "Faqja nuk u gjet", 500 "Diçka shkoi keq")
+- UI consistency: brand-aligned source badges, cursor-pointer on filters, brand hover states
+
+## Design System
+
+See [`web/design-system/MASTER.md`](web/design-system/MASTER.md) for the full reference. Key tokens:
+
+| Token | Hex | Role |
+|-------|-----|------|
+| Navy | `#1B2A4A` | Headings, header bg, primary text |
+| Cream | `#FDF8F0` | Page background |
+| Terracotta | `#C75B39` | CTAs, focus rings, active states |
+| Gold | `#D4A843` | Brand accent, logo highlight |
+| Warm Gray | `#8B8178` | Secondary text, metadata |
+
+Typography: **Playfair Display** (headings) + **DM Sans** (body).
 
 ## What's Missing (Production Blockers)
 
@@ -284,10 +343,7 @@ See the [project board](https://github.com/users/phoebusdev/projects/3) for full
 | Issue | Area | Description |
 |-------|------|-------------|
 | [#5](https://github.com/phoebusdev/shtepi-al/issues/5) | Scraping | Run initial production scrape to populate Supabase DB |
-| [#6](https://github.com/phoebusdev/shtepi-al/issues/6) | Scraping | Scheduled scraping (cron / GitHub Actions) |
 | [#9](https://github.com/phoebusdev/shtepi-al/issues/9) | Auth | Google OAuth credentials |
 | [#10](https://github.com/phoebusdev/shtepi-al/issues/10) | Auth | Rate limiting on auth endpoints |
-| [#12](https://github.com/phoebusdev/shtepi-al/issues/12) | Frontend | SEO: meta tags, OG, sitemap |
-| [#15](https://github.com/phoebusdev/shtepi-al/issues/15) | Frontend | Favicon and branding |
 | [#16](https://github.com/phoebusdev/shtepi-al/issues/16) | Infra | Custom domain |
 | [#17](https://github.com/phoebusdev/shtepi-al/issues/17) | Infra | CI/CD pipeline |
