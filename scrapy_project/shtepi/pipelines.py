@@ -1,9 +1,10 @@
 """Scrapy item pipelines for ShtëpiAL.
 
-Pipeline chain: Validate → Normalize → Geocode → Dedup → Store
+Pipeline chain: Validate → Normalize → Geocode → Dedup → Store (+ cross-source dedup)
 """
 
 import json
+import logging
 import os
 import sqlite3
 import time
@@ -11,6 +12,8 @@ import uuid
 from datetime import datetime, timezone
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 from shtepi.city_coords import CITY_COORDS
 from shtepi.normalizers import (
@@ -543,12 +546,183 @@ class PostgreSQLPipeline:
         cursor.close()
 
         if failed:
-            import logging
-            logger = logging.getLogger(__name__)
             for source, source_id, err in failed:
                 logger.warning("Failed to upsert %s/%s: %s", source, source_id, err)
 
+        # Run cross-source dedup for items in this batch
+        self._cross_source_dedup(self.buffer)
+
         self.buffer = []
+
+    # ------------------------------------------------------------------
+    # Cross-source dedup (runs after each batch flush)
+    # ------------------------------------------------------------------
+
+    _SCORE_COLS = [
+        "id", "source", "title", "image_count", "description",
+        "neighborhood", "floor", "area_sqm", "room_config",
+        "latitude", "longitude", "last_seen",
+    ]
+
+    @staticmethod
+    def score_listing(row):
+        """Score a listing to determine which to keep as canonical.
+
+        Higher score = better listing to keep.  Matches the logic in
+        scripts/dedup/find_duplicates.py so batch and pipeline dedup
+        produce consistent results.
+        """
+        score = 0
+        score += min(row.get("image_count") or 0, 10) * 3
+        if row.get("description"):
+            score += min(len(row["description"]), 500) // 50
+        if row.get("neighborhood"):
+            score += 5
+        if row.get("floor") is not None:
+            score += 3
+        if row.get("area_sqm") is not None:
+            score += 3
+        if row.get("room_config"):
+            score += 2
+        if row.get("latitude") and row.get("longitude"):
+            score += 2
+        if row.get("last_seen"):
+            score += 1
+        source_bonus = {"duashpi": 4, "njoftime": 3, "merrjep": 2, "mirlir": 1, "celesi": 0}
+        score += source_bonus.get(row.get("source", ""), 0)
+        return score
+
+    def _cross_source_dedup(self, items):
+        """Check newly upserted items for cross-source and within-source duplicates.
+
+        Strategies:
+        1. Within-source: same source + title (>20 chars) + price, different source_id
+        2. Cross-source exact title: same title + city, different source
+        3. Cross-source phone+price+area: same phone + city + price + area, different source
+        """
+        if not items:
+            return
+
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT 1")
+        except Exception:
+            self._reconnect()
+            cursor = self.conn.cursor()
+
+        already_deduped = set()  # track IDs already handled in this batch
+        total_deduped = 0
+
+        for item in items:
+            source = item.get("source")
+            source_id = item.get("source_id")
+            title = item.get("title", "")
+            city = item.get("city")
+            price = item.get("price")
+            phone = item.get("poster_phone")
+            area = item.get("area_sqm")
+
+            match_ids = set()
+
+            # Strategy 1: Within-source (same title + price, different source_id)
+            if title and len(title) > 20 and price is not None:
+                cursor.execute("""
+                    SELECT id::text FROM listings
+                    WHERE is_active = true
+                      AND source = %s AND source_id != %s
+                      AND title = %s AND price = %s
+                """, (source, source_id, title, price))
+                for (mid,) in cursor.fetchall():
+                    match_ids.add(mid)
+
+            # Strategy 2: Cross-source exact title + city
+            if title and len(title) > 20 and city:
+                cursor.execute("""
+                    SELECT id::text FROM listings
+                    WHERE is_active = true
+                      AND title = %s AND city = %s
+                      AND source != %s
+                """, (title, city, source))
+                for (mid,) in cursor.fetchall():
+                    match_ids.add(mid)
+
+            # Strategy 3: Cross-source phone + price + area
+            if phone and phone.strip() and city and price is not None and area is not None:
+                cursor.execute("""
+                    SELECT id::text FROM listings
+                    WHERE is_active = true
+                      AND poster_phone = %s AND city = %s
+                      AND price = %s AND area_sqm = %s
+                      AND source != %s
+                """, (phone, city, price, area, source))
+                for (mid,) in cursor.fetchall():
+                    match_ids.add(mid)
+
+            # Skip if no matches or all matches already handled
+            match_ids -= already_deduped
+            if not match_ids:
+                continue
+
+            # Fetch the current listing + all matches for scoring
+            all_ids = list(match_ids)
+            cursor.execute("""
+                SELECT id::text, source, title, image_count, description,
+                       neighborhood, floor, area_sqm, room_config,
+                       latitude, longitude, last_seen
+                FROM listings
+                WHERE source = %s AND source_id = %s AND is_active = true
+            """, (source, source_id))
+            current_rows = cursor.fetchall()
+            if not current_rows:
+                continue
+            current = current_rows[0]
+
+            cursor.execute("""
+                SELECT id::text, source, title, image_count, description,
+                       neighborhood, floor, area_sqm, room_config,
+                       latitude, longitude, last_seen
+                FROM listings
+                WHERE id::text = ANY(%s) AND is_active = true
+            """, (all_ids,))
+            match_rows = cursor.fetchall()
+            if not match_rows:
+                continue
+
+            # Score all candidates
+            all_rows = [dict(zip(self._SCORE_COLS, current))]
+            for row in match_rows:
+                all_rows.append(dict(zip(self._SCORE_COLS, row)))
+
+            scored = sorted(all_rows, key=self.score_listing, reverse=True)
+            keep = scored[0]
+
+            # Mark losers inactive
+            now = datetime.now(timezone.utc).isoformat()
+            for loser in scored[1:]:
+                if loser["id"] in already_deduped:
+                    continue
+                reason = "within_source_pipeline" if loser["source"] == keep["source"] else "cross_source_pipeline"
+                meta = json.dumps({
+                    "dedup_canonical": keep["id"],
+                    "dedup_reason": reason,
+                    "dedup_date": now,
+                })
+                cursor.execute("""
+                    UPDATE listings
+                    SET is_active = false,
+                        metadata = COALESCE(metadata, '{}'::jsonb) || %s::jsonb,
+                        updated_at = NOW()
+                    WHERE id = %s::uuid AND is_active = true
+                """, (meta, loser["id"]))
+                if cursor.rowcount > 0:
+                    total_deduped += 1
+                    already_deduped.add(loser["id"])
+
+        if total_deduped > 0:
+            self.conn.commit()
+            logger.info("Pipeline dedup: marked %d duplicate(s) inactive", total_deduped)
+
+        cursor.close()
 
 
 class DropItem(Exception):
