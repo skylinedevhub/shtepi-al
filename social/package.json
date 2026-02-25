@@ -1,0 +1,39 @@
+{
+  "name": "shtepi-al-social",
+  "version": "1.0.0",
+  "description": "Automated social media post generator for ShtëpiAL",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render:all": "node --loader ts-node/esm render.ts",
+    "render:featured": "remotion render src/index.ts FeaturedListing out/featured-listing.mp4",
+    "render:roundup": "remotion render src/index.ts NewListingsRoundup out/new-listings-roundup.mp4",
+    "render:city": "remotion render src/index.ts CitySpotlight out/city-spotlight.mp4",
+    "render:price": "remotion render src/index.ts PriceComparison out/price-comparison.mp4",
+    "render:stat": "remotion render src/index.ts MarketStat out/market-stat.mp4",
+    "render:trends": "remotion render src/index.ts WeeklyTrends out/weekly-trends.mp4",
+    "still:featured": "remotion still src/index.ts FeaturedListing out/featured-listing.png",
+    "still:roundup": "remotion still src/index.ts NewListingsRoundup out/new-listings-roundup.png",
+    "still:city": "remotion still src/index.ts CitySpotlight out/city-spotlight.png",
+    "still:price": "remotion still src/index.ts PriceComparison out/price-comparison.png",
+    "still:stat": "remotion still src/index.ts MarketStat out/market-stat.png",
+    "still:trends": "remotion still src/index.ts WeeklyTrends out/weekly-trends.png"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.399",
+    "@remotion/google-fonts": "4.0.399",
+    "@remotion/motion-blur": "4.0.399",
+    "@remotion/noise": "4.0.399",
+    "@remotion/paths": "4.0.399",
+    "@remotion/shapes": "4.0.399",
+    "@remotion/transitions": "4.0.399",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "4.0.399"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.0"
+  }
+}
