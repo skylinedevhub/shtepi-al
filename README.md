@@ -1,6 +1,6 @@
 # ShtëpiAL
 
-Albanian real estate aggregator and listing platform. Scrapy spiders collect listings from major Albanian property sites, while users can register and post their own listings. Built with Next.js 14, Supabase PostgreSQL, and Drizzle ORM.
+Albanian real estate aggregator and listing platform. 13 Scrapy spiders collect listings from every major Albanian property portal, while users can register and post their own listings. Built with Next.js 14, Supabase PostgreSQL, and Drizzle ORM.
 
 **Live:** [shtepi-al.vercel.app](https://shtepi-al.vercel.app)
 **Project Board:** [Production Readiness](https://github.com/users/phoebusdev/projects/3)
@@ -9,8 +9,10 @@ Albanian real estate aggregator and listing platform. Scrapy spiders collect lis
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Scrapy Spiders (Python)                                    │
+│  Scrapy Spiders (Python) — 13 sources                       │
 │  merrjep · mirlir · njoftime · duashpi · celesi*            │
+│  shpi · indomio · century21 · realestate · propertyhub      │
+│  kerko360 · homezone† · futurehome                          │
 │                                                             │
 │  Pipeline: Validate → Normalize → Dedup → Store             │
 │            (Albanian-aware parsing: cities, prices, rooms)   │
@@ -18,7 +20,7 @@ Albanian real estate aggregator and listing platform. Scrapy spiders collect lis
                         │ PostgreSQLPipeline (batch upsert)
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Supabase PostgreSQL                                            │
+│  Supabase PostgreSQL                                        │
 │  Drizzle ORM schema: listings, users, accounts, agencies    │
 │  Full-text search: tsvector + GIN index                     │
 │  Partial unique index: (source, source_id) for dedup        │
@@ -34,6 +36,7 @@ Albanian real estate aggregator and listing platform. Scrapy spiders collect lis
 └─────────────────────────────────────────────────────────────┘
 
 * celesi blocked by Cloudflare — needs Playwright integration
+† homezone.al DNS currently down
 ```
 
 ## Tech Stack
@@ -45,8 +48,9 @@ Albanian real estate aggregator and listing platform. Scrapy spiders collect lis
 | ORM | Drizzle ORM with postgres-js driver |
 | Auth | NextAuth v5 (JWT strategy, Credentials + Google) |
 | Image Storage | Vercel Blob (user uploads), raw URLs (scraped) |
-| Scraping | Scrapy 2.11, Python 3.12 |
+| Scraping | Scrapy 2.14, Python 3.12+ |
 | Deployment | Vercel |
+| CI/CD | GitHub Actions (daily scrape + seed scrape workflows) |
 
 ## Getting Started
 
@@ -88,7 +92,7 @@ DATABASE_URL=postgresql://... ../scripts/run_spiders.sh
 ```bash
 # Python spider tests
 cd scrapy_project
-python -m pytest tests/ -q   # 377 tests
+python -m pytest tests/ -q   # 690 tests
 
 # Web frontend tests
 cd web
@@ -110,18 +114,41 @@ npx vitest run               # 55 tests
 
 ## Spiders
 
-| Spider | Domain | Status | Listings | Notes |
-|--------|--------|--------|----------|-------|
-| merrjep | merrjep.al | Production | ~20 | Largest Albanian classifieds |
-| mirlir | mirlir.com | Production | ~20 | Real estate focused |
-| njoftime | njoftime.com | Production | ~15 | XenForo forum format |
-| duashpi | duashpi.al | Production | ~18 | Dedicated RE marketplace |
-| celesi | gazetacelesi.al | Blocked | ~18 | Cloudflare blocks Scrapy — needs Playwright |
+| Spider | Domain | Status | Notes |
+|--------|--------|--------|-------|
+| merrjep | merrjep.al | Production | Largest Albanian classifieds |
+| mirlir | mirlir.com | Production | Real estate focused |
+| njoftime | njoftime.com | Production | XenForo forum format |
+| duashpi | duashpi.al | Production | Dedicated RE marketplace |
+| celesi | gazetacelesi.al | Blocked | Cloudflare blocks Scrapy |
+| shpi | shpi.al | Production | Rich structured fields (ref#, orientation, year built) |
+| indomio | indomio.al | Production | Spitogatos network aggregator |
+| century21 | century21albania.com | Production | BSP CRM, largest franchise |
+| realestate | realestate.al | Production | Single agency, SEO URLs |
+| propertyhub | propertyhub.al | Production | WordPress WPEstate theme |
+| kerko360 | kerko360.al | Production | Search-focused portal |
+| homezone | homezone.al | DNS Down | Site currently unreachable |
+| futurehome | futurehome.al | Production | 250+ agents, 30+ offices, BSP CRM |
+
+### Image CDN Domains
+
+| Spider(s) | Image Host |
+|-----------|-----------|
+| merrjep | media.merrjep.al |
+| mirlir | media.mirlir.com |
+| njoftime | www.njoftime.com |
+| duashpi | duashpi.al, d1ia6vt0h4qxok.cloudfront.net |
+| shpi | cdn.shpi.al, shpi.al |
+| century21, futurehome | crm-cdn.ams3.cdn.digitaloceanspaces.com |
+| indomio | m{1,2,3}.spitogatos.gr |
+| kerko360 | kerko360.al/storage/media/ |
+| propertyhub | propertyhub.al/wp-content/uploads/ |
+| realestate | realestate.al/thumbs/ |
 
 ### Pipeline Chain
 
 ```
-Spider yields item → ValidationPipeline (drop if missing required fields)
+Spider yields item → ValidationPipeline (drop if missing required fields or images)
                    → NormalizationPipeline (city, price, room config, features)
                    → DedupPipeline (in-memory batch dedup)
                    → PostgreSQLPipeline (batch upsert, buffer=50)
@@ -136,6 +163,20 @@ Pipeline selection is automatic: `DATABASE_URL` set → PostgreSQL, otherwise SQ
 - **Prices:** Tirana listings typically EUR, rural/rent often ALL. `EUR_ALL_RATE = 100`
 - **Cities:** Normalized with diacritics (ë, ç). Lowercase lookup table
 - **Features:** Extracted from description text (elevator, parking, furnished, new build)
+
+## CI/CD
+
+### Daily Scrape (`scrape.yml`)
+- Runs at 03:00 UTC daily (+ manual trigger)
+- Matrix strategy: one parallel job per spider (13 jobs)
+- `fail-fast: false` — one spider failure doesn't block others
+- 15-minute timeout per spider
+
+### Seed Scrape (`scrape-seed.yml`)
+- Manual trigger only
+- Full harvest: `MAX_PAGES=0` for merrjep (unlimited)
+- Individual jobs per spider for better isolation
+- 120-minute timeout per spider
 
 ## API Routes
 
@@ -205,91 +246,58 @@ Key constraints:
 ```
 shtepi-al/
 ├── .claude/
-│   └── commands/
-│       └── crawl.md             # /crawl skill for running spiders
+│   ├── commands/
+│   │   └── crawl.md             # /crawl skill for running spiders
+│   ├── agents/
+│   │   └── spider-reviewer.md   # Spider review agent
+│   └── skills/
+│       ├── new-spider/          # New spider creation skill
+│       └── db-migrate/          # Database migration skill
 ├── scrapy_project/
 │   ├── shtepi/
-│   │   ├── spiders/             # 5 spiders (merrjep, celesi, mirlir, njoftime, duashpi)
+│   │   ├── spiders/             # 13 spiders
+│   │   │   ├── merrjep.py       # merrjep.al — classifieds
+│   │   │   ├── mirlir.py        # mirlir.com — RE portal
+│   │   │   ├── njoftime.py      # njoftime.com — XenForo forum
+│   │   │   ├── duashpi.py       # duashpi.al — RE marketplace
+│   │   │   ├── celesi.py        # gazetacelesi.al — Cloudflare blocked
+│   │   │   ├── shpi.py          # shpi.al — rich structured fields
+│   │   │   ├── indomio.py       # indomio.al — Spitogatos network
+│   │   │   ├── century21.py     # century21albania.com — BSP CRM
+│   │   │   ├── realestate.py    # realestate.al — single agency
+│   │   │   ├── propertyhub.py   # propertyhub.al — WPEstate
+│   │   │   ├── kerko360.py      # kerko360.al — search portal
+│   │   │   ├── homezone.py      # homezone.al — DNS down
+│   │   │   └── futurehome.py    # futurehome.al — BSP CRM
 │   │   ├── pipelines.py         # Validate → Normalize → Dedup → Store
 │   │   ├── normalizers.py       # Albanian-aware parsing
+│   │   ├── city_coords.py       # 22 Albanian city coordinates
 │   │   └── settings.py          # Conditional pipeline (PostgreSQL/SQLite)
 │   └── tests/
 │       ├── fixtures/            # HTML fixtures for each spider
 │       ├── test_normalizers.py  # Normalizer unit tests
-│       └── test_spider_*.py     # Spider-specific tests (377 total)
+│       └── test_spider_*.py     # Spider-specific tests (690 total)
 ├── web/
 │   ├── data/
 │   │   └── seed-listings.json   # 91 real listings (fallback without DB)
 │   ├── design-system/
 │   │   └── MASTER.md            # Design system: colors, typography, components, a11y
 │   ├── src/
-│   │   ├── app/
-│   │   │   ├── api/             # 11 API route files
-│   │   │   ├── auth/            # signin, register pages
-│   │   │   ├── dashboard/       # user dashboard + loading.tsx skeleton
-│   │   │   ├── listings/        # browse, detail, new, edit + loading.tsx skeletons
-│   │   │   ├── icon.tsx         # dynamic favicon (ImageResponse)
-│   │   │   ├── apple-icon.tsx   # Apple touch icon
-│   │   │   ├── manifest.ts     # PWA manifest
-│   │   │   ├── not-found.tsx    # Albanian 404 page
-│   │   │   ├── error.tsx        # Albanian 500 page with retry
-│   │   │   ├── loading.tsx      # root loading skeleton
-│   │   │   ├── robots.ts       # robots.txt
-│   │   │   ├── sitemap.ts      # XML sitemap
-│   │   │   ├── opengraph-image/ # dynamic OG image
-│   │   │   ├── layout.tsx       # root layout with nav + SessionProvider
-│   │   │   ├── globals.css      # custom properties, shimmer, animations, a11y
-│   │   │   └── page.tsx         # homepage
-│   │   ├── components/
-│   │   │   ├── AuthButton.tsx   # header auth toggle
-│   │   │   ├── DesktopNav.tsx   # desktop nav with active link highlighting
-│   │   │   ├── DetailMap.tsx    # single-listing Leaflet map
-│   │   │   ├── FilterSidebar.tsx# mobile drawer + desktop aside (scroll lock, escape key)
-│   │   │   ├── ImageGallery.tsx # listing image carousel
-│   │   │   ├── ImageUploader.tsx# drag-drop upload
-│   │   │   ├── JsonLd.tsx       # structured data component
-│   │   │   ├── ListingCard.tsx  # listing card with brand-aligned source badges
-│   │   │   ├── ListingForm.tsx  # create/edit form
-│   │   │   ├── MapPinPicker.tsx # map pin selector for listing forms
-│   │   │   ├── MapView.tsx      # Leaflet map with clustering
-│   │   │   ├── MobileMenu.tsx   # portal-based mobile drawer (escapes backdrop-filter)
-│   │   │   ├── NavLink.tsx      # active link detection via pathname + search params
-│   │   │   ├── Providers.tsx    # SessionProvider wrapper
-│   │   │   ├── SearchBar.tsx
-│   │   │   └── ShareButton.tsx
-│   │   ├── components/icons/
-│   │   │   └── ChevronIcon.tsx  # shared SVG icon
-│   │   ├── hooks/
-│   │   │   ├── useBodyScrollLock.ts # iOS Safari compatible body scroll lock
-│   │   │   └── useEscapeKey.ts      # escape key handler with enabled gate
-│   │   ├── lib/
-│   │   │   ├── auth.ts          # NextAuth config (Node.js, bcrypt)
-│   │   │   ├── auth.config.ts   # Edge-safe auth (middleware)
-│   │   │   ├── city-coords.ts   # Albanian city coordinates
-│   │   │   ├── cn.ts            # cn() utility (clsx + twMerge)
-│   │   │   ├── constants.ts     # CITIES, PROPERTY_TYPES, QUICK_CITIES
-│   │   │   ├── types.ts         # TypeScript interfaces
-│   │   │   ├── validators.ts    # Zod schemas
-│   │   │   ├── seo/             # SEO utilities: slugs, metadata, jsonld, constants
-│   │   │   ├── supabase/        # Supabase client (browser) + server helpers
-│   │   │   └── db/
-│   │   │       ├── schema.ts    # Drizzle schema (all tables)
-│   │   │       ├── drizzle.ts   # Supabase PostgreSQL connection
-│   │   │       ├── queries.ts   # DB query functions + seed fallback
-│   │   │       ├── seed.ts      # JSON seed data loader
-│   │   │       └── migrations/  # FTS migration SQL
-│   │   ├── middleware.ts        # route protection
-│   │   └── types/
-│   │       └── next-auth.d.ts   # NextAuth type augmentation
-│   ├── drizzle.config.ts
-│   ├── next.config.mjs
+│   │   ├── app/                 # Pages, API routes, loading/error states, SEO files
+│   │   ├── components/          # React components (ListingCard, FilterSidebar, MapView, etc.)
+│   │   ├── hooks/               # useBodyScrollLock, useEscapeKey
+│   │   └── lib/                 # auth, db, seo, types, validators, cn utility
+│   ├── next.config.mjs          # Image remote patterns (13 CDN domains)
 │   └── package.json
 ├── scripts/
 │   ├── run_spiders.sh           # Run all production spiders
-│   ├── backfill_geocode.py      # One-time geocode backfill (Nominatim + city fallback)
+│   ├── backfill_geocode.py      # Geocode backfill (Nominatim + city fallback)
+│   ├── dedup/
+│   │   └── find_duplicates.py   # Cross-source dedup (3 strategies)
 │   └── migrate-sqlite-to-pg.py  # One-time SQLite → PostgreSQL migration
-├── db/
-│   └── schema.sql               # SQLite schema (local dev reference)
+├── .github/workflows/
+│   ├── scrape.yml               # Daily scrape (03:00 UTC, 13 parallel jobs)
+│   └── scrape-seed.yml          # Full harvest (manual trigger, unlimited pages)
 ├── docs/
 │   ├── shtepial-prd.md          # Product requirements document
 │   ├── plans/                   # Design + implementation plan docs
@@ -297,30 +305,15 @@ shtepi-al/
 └── README.md
 ```
 
-## What's Done
+## Cross-Source Deduplication
 
-- 5 Scrapy spiders built and tested (377 Python tests + 55 web tests passing)
-- Full pipeline chain with Albanian-aware normalization
-- PostgreSQLPipeline with batch upsert and boolean casting
-- Supabase PostgreSQL schema deployed via Drizzle
-- Full-text search (tsvector + GIN index)
-- NextAuth v5 with email/password registration
-- User listing CRUD (create, edit, delete with image upload)
-- Dashboard for managing user listings
-- Responsive frontend with search, filters, grid/map toggle
-- Map view with clustered markers for ALL geocoded listings
-- Navigation active states (desktop + mobile), mobile menu with portal rendering
-- SEO: structured data (JSON-LD), meta tags, OG images, sitemap, city/listing slugs
-- Geocode backfill pipeline (Nominatim + city-center fallback)
-- Daily automated scrape via GitHub Actions (parallelized, one job per spider)
-- JSON seed fallback (works without database)
-- Deployed on Vercel with all env vars configured
-- Design system documented (MASTER.md) with brand palette, typography, component patterns
-- Dynamic favicon + Apple touch icon via Next.js ImageResponse
-- PWA manifest with Albanian metadata
-- Loading skeletons for all major routes (root, listings, detail, dashboard)
-- Custom error pages in Albanian (404 "Faqja nuk u gjet", 500 "Diçka shkoi keq")
-- UI consistency: brand-aligned source badges, cursor-pointer on filters, brand hover states
+Three matching strategies to identify duplicate listings across sources:
+
+1. **Within-source** — Same title + price from same source
+2. **Exact-title cross-source** — Identical title + price across different sources
+3. **Phone+price+area** — Same poster phone, price, and area from different sources
+
+Deduped listings are soft-deactivated (`is_active=false`) with metadata tracking. Reversible with `--revert` flag.
 
 ## Design System
 
@@ -342,7 +335,6 @@ See the [project board](https://github.com/users/phoebusdev/projects/3) for full
 
 | Issue | Area | Description |
 |-------|------|-------------|
-| [#5](https://github.com/phoebusdev/shtepi-al/issues/5) | Scraping | Run initial production scrape to populate Supabase DB |
 | [#9](https://github.com/phoebusdev/shtepi-al/issues/9) | Auth | Google OAuth credentials |
 | [#10](https://github.com/phoebusdev/shtepi-al/issues/10) | Auth | Rate limiting on auth endpoints |
 | [#16](https://github.com/phoebusdev/shtepi-al/issues/16) | Infra | Custom domain |
