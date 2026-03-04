@@ -114,3 +114,179 @@ jobs:
             -s LOG_LEVEL=INFO 2>&1 | tee /tmp/njoftime.log
           count=$(grep -oP "'item_scraped_count': \K\d+" /tmp/njoftime.log || echo "0")
           echo "njoftime scraped $count items"
+
+  shpi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scrapy_project/requirements.txt
+      - run: pip install -r scrapy_project/requirements.txt
+      - name: Crawl shpi
+        working-directory: scrapy_project
+        env:
+          DATABASE_URL: ${{ secrets.SCRAPER_DATABASE_URL }}
+        run: |
+          python -m scrapy crawl shpi \
+            -s HTTPCACHE_ENABLED=False \
+            -s LOG_LEVEL=INFO 2>&1 | tee /tmp/shpi.log
+          count=$(grep -oP "'item_scraped_count': \K\d+" /tmp/shpi.log || echo "0")
+          echo "shpi scraped $count items"
+
+  indomio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scrapy_project/requirements.txt
+      - run: pip install -r scrapy_project/requirements.txt
+      - name: Crawl indomio
+        working-directory: scrapy_project
+        env:
+          DATABASE_URL: ${{ secrets.SCRAPER_DATABASE_URL }}
+        run: |
+          python -m scrapy crawl indomio \
+            -s HTTPCACHE_ENABLED=False \
+            -s LOG_LEVEL=INFO 2>&1 | tee /tmp/indomio.log
+          count=$(grep -oP "'item_scraped_count': \K\d+" /tmp/indomio.log || echo "0")
+          echo "indomio scraped $count items"
+
+  century21:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scrapy_project/requirements.txt
+      - run: pip install -r scrapy_project/requirements.txt
+      - name: Crawl century21
+        working-directory: scrapy_project
+        env:
+          DATABASE_URL: ${{ secrets.SCRAPER_DATABASE_URL }}
+        run: |
+          python -m scrapy crawl century21 \
+            -s HTTPCACHE_ENABLED=False \
+            -s LOG_LEVEL=INFO 2>&1 | tee /tmp/century21.log
+          count=$(grep -oP "'item_scraped_count': \K\d+" /tmp/century21.log || echo "0")
+          echo "century21 scraped $count items"
+
+  realestate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scrapy_project/requirements.txt
+      - run: pip install -r scrapy_project/requirements.txt
+      - name: Crawl realestate
+        working-directory: scrapy_project
+        env:
+          DATABASE_URL: ${{ secrets.SCRAPER_DATABASE_URL }}
+        run: |
+          python -m scrapy crawl realestate \
+            -s HTTPCACHE_ENABLED=False \
+            -s LOG_LEVEL=INFO 2>&1 | tee /tmp/realestate.log
+          count=$(grep -oP "'item_scraped_count': \K\d+" /tmp/realestate.log || echo "0")
+          echo "realestate scraped $count items"
+
+  propertyhub:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scrapy_project/requirements.txt
+      - run: pip install -r scrapy_project/requirements.txt
+      - name: Crawl propertyhub
+        working-directory: scrapy_project
+        env:
+          DATABASE_URL: ${{ secrets.SCRAPER_DATABASE_URL }}
+        run: |
+          python -m scrapy crawl propertyhub \
+            -s HTTPCACHE_ENABLED=False \
+            -s LOG_LEVEL=INFO 2>&1 | tee /tmp/propertyhub.log
+          count=$(grep -oP "'item_scraped_count': \K\d+" /tmp/propertyhub.log || echo "0")
+          echo "propertyhub scraped $count items"
+
+  kerko360:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scrapy_project/requirements.txt
+      - run: pip install -r scrapy_project/requirements.txt
+      - name: Crawl kerko360
+        working-directory: scrapy_project
+        env:
+          DATABASE_URL: ${{ secrets.SCRAPER_DATABASE_URL }}
+        run: |
+          python -m scrapy crawl kerko360 \
+            -s HTTPCACHE_ENABLED=False \
+            -s LOG_LEVEL=INFO 2>&1 | tee /tmp/kerko360.log
+          count=$(grep -oP "'item_scraped_count': \K\d+" /tmp/kerko360.log || echo "0")
+          echo "kerko360 scraped $count items"
+
+  homezone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scrapy_project/requirements.txt
+      - run: pip install -r scrapy_project/requirements.txt
+      - name: Crawl homezone
+        working-directory: scrapy_project
+        env:
+          DATABASE_URL: ${{ secrets.SCRAPER_DATABASE_URL }}
+        run: |
+          python -m scrapy crawl homezone \
+            -s HTTPCACHE_ENABLED=False \
+            -s LOG_LEVEL=INFO 2>&1 | tee /tmp/homezone.log
+          count=$(grep -oP "'item_scraped_count': \K\d+" /tmp/homezone.log || echo "0")
+          echo "homezone scraped $count items"
+
+  futurehome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scrapy_project/requirements.txt
+      - run: pip install -r scrapy_project/requirements.txt
+      - name: Crawl futurehome
+        working-directory: scrapy_project
+        env:
+          DATABASE_URL: ${{ secrets.SCRAPER_DATABASE_URL }}
+        run: |
+          python -m scrapy crawl futurehome \
+            -s HTTPCACHE_ENABLED=False \
+            -s LOG_LEVEL=INFO 2>&1 | tee /tmp/futurehome.log
+          count=$(grep -oP "'item_scraped_count': \K\d+" /tmp/futurehome.log || echo "0")
+          echo "futurehome scraped $count items"

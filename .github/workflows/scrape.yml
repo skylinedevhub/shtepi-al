@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        spider: [merrjep, mirlir, celesi, duashpi, njoftime]
+        spider: [merrjep, mirlir, celesi, duashpi, njoftime, shpi, indomio, century21, realestate, propertyhub, kerko360, homezone, futurehome]
 
     steps:
       - uses: actions/checkout@v4
