@@ -13,6 +13,14 @@ const SOURCE_COLORS: Record<string, string> = {
   mirlir: "bg-navy/5 text-navy ring-1 ring-navy/10",
   njoftime: "bg-cream-dark text-warm-gray ring-1 ring-warm-gray-light",
   duashpi: "bg-gold-light/60 text-navy ring-1 ring-gold/20",
+  shpi: "bg-terracotta/10 text-terracotta ring-1 ring-terracotta/15",
+  indomio: "bg-navy/10 text-navy ring-1 ring-navy/15",
+  century21: "bg-gold-light text-warm-gray ring-1 ring-gold/25",
+  realestate: "bg-cream-dark/80 text-navy ring-1 ring-navy/10",
+  propertyhub: "bg-terracotta-light/70 text-terracotta ring-1 ring-terracotta/15",
+  kerko360: "bg-navy/5 text-warm-gray ring-1 ring-warm-gray-light/80",
+  homezone: "bg-gold-light/40 text-navy ring-1 ring-gold/15",
+  futurehome: "bg-cream-dark text-terracotta ring-1 ring-terracotta/10",
 };
 
 interface ListingCardProps {

@@ -7,7 +7,11 @@ import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { cn } from "@/lib/cn";
 
-const SOURCES = ["merrjep", "celesi", "mirlir", "njoftime"];
+const SOURCES = [
+  "merrjep", "celesi", "mirlir", "njoftime", "duashpi",
+  "shpi", "indomio", "century21", "realestate", "propertyhub",
+  "kerko360", "homezone", "futurehome",
+];
 
 interface FilterSidebarProps {
   isOpen?: boolean;
