@@ -27,9 +27,9 @@ class MerrjepSpider(scrapy.Spider):
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
         spider = super().from_crawler(crawler, *args, **kwargs)
-        max_pages = crawler.settings.getint("MAX_PAGES", None)
+        max_pages = crawler.settings.get("MAX_PAGES")
         if max_pages is not None:
-            spider.MAX_PAGES = max_pages
+            spider.MAX_PAGES = int(max_pages)
         return spider
 
     # Property categories on merrjep.al (Albania)
