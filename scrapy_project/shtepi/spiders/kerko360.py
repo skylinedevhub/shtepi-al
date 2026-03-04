@@ -182,8 +182,12 @@ class Kerko360Spider(scrapy.Spider):
         if desc.strip():
             item["description"] = desc.strip()
 
-        # Images
-        images = response.css(".property-gallery img::attr(src)").getall()
+        # Images — slick slider gallery with alt="image" markers
+        images = response.css('.slick-slide img[alt="image"]::attr(src)').getall()
+        if not images:
+            images = response.css('img[src*="/storage/media/"]::attr(src)').getall()
+        # Filter placeholder data URIs
+        images = [img for img in images if img and not img.startswith("data:")]
         item["images"] = images
         item["image_count"] = len(images)
 

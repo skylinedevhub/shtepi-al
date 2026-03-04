@@ -154,8 +154,16 @@ class PropertyhubSpider(scrapy.Spider):
         if "ashensor" in features_text or "elevator" in features_text:
             item["has_elevator"] = True
 
-        # Images
-        images = response.css(".property-gallery img::attr(src)").getall()
+        # Images — WordPress WPEstate theme uses Bootstrap carousel
+        images = response.css(
+            '.carousel-inner .item img[src*="wp-content/uploads"]::attr(src)'
+        ).getall()
+        if not images:
+            images = response.css(
+                '.carousel-indicators li img[src*="wp-content/uploads"]::attr(src)'
+            ).getall()
+        if not images:
+            images = response.css('img[src*="wp-content/uploads"]::attr(src)').getall()
         item["images"] = images
         item["image_count"] = len(images)
 

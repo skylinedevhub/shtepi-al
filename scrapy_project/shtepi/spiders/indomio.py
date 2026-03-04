@@ -179,8 +179,10 @@ class IndomioSpider(scrapy.Spider):
         if "furnished" in (features.get("Status", "").lower()):
             item["is_furnished"] = True
 
-        # Images
-        images = response.css(".gallery img::attr(src)").getall()
+        # Images — Spitogatos network hosts images on m{1,2,3}.spitogatos.gr
+        images = response.css('a[href*="spitogatos"]::attr(href)').getall()
+        if not images:
+            images = response.css('img[src*="spitogatos"]::attr(src)').getall()
         item["images"] = images
         item["image_count"] = len(images)
 

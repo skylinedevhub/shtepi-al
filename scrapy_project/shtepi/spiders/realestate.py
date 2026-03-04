@@ -169,8 +169,12 @@ class RealestateSpider(scrapy.Spider):
         if description:
             item["description"] = description
 
-        # Images from gallery
-        images = response.css(".property-gallery img::attr(src), .slider img::attr(src)").getall()
+        # Images — gallery uses img[alt="Image"] and listbox options
+        images = response.css('img[alt="Image"]::attr(src)').getall()
+        if not images:
+            images = response.css('img[src*="/thumbs/"]::attr(src)').getall()
+        if not images:
+            images = response.css('img[src*="/skedaret/"]::attr(src)').getall()
         item["images"] = images
         item["image_count"] = len(images)
 

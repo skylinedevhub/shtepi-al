@@ -143,20 +143,19 @@ class FuturehomeSpider(scrapy.Spider):
         if desc_joined:
             item["description"] = desc_joined
 
-        # Images — prefer full-size from gallery links
-        images = response.css(
-            ".property-gallery a::attr(href)"
-        ).getall()
+        # Images — BSP CRM stores full-size images as anchor hrefs to CDN
+        images = response.css('a[href*="crm-cdn"]::attr(href)').getall()
         if not images:
             images = response.css(
-                ".property-gallery img::attr(src), "
-                "img.property-image::attr(src)"
+                'img[src*="crm-cdn"]::attr(src)'
             ).getall()
-        # Filter to CDN images only
-        images = [
-            img for img in images
-            if "cdn" in img or "storage" in img
-        ]
+        if not images:
+            # Fallback: any CDN/storage image
+            images = response.css("img::attr(src)").getall()
+            images = [
+                img for img in images
+                if "cdn" in img or "storage" in img
+            ]
         item["images"] = images
         item["image_count"] = len(images)
 

@@ -159,8 +159,12 @@ class Century21Spider(scrapy.Spider):
         if desc.strip():
             item["description"] = desc.strip()
 
-        # Images
-        images = response.css(".property-gallery img::attr(src)").getall()
+        # Images — BSP CRM stores full-size images as anchor hrefs to CDN
+        images = response.css('a[href*="crm-cdn"]::attr(href)').getall()
+        if not images:
+            images = response.css(
+                'img[src*="crm-cdn"]::attr(src)'
+            ).getall()
         item["images"] = images
         item["image_count"] = len(images)
 
