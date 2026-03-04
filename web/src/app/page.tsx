@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const stats = await getStats();
-  const sourceCount = Object.keys(stats.by_source).length;
+  const sourceCount = 13; // Total spider sources (all Albanian RE portals)
   const recentListings = (await getListings({ sort: "newest", limit: 6 })).listings;
 
   return (
