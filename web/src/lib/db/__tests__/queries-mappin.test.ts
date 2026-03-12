@@ -23,10 +23,10 @@ describe("MapPin type", () => {
     expect(pin.price).toBeDefined();
     expect(pin.first_image).toBeDefined();
     // Must NOT have full Listing fields
-    expect((pin as Record<string, unknown>).description).toBeUndefined();
-    expect((pin as Record<string, unknown>).source_url).toBeUndefined();
-    expect((pin as Record<string, unknown>).images).toBeUndefined();
-    expect((pin as Record<string, unknown>).poster_phone).toBeUndefined();
+    expect((pin as unknown as Record<string, unknown>).description).toBeUndefined();
+    expect((pin as unknown as Record<string, unknown>).source_url).toBeUndefined();
+    expect((pin as unknown as Record<string, unknown>).images).toBeUndefined();
+    expect((pin as unknown as Record<string, unknown>).poster_phone).toBeUndefined();
   });
 
   it("allows null for optional display fields", () => {
