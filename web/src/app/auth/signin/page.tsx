@@ -20,6 +20,7 @@ function SignInForm() {
     setError("");
     setLoading(true);
 
+    if (!supabase) return;
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -35,7 +36,7 @@ function SignInForm() {
   }
 
   async function handleGoogleSignIn() {
-    await supabase.auth.signInWithOAuth({
+    await supabase?.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(callbackUrl)}`,

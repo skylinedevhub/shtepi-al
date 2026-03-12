@@ -32,7 +32,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    if (supabase) {
+      supabase.auth.getUser().then((res) => setUser(res.data.user));
+    }
 
     async function load() {
       try {
@@ -46,7 +48,7 @@ export default function DashboardPage() {
       }
     }
     load();
-  }, [supabase.auth]);
+  }, [supabase]);
 
   async function handleDelete(id: string) {
     if (!confirm("Jeni i sigurt që doni ta fshini këtë njoftim?")) return;

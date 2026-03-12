@@ -19,6 +19,7 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
 
+    if (!supabase) return;
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -45,7 +46,7 @@ export default function RegisterPage() {
   }
 
   async function handleGoogleSignIn() {
-    await supabase.auth.signInWithOAuth({
+    await supabase?.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,

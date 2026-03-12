@@ -10,11 +10,13 @@ export default function AuthButton() {
   const supabase = createClient();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!supabase ? false : true);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!supabase) return;
+
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
       setLoading(false);
@@ -27,7 +29,7 @@ export default function AuthButton() {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+  }, [supabase]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -40,7 +42,7 @@ export default function AuthButton() {
   }, []);
 
   async function handleSignOut() {
-    await supabase.auth.signOut();
+    await supabase?.auth.signOut();
     router.refresh();
   }
 
