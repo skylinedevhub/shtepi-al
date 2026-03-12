@@ -1,16 +1,8 @@
 import { eq, and, gte, lte, sql, desc, asc } from "drizzle-orm";
+import { cache } from "react";
 import { getDb } from "./drizzle";
 import { listings } from "./schema";
 import type { Listing, ListingFilters, ListingsResponse, Stats, MapPin } from "../types";
-
-// React cache() deduplicates calls with same args within a single RSC request.
-// Falls back to identity in non-RSC environments (tests, API routes).
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let requestCache: <T extends (...args: any[]) => any>(fn: T) => T = (fn) => fn;
-try {
-  const react = require("react");
-  if (typeof react.cache === "function") requestCache = react.cache;
-} catch { /* not in RSC runtime */ }
 import {
   seedGetListings,
   seedGetListingById,
@@ -310,7 +302,7 @@ export async function getAllActiveListingSlugs(): Promise<ListingSlugRow[]> {
 
 // React cache() deduplicates calls with same args within a single request.
 // This prevents double DB hits from generateMetadata + page component.
-export const getListingByShortId = requestCache(async function getListingByShortId(
+export const getListingByShortId = cache(async function getListingByShortId(
   shortId: string
 ): Promise<Listing | null> {
   const db = getDb();
