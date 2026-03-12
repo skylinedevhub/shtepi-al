@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { MapPin } from "@/lib/types";
+import { getListingByShortId } from "@/lib/db/queries";
 
 describe("MapPin type", () => {
   it("has only the fields needed for map rendering", () => {
@@ -44,5 +45,25 @@ describe("MapPin type", () => {
     };
     expect(pin.price).toBeNull();
     expect(pin.first_image).toBeNull();
+  });
+});
+
+describe("getListingByShortId", () => {
+  it("returns a listing from seed data when matching prefix", async () => {
+    const { seedGetListings } = await import("@/lib/db/seed");
+    const seedResult = seedGetListings({ limit: 1 });
+    if (seedResult.listings.length === 0) return;
+
+    const fullId = seedResult.listings[0].id;
+    const shortId = fullId.replace(/-/g, "").slice(0, 8);
+
+    const result = await getListingByShortId(shortId);
+    expect(result).not.toBeNull();
+    expect(result!.id).toBe(fullId);
+  });
+
+  it("returns null for non-existent short id", async () => {
+    const result = await getListingByShortId("00000000");
+    expect(result).toBeNull();
   });
 });

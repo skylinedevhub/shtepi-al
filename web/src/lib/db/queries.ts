@@ -327,10 +327,34 @@ export async function getListingByShortId(
   const db = getDb();
   if (!db) return seedGetListingByShortId(shortId);
 
+  // Construct UUID range from 8-char hex prefix to leverage the PK index.
+  // shortId "b902fe46" → range ["b902fe46-0000-...", "b902fe47-0000-...")
+  const padded = shortId.padEnd(8, "0");
+  const lowerUuid = `${padded}-0000-0000-0000-000000000000`;
+
+  const lastChar = parseInt(padded[7], 16);
+  if (lastChar >= 15) {
+    // Edge case: 'f' suffix — fall back to text LIKE (rare)
+    const [row] = await db
+      .select()
+      .from(listings)
+      .where(sql`${listings.id}::text LIKE ${shortId + "%"}`)
+      .limit(1);
+    return row ? dbRowToListing(row) : null;
+  }
+
+  const nextPadded = padded.slice(0, 7) + (lastChar + 1).toString(16);
+  const upperUuid = `${nextPadded}-0000-0000-0000-000000000000`;
+
   const [row] = await db
     .select()
     .from(listings)
-    .where(sql`${listings.id}::text LIKE ${shortId + "%"}`)
+    .where(
+      and(
+        sql`${listings.id} >= ${lowerUuid}::uuid`,
+        sql`${listings.id} < ${upperUuid}::uuid`
+      )
+    )
     .limit(1);
 
   return row ? dbRowToListing(row) : null;
