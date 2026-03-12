@@ -108,6 +108,16 @@ export const listings = pgTable(
     uniqueIndex("idx_listings_source_dedup")
       .on(table.source, table.sourceId)
       .where(sql`source IS NOT NULL`),
+    // Performance: partial composite indexes for common query patterns
+    index("idx_listings_active_city")
+      .on(table.city, table.firstSeen)
+      .where(sql`is_active = true`),
+    index("idx_listings_active_transaction_date")
+      .on(table.transactionType, table.firstSeen)
+      .where(sql`is_active = true`),
+    index("idx_listings_geo")
+      .on(table.latitude, table.longitude)
+      .where(sql`latitude IS NOT NULL AND longitude IS NOT NULL AND is_active = true`),
   ]
 );
 
