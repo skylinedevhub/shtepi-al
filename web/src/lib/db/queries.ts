@@ -226,68 +226,46 @@ export async function getStats(): Promise<Stats> {
   const db = getDb();
   if (!db) return seedGetStats();
 
-  const activeFilter = eq(listings.isActive, true);
+  // Single query: count + all group-bys via scalar subqueries (1 round trip)
+  const result = await db.execute(sql`
+    SELECT
+      (SELECT count(*) FROM listings WHERE is_active = true) AS total,
+      (SELECT jsonb_object_agg(city, cnt) FROM (
+        SELECT city, count(*)::int AS cnt FROM listings
+        WHERE is_active = true AND city IS NOT NULL
+        GROUP BY city ORDER BY cnt DESC
+      ) t) AS by_city,
+      (SELECT jsonb_object_agg(property_type, cnt) FROM (
+        SELECT property_type, count(*)::int AS cnt FROM listings
+        WHERE is_active = true AND property_type IS NOT NULL
+        GROUP BY property_type ORDER BY cnt DESC
+      ) t) AS by_type,
+      (SELECT jsonb_object_agg(source, cnt) FROM (
+        SELECT source, count(*)::int AS cnt FROM listings
+        WHERE is_active = true AND source IS NOT NULL
+        GROUP BY source ORDER BY cnt DESC
+      ) t) AS by_source,
+      (SELECT jsonb_object_agg(transaction_type, cnt) FROM (
+        SELECT transaction_type, count(*)::int AS cnt FROM listings
+        WHERE is_active = true AND transaction_type IS NOT NULL
+        GROUP BY transaction_type ORDER BY cnt DESC
+      ) t) AS by_transaction
+  `);
 
-  const [totalResult] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(listings)
-    .where(activeFilter);
-  const total = Number(totalResult.count);
-
-  const cityRows = await db
-    .select({
-      city: listings.city,
-      count: sql<number>`count(*)`,
-    })
-    .from(listings)
-    .where(and(activeFilter, sql`city IS NOT NULL`))
-    .groupBy(listings.city)
-    .orderBy(desc(sql`count(*)`));
-
-  const typeRows = await db
-    .select({
-      propertyType: listings.propertyType,
-      count: sql<number>`count(*)`,
-    })
-    .from(listings)
-    .where(activeFilter)
-    .groupBy(listings.propertyType)
-    .orderBy(desc(sql`count(*)`));
-
-  const sourceRows = await db
-    .select({
-      source: listings.source,
-      count: sql<number>`count(*)`,
-    })
-    .from(listings)
-    .where(activeFilter)
-    .groupBy(listings.source)
-    .orderBy(desc(sql`count(*)`));
-
-  const transactionRows = await db
-    .select({
-      transactionType: listings.transactionType,
-      count: sql<number>`count(*)`,
-    })
-    .from(listings)
-    .where(activeFilter)
-    .groupBy(listings.transactionType)
-    .orderBy(desc(sql`count(*)`));
+  const row = (result as unknown as Record<string, unknown>[])[0] as {
+    total: string | number;
+    by_city: Record<string, number> | null;
+    by_type: Record<string, number> | null;
+    by_source: Record<string, number> | null;
+    by_transaction: Record<string, number> | null;
+  };
 
   return {
-    total_listings: total,
-    by_city: Object.fromEntries(
-      cityRows.map((r) => [r.city, Number(r.count)])
-    ),
-    by_type: Object.fromEntries(
-      typeRows.map((r) => [r.propertyType, Number(r.count)])
-    ),
-    by_source: Object.fromEntries(
-      sourceRows.map((r) => [r.source, Number(r.count)])
-    ),
-    by_transaction: Object.fromEntries(
-      transactionRows.map((r) => [r.transactionType, Number(r.count)])
-    ),
+    total_listings: Number(row.total),
+    by_city: row.by_city ?? {},
+    by_type: row.by_type ?? {},
+    by_source: row.by_source ?? {},
+    by_transaction: row.by_transaction ?? {},
   };
 }
 
