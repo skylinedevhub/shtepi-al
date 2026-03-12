@@ -49,7 +49,9 @@ export async function GET(request: NextRequest) {
     if (params.get("limit")) filters.limit = Number(params.get("limit"));
 
     const result = await getListings(filters);
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" },
+    });
   } catch (e) {
     console.error("[GET /api/listings]", e);
     return NextResponse.json(

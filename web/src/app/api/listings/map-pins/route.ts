@@ -30,7 +30,9 @@ export async function GET(request: NextRequest) {
     if (params.get("source")) filters.source = params.get("source")!;
 
     const pins = await getMapListings(filters);
-    return NextResponse.json(pins);
+    return NextResponse.json(pins, {
+      headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" },
+    });
   } catch (e) {
     console.error("[GET /api/listings/map-pins]", e);
     return NextResponse.json(
