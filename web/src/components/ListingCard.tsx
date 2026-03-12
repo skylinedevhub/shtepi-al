@@ -59,7 +59,6 @@ export default function ListingCard({ listing, variant = "default" }: ListingCar
             sizes={isCompact ? "(max-width: 640px) 100vw, 384px" : "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"}
             className="object-cover transition duration-300 group-hover:scale-105"
             loading="lazy"
-            unoptimized
             onError={() => setImgError(true)}
           />
         ) : (
