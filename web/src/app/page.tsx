@@ -8,7 +8,7 @@ import { cityToSlug } from "@/lib/seo/slugs";
 import { getStats, getListings } from "@/lib/db/queries";
 import { QUICK_CITIES } from "@/lib/constants";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function HomePage() {
   const stats = await getStats();
