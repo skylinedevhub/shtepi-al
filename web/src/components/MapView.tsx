@@ -5,7 +5,7 @@ import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import "leaflet/dist/leaflet.css";
-import type { Listing } from "@/lib/types";
+import type { MapPin } from "@/lib/types";
 import { buildListingPath } from "@/lib/seo/slugs";
 import {
   ALBANIA_CENTER,
@@ -21,7 +21,7 @@ L.Icon.Default.mergeOptions({
 });
 
 interface MapViewProps {
-  listings: Listing[];
+  listings: MapPin[];
 }
 
 function createClusterIcon(cluster: { getChildCount(): number }): L.DivIcon {
@@ -67,8 +67,8 @@ function InvalidateSize() {
   return null;
 }
 
-function ListingPopup({ listing }: { listing: Listing }) {
-  const img = listing.images[0];
+function ListingPopup({ listing }: { listing: MapPin }) {
+  const img = listing.first_image;
   const price = listing.price
     ? `€${listing.price.toLocaleString("de-DE", { maximumFractionDigits: 0 })}`
     : "Pa çmim";
@@ -106,12 +106,7 @@ function ListingPopup({ listing }: { listing: Listing }) {
 }
 
 export default function MapView({ listings }: MapViewProps) {
-  const geoListings = listings.filter(
-    (l): l is Listing & { latitude: number; longitude: number } =>
-      l.latitude != null && l.longitude != null
-  );
-
-  const positions: [number, number][] = geoListings.map((l) => [l.latitude, l.longitude]);
+  const positions: [number, number][] = listings.map((l) => [l.latitude, l.longitude]);
 
   return (
     <MapContainer
@@ -127,7 +122,7 @@ export default function MapView({ listings }: MapViewProps) {
       <FitBounds positions={positions} />
       <InvalidateSize />
       <MarkerClusterGroup iconCreateFunction={createClusterIcon} maxClusterRadius={60}>
-        {geoListings.map((listing) => (
+        {listings.map((listing) => (
           <Marker key={listing.id} position={[listing.latitude, listing.longitude]}>
             <Popup maxWidth={240} minWidth={180}>
               <ListingPopup listing={listing} />

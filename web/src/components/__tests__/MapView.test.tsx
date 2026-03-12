@@ -49,53 +49,27 @@ vi.mock("@/lib/city-coords", () => ({
 }));
 
 vi.mock("@/lib/seo/slugs", () => ({
-  buildListingPath: (_title: string, city: string, id: string) =>
+  buildListingPath: (_title: string, city: string | null, id: string) =>
     `/listings/${city}/${id}`,
 }));
 
 import { render, screen } from "@testing-library/react";
 import MapView from "../MapView";
-import type { Listing } from "@/lib/types";
+import type { MapPin } from "@/lib/types";
 
-function makeListing(overrides: Partial<Listing> = {}): Listing {
+function makeMapPin(overrides: Partial<MapPin> = {}): MapPin {
   return {
     id: "test-1",
     title: "Test Apartment",
-    description: null,
     price: 100000,
-    price_all: null,
-    currency_original: "EUR",
     price_period: "total",
-    transaction_type: "sale",
-    property_type: "apartment",
     room_config: "2+1",
     area_sqm: 80,
-    area_net_sqm: null,
-    floor: 3,
-    total_floors: 8,
-    rooms: 2,
-    bathrooms: 1,
     city: "Tiranë",
     neighborhood: "Blloku",
-    address_raw: null,
     latitude: 41.32,
     longitude: 19.82,
-    images: ["https://example.com/img.jpg"],
-    image_count: 1,
-    source: "test",
-    source_url: "https://test.al/1",
-    source_id: "1",
-    poster_name: null,
-    poster_phone: null,
-    poster_type: "private",
-    is_active: true,
-    first_seen: "2026-01-01",
-    last_seen: "2026-01-01",
-    created_at: "2026-01-01",
-    has_elevator: null,
-    has_parking: null,
-    is_furnished: null,
-    is_new_build: null,
+    first_image: "https://example.com/img.jpg",
     ...overrides,
   };
 }
@@ -106,28 +80,18 @@ describe("MapView", () => {
     expect(screen.getByTestId("map-container")).toBeDefined();
   });
 
-  it("renders markers only for listings with coordinates", () => {
-    const listings = [
-      makeListing({ id: "1", latitude: 41.32, longitude: 19.82 }),
-      makeListing({ id: "2", latitude: null, longitude: null }),
-      makeListing({ id: "3", latitude: 41.33, longitude: 19.83 }),
+  it("renders markers for all pins", () => {
+    const pins = [
+      makeMapPin({ id: "1", latitude: 41.32, longitude: 19.82 }),
+      makeMapPin({ id: "3", latitude: 41.33, longitude: 19.83 }),
     ];
-    render(<MapView listings={listings} />);
+    render(<MapView listings={pins} />);
     const markers = screen.getAllByTestId("marker");
     expect(markers).toHaveLength(2);
   });
 
   it("renders zero markers for empty listings", () => {
     render(<MapView listings={[]} />);
-    expect(screen.queryAllByTestId("marker")).toHaveLength(0);
-  });
-
-  it("renders zero markers when all listings lack coordinates", () => {
-    const listings = [
-      makeListing({ id: "1", latitude: null, longitude: null }),
-      makeListing({ id: "2", latitude: null, longitude: null }),
-    ];
-    render(<MapView listings={listings} />);
     expect(screen.queryAllByTestId("marker")).toHaveLength(0);
   });
 });

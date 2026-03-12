@@ -38,6 +38,20 @@ export interface Listing {
   is_new_build: boolean | null;
 }
 
+export interface MapPin {
+  id: string;
+  title: string;
+  price: number | null;
+  price_period: string;
+  room_config: string | null;
+  area_sqm: number | null;
+  city: string | null;
+  neighborhood: string | null;
+  latitude: number;
+  longitude: number;
+  first_image: string | null;
+}
+
 export interface ListingFilters {
   city?: string;
   transaction_type?: string;

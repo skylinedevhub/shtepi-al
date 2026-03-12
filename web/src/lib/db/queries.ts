@@ -1,7 +1,7 @@
 import { eq, and, gte, lte, sql, desc, asc } from "drizzle-orm";
 import { getDb } from "./drizzle";
 import { listings } from "./schema";
-import type { Listing, ListingFilters, ListingsResponse, Stats } from "../types";
+import type { Listing, ListingFilters, ListingsResponse, Stats, MapPin } from "../types";
 import {
   seedGetListings,
   seedGetListingById,
@@ -134,10 +134,10 @@ export async function getListings(
   };
 }
 
-/** Returns ALL geocoded listings matching filters (no pagination). Used for map pins. */
+/** Returns lightweight map pins for geocoded listings (no pagination). */
 export async function getMapListings(
   filters: ListingFilters
-): Promise<Listing[]> {
+): Promise<MapPin[]> {
   const db = getDb();
   if (!db) return seedGetMapListings(filters);
 
@@ -146,12 +146,35 @@ export async function getMapListings(
   conditions.push(sql`${listings.longitude} IS NOT NULL`);
 
   const rows = await db
-    .select()
+    .select({
+      id: listings.id,
+      title: listings.title,
+      price: listings.price,
+      pricePeriod: listings.pricePeriod,
+      roomConfig: listings.roomConfig,
+      areaSqm: listings.areaSqm,
+      city: listings.city,
+      neighborhood: listings.neighborhood,
+      latitude: listings.latitude,
+      longitude: listings.longitude,
+      images: listings.images,
+    })
     .from(listings)
-    .where(and(...conditions))
-    .orderBy(desc(listings.firstSeen));
+    .where(and(...conditions));
 
-  return rows.map(dbRowToListing);
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    price: row.price,
+    price_period: row.pricePeriod ?? "total",
+    room_config: row.roomConfig,
+    area_sqm: row.areaSqm,
+    city: row.city,
+    neighborhood: row.neighborhood,
+    latitude: row.latitude!,
+    longitude: row.longitude!,
+    first_image: ((row.images as string[]) ?? [])[0] ?? null,
+  }));
 }
 
 export async function getListingById(id: string): Promise<Listing | null> {

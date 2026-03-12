@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import ListingCard from "@/components/ListingCard";
 import FilterSidebar from "@/components/FilterSidebar";
 import SearchBar from "@/components/SearchBar";
-import type { Listing, ListingsResponse } from "@/lib/types";
+import type { Listing, ListingsResponse, MapPin } from "@/lib/types";
 import { cn } from "@/lib/cn";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
@@ -91,7 +91,7 @@ function ListingsContent() {
   const [hasMore, setHasMore] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "map">("grid");
-  const [mapListings, setMapListings] = useState<Listing[]>([]);
+  const [mapListings, setMapListings] = useState<MapPin[]>([]);
 
   const currentSort = searchParams.get("sort") ?? "newest";
 
@@ -136,7 +136,7 @@ function ListingsContent() {
     params.delete("sort");
     fetch(`/api/listings/map-pins?${params.toString()}`)
       .then((res) => res.json())
-      .then((data: Listing[]) => setMapListings(data))
+      .then((data: MapPin[]) => setMapListings(data))
       .catch(() => {});
   }, [viewMode, searchParams]);
 

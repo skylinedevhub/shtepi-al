@@ -1,4 +1,4 @@
-import type { Listing, ListingFilters, ListingsResponse, Stats } from "../types";
+import type { Listing, ListingFilters, ListingsResponse, Stats, MapPin } from "../types";
 import seedData from "../../../data/seed-listings.json";
 
 let _seedListings: Listing[] | null = null;
@@ -102,7 +102,7 @@ export function seedGetListings(filters: ListingFilters): ListingsResponse {
   };
 }
 
-export function seedGetMapListings(filters: ListingFilters): Listing[] {
+export function seedGetMapListings(filters: ListingFilters): MapPin[] {
   let all = getSeedListings();
 
   if (filters.city) all = all.filter((l) => l.city === filters.city);
@@ -131,7 +131,21 @@ export function seedGetMapListings(filters: ListingFilters): Listing[] {
   if (filters.source)
     all = all.filter((l) => l.source === filters.source);
 
-  return all.filter((l) => l.latitude != null && l.longitude != null);
+  return all
+    .filter((l) => l.latitude != null && l.longitude != null)
+    .map((l) => ({
+      id: l.id,
+      title: l.title,
+      price: l.price,
+      price_period: l.price_period,
+      room_config: l.room_config,
+      area_sqm: l.area_sqm,
+      city: l.city,
+      neighborhood: l.neighborhood,
+      latitude: l.latitude!,
+      longitude: l.longitude!,
+      first_image: l.images[0] ?? null,
+    }));
 }
 
 export function seedGetListingById(id: string): Listing | null {
