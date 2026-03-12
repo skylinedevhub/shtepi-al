@@ -12,6 +12,12 @@ const updateProfileSchema = z.object({
 
 export async function GET() {
   const supabase = await createClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: "Auth service unavailable" },
+      { status: 503 }
+    );
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -55,6 +61,12 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   const supabase = await createClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: "Auth service unavailable" },
+      { status: 503 }
+    );
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();

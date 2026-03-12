@@ -32,6 +32,12 @@ export async function POST(request: NextRequest) {
   const { name, email, password } = result.data;
 
   const supabase = await createClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: "Auth service unavailable" },
+      { status: 503 }
+    );
+  }
 
   const { data, error } = await supabase.auth.signUp({
     email,

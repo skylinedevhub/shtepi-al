@@ -7,6 +7,12 @@ const BUCKET = "listing-images";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: "Auth service unavailable" },
+      { status: 503 }
+    );
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -68,6 +74,12 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const supabase = await createClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: "Auth service unavailable" },
+      { status: 503 }
+    );
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();

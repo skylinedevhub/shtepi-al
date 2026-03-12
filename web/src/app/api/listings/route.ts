@@ -65,6 +65,12 @@ const EUR_ALL_RATE = 100;
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: "Auth service unavailable" },
+      { status: 503 }
+    );
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();

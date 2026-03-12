@@ -11,6 +11,12 @@ interface RouteContext {
 
 export async function PUT(request: NextRequest, { params }: RouteContext) {
   const supabase = await createClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: "Auth service unavailable" },
+      { status: 503 }
+    );
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -125,6 +131,12 @@ export async function DELETE(
   { params }: RouteContext
 ) {
   const supabase = await createClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: "Auth service unavailable" },
+      { status: 503 }
+    );
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();
