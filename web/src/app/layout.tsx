@@ -94,27 +94,28 @@ export default function RootLayout({
               {/* Sources */}
               <div>
                 <h3 className="font-display text-base font-semibold text-gold">Burimet</h3>
-                <ul className="mt-3 space-y-2 text-sm text-cream/50">
-                  <li>
-                    <a href="https://merrjep.al" target="_blank" rel="noopener noreferrer" className="transition-colors duration-200 hover:text-cream/80">
-                      merrjep.al
-                    </a>
-                  </li>
-                  <li>
-                    <a href="https://gazetacelesi.al" target="_blank" rel="noopener noreferrer" className="transition-colors duration-200 hover:text-cream/80">
-                      gazetacelesi.al
-                    </a>
-                  </li>
-                  <li>
-                    <a href="https://mirlir.com" target="_blank" rel="noopener noreferrer" className="transition-colors duration-200 hover:text-cream/80">
-                      mirlir.com
-                    </a>
-                  </li>
-                  <li>
-                    <a href="https://njoftime.com" target="_blank" rel="noopener noreferrer" className="transition-colors duration-200 hover:text-cream/80">
-                      njoftime.com
-                    </a>
-                  </li>
+                <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm text-cream/50">
+                  {[
+                    ["merrjep.al", "https://merrjep.al"],
+                    ["celesi.al", "https://gazetacelesi.al"],
+                    ["mirlir.com", "https://mirlir.com"],
+                    ["njoftime.com", "https://njoftime.com"],
+                    ["duashpi.al", "https://duashpi.al"],
+                    ["shpi.al", "https://shpi.al"],
+                    ["indomio.al", "https://indomio.al"],
+                    ["century21.al", "https://century21albania.com"],
+                    ["realestate.al", "https://realestate.al"],
+                    ["propertyhub.al", "https://propertyhub.al"],
+                    ["kerko360.al", "https://kerko360.al"],
+                    ["homezone.al", "https://homezone.al"],
+                    ["futurehome.al", "https://futurehome.al"],
+                  ].map(([label, url]) => (
+                    <li key={label}>
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="transition-colors duration-200 hover:text-cream/80">
+                        {label}
+                      </a>
+                    </li>
+                  ))}
                 </ul>
               </div>
 

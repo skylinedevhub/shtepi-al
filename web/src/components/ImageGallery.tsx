@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { cn } from "@/lib/cn";
 
 interface ImageGalleryProps {
@@ -11,7 +11,16 @@ interface ImageGalleryProps {
 export default function ImageGallery({ images, alt }: ImageGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const touchStartX = useRef<number | null>(null);
+
+  // Ref callback: if the browser served the image from cache synchronously,
+  // img.complete is already true before React's onLoad fires. Catch that here.
+  const imgRef = useCallback((img: HTMLImageElement | null) => {
+    if (img?.complete && img.naturalWidth > 0) {
+      setImageLoaded(true);
+    }
+  }, []);
 
   if (images.length === 0) {
     return (
@@ -26,11 +35,13 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
 
   function goToPrev() {
     setImageLoaded(false);
+    setImageError(false);
     setCurrentIndex((i) => (i === 0 ? images.length - 1 : i - 1));
   }
 
   function goToNext() {
     setImageLoaded(false);
+    setImageError(false);
     setCurrentIndex((i) => (i === images.length - 1 ? 0 : i + 1));
   }
 
@@ -73,10 +84,20 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
         onTouchEnd={handleTouchEnd}
       >
         {/* Shimmer loading */}
-        {!imageLoaded && (
+        {!imageLoaded && !imageError && (
           <div className="skeleton-shimmer absolute inset-0" />
         )}
+        {/* Error fallback */}
+        {imageError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-cream-dark text-warm-gray">
+            <svg className="size-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+            </svg>
+            <span className="mt-2 text-sm">Foto e padisponueshme</span>
+          </div>
+        )}
         <img
+          ref={imgRef}
           src={images[currentIndex]}
           alt={`${alt} - foto ${currentIndex + 1}`}
           className={cn(
@@ -84,6 +105,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
             imageLoaded ? "opacity-100" : "opacity-0"
           )}
           onLoad={() => setImageLoaded(true)}
+          onError={() => setImageError(true)}
         />
 
         {/* Navigation arrows */}
@@ -126,6 +148,7 @@ export default function ImageGallery({ images, alt }: ImageGalleryProps) {
               key={i}
               onClick={() => {
                 setImageLoaded(false);
+                setImageError(false);
                 setCurrentIndex(i);
               }}
               aria-label={`Shko te foto ${i + 1}`}
