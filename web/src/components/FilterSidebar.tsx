@@ -18,9 +18,11 @@ interface FilterSidebarProps {
   onClose?: () => void;
   /** When true, only render the mobile drawer (skip desktop aside). Used in map mode. */
   mobileOnly?: boolean;
+  /** When true, renders as a slide-in drawer on ALL screen sizes (not just mobile). Used in immersive map mode. */
+  alwaysDrawer?: boolean;
 }
 
-export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSidebarProps) {
+export default function FilterSidebar({ isOpen, onClose, mobileOnly, alwaysDrawer }: FilterSidebarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -257,31 +259,33 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly }: FilterSid
 
   return (
     <>
-      {/* Desktop sidebar — skip in mobileOnly mode */}
-      {!mobileOnly && (
+      {/* Desktop sidebar — skip in mobileOnly or alwaysDrawer mode */}
+      {!mobileOnly && !alwaysDrawer && (
         <aside className="hidden w-64 shrink-0 md:block">
           {filterContent}
         </aside>
       )}
 
-      {/* Mobile drawer overlay — always rendered, transition opacity */}
+      {/* Drawer overlay — transition opacity */}
       <div
         className={cn(
-          "fixed inset-0 z-50 bg-navy/40 backdrop-blur-sm transition-opacity duration-300 md:hidden",
+          "fixed inset-0 z-50 bg-navy/40 backdrop-blur-sm transition-opacity duration-300",
+          !alwaysDrawer && "md:hidden",
           isOpen ? "opacity-100" : "pointer-events-none opacity-0"
         )}
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Mobile drawer */}
+      {/* Drawer */}
       <aside
         id="filter-drawer"
         role="dialog"
         aria-modal="true"
         aria-label="Filtrat"
         className={cn(
-          "fixed right-0 top-0 z-50 h-full w-80 max-w-[85vw] overflow-y-auto bg-cream p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl transition-transform duration-300 md:hidden",
+          "fixed right-0 top-0 z-50 h-full w-80 max-w-[85vw] overflow-y-auto bg-cream p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl transition-transform duration-300",
+          !alwaysDrawer && "md:hidden",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
       >

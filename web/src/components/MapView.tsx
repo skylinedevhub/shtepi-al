@@ -112,7 +112,7 @@ export default function MapView({ listings }: MapViewProps) {
     <MapContainer
       center={ALBANIA_CENTER}
       zoom={ALBANIA_DEFAULT_ZOOM}
-      className="h-full w-full rounded-2xl"
+      className="h-full w-full"
       scrollWheelZoom={true}
     >
       <TileLayer
