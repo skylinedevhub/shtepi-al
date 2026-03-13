@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState, useCallback, Suspense, useSyncExternalStore } from "react";
+import { useEffect, useState, useCallback, useRef, Suspense, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import ListingCard from "@/components/ListingCard";
 import FilterSidebar from "@/components/FilterSidebar";
@@ -111,6 +111,34 @@ function ListingsContent() {
 
   const currentSort = searchParams.get("sort") ?? "newest";
 
+  // Cache for prefetched map pins (keyed by filter params)
+  const mapPinsCacheRef = useRef<{ key: string; data: MapPin[] } | null>(null);
+
+  // Preload Leaflet chunk on mount so it's ready when user switches to map
+  useEffect(() => {
+    import("@/components/MapView");
+  }, []);
+
+  // Build map pins cache key from current filters (excluding sort/page)
+  const mapPinsCacheKey = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
+    params.delete("sort");
+    return params.toString();
+  }, [searchParams]);
+
+  // Prefetch map pins (called on hover of map button + on filter change when in map mode)
+  const prefetchMapPins = useCallback(() => {
+    const key = mapPinsCacheKey();
+    if (mapPinsCacheRef.current?.key === key) return; // already cached
+    fetch(`/api/listings/map-pins?${key}`)
+      .then((res) => res.json())
+      .then((data: MapPin[]) => {
+        mapPinsCacheRef.current = { key, data };
+      })
+      .catch(() => {});
+  }, [mapPinsCacheKey]);
+
   const fetchListings = useCallback(
     async (pageNum: number, append: boolean = false) => {
       setLoading(true);
@@ -147,16 +175,24 @@ function ListingsContent() {
   // Fetch ALL geocoded listings for map pins (separate from paginated list)
   useEffect(() => {
     if (viewMode !== "map") return;
+    const key = mapPinsCacheKey();
+
+    // Use prefetched data if available
+    if (mapPinsCacheRef.current?.key === key) {
+      setMapListings(mapPinsCacheRef.current.data);
+      return;
+    }
+
     setMapLoading(true);
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("page");
-    params.delete("sort");
-    fetch(`/api/listings/map-pins?${params.toString()}`)
+    fetch(`/api/listings/map-pins?${key}`)
       .then((res) => res.json())
-      .then((data: MapPin[]) => setMapListings(data))
+      .then((data: MapPin[]) => {
+        setMapListings(data);
+        mapPinsCacheRef.current = { key, data };
+      })
       .catch(() => {})
       .finally(() => setMapLoading(false));
-  }, [viewMode, searchParams]);
+  }, [viewMode, searchParams, mapPinsCacheKey]);
 
   function loadMore() {
     const nextPage = page + 1;
@@ -223,10 +259,10 @@ function ListingsContent() {
             </div>
           )}
 
-          {/* ── Overlay layer ── pointer-events-none so map stays interactive */}
-          <div className="pointer-events-none absolute inset-0 z-10">
+          {/* ── Overlay layer ── flex column so panel flows below controls */}
+          <div className="pointer-events-none absolute inset-0 z-10 flex flex-col">
             {/* ── Top controls ── */}
-            <div className="p-3 md:p-4">
+            <div className="shrink-0 p-3 md:p-4">
               {/* Row 1: Search + action buttons */}
               <div className="flex items-center gap-2">
                 <div className="pointer-events-auto min-w-0 max-w-xl flex-1">
@@ -364,9 +400,10 @@ function ListingsContent() {
             </div>
 
             {/* ── Desktop listings panel ── */}
+            <div className="relative min-h-0 flex-1">
             <div
               className={cn(
-                "absolute bottom-4 left-4 top-[7rem] hidden w-96 transition-transform duration-300 ease-in-out md:block",
+                "absolute bottom-4 left-4 top-2 hidden w-96 transition-transform duration-300 ease-in-out md:block",
                 panelOpen ? "translate-x-0" : "-translate-x-[calc(100%+2rem)]"
               )}
             >
@@ -440,7 +477,7 @@ function ListingsContent() {
             {!panelOpen && (
               <button
                 onClick={() => setPanelOpen(true)}
-                className="pointer-events-auto absolute left-4 top-[7rem] hidden cursor-pointer items-center gap-2 rounded-xl border border-warm-gray-light/30 bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur-xl transition hover:bg-white md:flex"
+                className="pointer-events-auto absolute left-4 top-2 hidden cursor-pointer items-center gap-2 rounded-xl border border-warm-gray-light/30 bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur-xl transition hover:bg-white md:flex"
               >
                 <svg
                   className="size-5 text-navy"
@@ -506,6 +543,7 @@ function ListingsContent() {
                 </div>
               </div>
             </div>
+            </div>{/* close flex-1 wrapper */}
           </div>
         </div>
 
@@ -542,6 +580,7 @@ function ListingsContent() {
             </button>
             <button
               onClick={() => setViewMode("map")}
+              onMouseEnter={prefetchMapPins}
               aria-label="Shfaq në hartë"
               aria-pressed={false}
               className="cursor-pointer bg-white p-2.5 text-warm-gray transition hover:text-navy"

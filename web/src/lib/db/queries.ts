@@ -158,7 +158,7 @@ export async function getMapListings(
       neighborhood: listings.neighborhood,
       latitude: listings.latitude,
       longitude: listings.longitude,
-      images: listings.images,
+      firstImage: sql<string | null>`${listings.images}->>0`,
     })
     .from(listings)
     .where(and(...conditions));
@@ -174,7 +174,7 @@ export async function getMapListings(
     neighborhood: row.neighborhood,
     latitude: row.latitude!,
     longitude: row.longitude!,
-    first_image: ((row.images as string[]) ?? [])[0] ?? null,
+    first_image: row.firstImage,
   }));
 }
 
