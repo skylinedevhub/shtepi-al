@@ -22,6 +22,8 @@ L.Icon.Default.mergeOptions({
 
 interface MapViewProps {
   listings: MapPin[];
+  /** Extra left padding for fitBounds (e.g. width of an overlay panel). */
+  fitPaddingLeft?: number;
 }
 
 function createClusterIcon(cluster: { getChildCount(): number }): L.DivIcon {
@@ -43,7 +45,7 @@ function createClusterIcon(cluster: { getChildCount(): number }): L.DivIcon {
   });
 }
 
-function FitBounds({ positions }: { positions: [number, number][] }) {
+function FitBounds({ positions, paddingLeft = 0 }: { positions: [number, number][]; paddingLeft?: number }) {
   const map = useMap();
   useEffect(() => {
     if (positions.length === 0) return;
@@ -52,8 +54,12 @@ function FitBounds({ positions }: { positions: [number, number][] }) {
       return;
     }
     const bounds = L.latLngBounds(positions);
-    map.fitBounds(bounds, { padding: [40, 40] });
-  }, [map, positions]);
+    // paddingTopLeft: [left, top], paddingBottomRight: [right, bottom]
+    map.fitBounds(bounds, {
+      paddingTopLeft: [paddingLeft + 40, 100],
+      paddingBottomRight: [40, 40],
+    });
+  }, [map, positions, paddingLeft]);
   return null;
 }
 
@@ -105,7 +111,7 @@ function ListingPopup({ listing }: { listing: MapPin }) {
   );
 }
 
-export default function MapView({ listings }: MapViewProps) {
+export default function MapView({ listings, fitPaddingLeft = 0 }: MapViewProps) {
   const positions: [number, number][] = listings.map((l) => [l.latitude, l.longitude]);
 
   return (
@@ -119,7 +125,7 @@ export default function MapView({ listings }: MapViewProps) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <FitBounds positions={positions} />
+      <FitBounds positions={positions} paddingLeft={fitPaddingLeft} />
       <InvalidateSize />
       <MarkerClusterGroup iconCreateFunction={createClusterIcon} maxClusterRadius={60}>
         {listings.map((listing) => (

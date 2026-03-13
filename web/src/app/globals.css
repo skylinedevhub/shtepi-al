@@ -104,6 +104,23 @@ p, li, dd, figcaption { text-wrap: pretty; }
   box-shadow: 0 4px 6px -1px rgba(27, 42, 74, 0.1) !important;
 }
 
+/* Leaflet zoom controls — move to bottom-left, clear overlaid controls */
+.leaflet-top.leaflet-left {
+  top: auto;
+  bottom: 2rem;
+  left: 1rem;
+}
+
+/* Leaflet mobile adjustments — clear bottom strip */
+@media (max-width: 767px) {
+  .leaflet-bottom.leaflet-right {
+    bottom: 13rem;
+  }
+  .leaflet-top.leaflet-left {
+    bottom: 14rem;
+  }
+}
+
 /* Safe area for notch phones */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .safe-area-bottom {

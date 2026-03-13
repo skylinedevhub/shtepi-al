@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, Suspense, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import ListingCard from "@/components/ListingCard";
 import FilterSidebar from "@/components/FilterSidebar";
@@ -82,6 +82,18 @@ function MapIcon() {
   );
 }
 
+const MD_BREAKPOINT = "(min-width: 768px)";
+const subscribe = (cb: () => void) => {
+  const mql = window.matchMedia(MD_BREAKPOINT);
+  mql.addEventListener("change", cb);
+  return () => mql.removeEventListener("change", cb);
+};
+const getSnapshot = () => window.matchMedia(MD_BREAKPOINT).matches;
+const getServerSnapshot = () => true;
+function useIsDesktop() {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
 function ListingsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -93,7 +105,9 @@ function ListingsContent() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "map">("grid");
   const [mapListings, setMapListings] = useState<MapPin[]>([]);
+  const [mapLoading, setMapLoading] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
+  const isDesktop = useIsDesktop();
 
   const currentSort = searchParams.get("sort") ?? "newest";
 
@@ -133,13 +147,15 @@ function ListingsContent() {
   // Fetch ALL geocoded listings for map pins (separate from paginated list)
   useEffect(() => {
     if (viewMode !== "map") return;
+    setMapLoading(true);
     const params = new URLSearchParams(searchParams.toString());
     params.delete("page");
     params.delete("sort");
     fetch(`/api/listings/map-pins?${params.toString()}`)
       .then((res) => res.json())
       .then((data: MapPin[]) => setMapListings(data))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setMapLoading(false));
   }, [viewMode, searchParams]);
 
   function loadMore() {
@@ -191,8 +207,21 @@ function ListingsContent() {
         >
           {/* Map fills entire viewport */}
           <div className="absolute inset-0 z-0">
-            <MapView listings={mapListings} />
+            <MapView listings={mapListings} fitPaddingLeft={isDesktop && panelOpen ? 420 : 0} />
           </div>
+
+          {/* Map loading indicator */}
+          {mapLoading && (
+            <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
+              <div className="flex items-center gap-2 rounded-full bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur-md">
+                <svg className="size-4 animate-spin text-terracotta" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span className="text-sm font-medium text-navy">Duke ngarkuar hartën...</span>
+              </div>
+            </div>
+          )}
 
           {/* ── Overlay layer ── pointer-events-none so map stays interactive */}
           <div className="pointer-events-none absolute inset-0 z-10">
@@ -204,18 +233,23 @@ function ListingsContent() {
                   <SearchBar />
                 </div>
                 <div className="pointer-events-auto flex shrink-0 items-center gap-2">
-                  <select
-                    value={currentSort}
-                    onChange={(e) => handleSort(e.target.value)}
-                    aria-label="Rendit sipas"
-                    className="hidden cursor-pointer appearance-none rounded-full border border-warm-gray-light/30 bg-white/90 px-3 py-2.5 text-sm text-navy shadow-sm backdrop-blur-md transition focus:outline-none focus:ring-2 focus:ring-terracotta/20 sm:block"
-                  >
-                    {SORT_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative hidden sm:block">
+                    <select
+                      value={currentSort}
+                      onChange={(e) => handleSort(e.target.value)}
+                      aria-label="Rendit sipas"
+                      className="cursor-pointer appearance-none rounded-full border border-warm-gray-light/30 bg-white/90 py-2.5 pl-3 pr-7 text-sm text-navy shadow-sm backdrop-blur-md transition focus:outline-none focus:ring-2 focus:ring-terracotta/20"
+                    >
+                      {SORT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    <svg className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-warm-gray" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                   <button
                     onClick={() => setViewMode("grid")}
                     aria-label="Shfaq si rrjetë"
@@ -249,25 +283,39 @@ function ListingsContent() {
                   </button>
                 ))}
 
-                {/* City dropdown */}
-                <select
-                  value={currentValue("city")}
-                  onChange={(e) => updateFilter("city", e.target.value || null)}
-                  aria-label="Zgjidh qytetin"
-                  className={cn(
-                    "pointer-events-auto shrink-0 cursor-pointer appearance-none rounded-full px-3.5 py-2 text-sm font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-terracotta/20",
-                    currentValue("city")
-                      ? "bg-terracotta text-white"
-                      : "border border-warm-gray-light/30 bg-white/90 text-navy backdrop-blur-md hover:bg-white"
-                  )}
-                >
-                  <option value="">Qyteti</option>
-                  {CITIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
+                {/* City dropdown — wrapper for custom arrow */}
+                <div className="pointer-events-auto relative shrink-0">
+                  <select
+                    value={currentValue("city")}
+                    onChange={(e) => updateFilter("city", e.target.value || null)}
+                    aria-label="Zgjidh qytetin"
+                    className={cn(
+                      "cursor-pointer appearance-none rounded-full py-2 pl-3.5 pr-7 text-sm font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-terracotta/20",
+                      currentValue("city")
+                        ? "bg-terracotta text-white"
+                        : "border border-warm-gray-light/30 bg-white/90 text-navy backdrop-blur-md hover:bg-white"
+                    )}
+                  >
+                    <option value="">Qyteti</option>
+                    {CITIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                  <svg
+                    className={cn(
+                      "pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2",
+                      currentValue("city") ? "text-white/80" : "text-warm-gray"
+                    )}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
 
                 {/* Rooms — desktop only */}
                 <div className="hidden items-center gap-1.5 md:flex">
