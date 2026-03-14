@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
+
+// 50 uploads per IP per hour
+const limiter = createRateLimiter({ limit: 50, windowMs: 60 * 60 * 1000 });
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const BUCKET = "listing-images";
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request.headers);
+  const { success } = limiter.check(ip);
+  if (!success) {
+    return NextResponse.json(
+      { error: "Shumë kërkesa. Provoni përsëri më vonë." },
+      { status: 429 }
+    );
+  }
+
   const supabase = await createClient();
   if (!supabase) {
     return NextResponse.json(

@@ -4,7 +4,11 @@ import { getDb } from "@/lib/db/drizzle";
 import { listings } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
 import { listingCreateSchema } from "@/lib/validators";
+import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 import type { ListingFilters } from "@/lib/types";
+
+// 10 listing creates per IP per hour
+const createLimiter = createRateLimiter({ limit: 10, windowMs: 60 * 60 * 1000 });
 
 export async function GET(request: NextRequest) {
   try {
@@ -64,6 +68,15 @@ export async function GET(request: NextRequest) {
 const EUR_ALL_RATE = 100;
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request.headers);
+  const { success } = createLimiter.check(ip);
+  if (!success) {
+    return NextResponse.json(
+      { error: "Shumë kërkesa. Provoni përsëri më vonë." },
+      { status: 429 }
+    );
+  }
+
   const supabase = await createClient();
   if (!supabase) {
     return NextResponse.json(

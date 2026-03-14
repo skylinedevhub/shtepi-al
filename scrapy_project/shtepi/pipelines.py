@@ -27,9 +27,15 @@ from shtepi.normalizers import (
 
 
 class ValidationPipeline:
-    """Drop items missing required fields."""
+    """Drop items missing required fields or with outlier prices."""
 
     REQUIRED_FIELDS = ("source", "source_id", "source_url", "title", "transaction_type")
+
+    # Price bounds (EUR) — reject obvious data errors
+    PRICE_BOUNDS = {
+        "sale": (500, 10_000_000),
+        "rent": (50, 50_000),
+    }
 
     def process_item(self, item, spider):
         for field in self.REQUIRED_FIELDS:
@@ -39,6 +45,15 @@ class ValidationPipeline:
         images = item.get("images")
         if not images or (isinstance(images, list) and len(images) == 0):
             raise DropItem(f"No images: {item.get('source')}/{item.get('source_id')}")
+        # Drop price outliers
+        price = item.get("price")
+        if price is not None:
+            txn = item.get("transaction_type", "sale")
+            lo, hi = self.PRICE_BOUNDS.get(txn, (500, 10_000_000))
+            if price < lo or price > hi:
+                raise DropItem(
+                    f"Price outlier: €{price} ({txn}) for {item.get('source')}/{item.get('source_id')}"
+                )
         return item
 
 

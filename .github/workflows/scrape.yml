@@ -49,3 +49,23 @@ jobs:
           if [ "$reason" != "finished" ] && [ "$reason" != "closespider_itemcount" ] && [ "$reason" != "closespider_timeout" ]; then
             echo "::warning::Spider ${SPIDER_NAME} finished with: $reason"
           fi
+
+  # Run after all spiders complete — mark listings not seen in 14 days as inactive
+  mark-stale:
+    needs: scrape
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install psycopg2-binary
+
+      - name: Mark stale listings
+        env:
+          DATABASE_URL: ${{ secrets.SCRAPER_DATABASE_URL }}
+        run: python scripts/mark_stale.py --apply

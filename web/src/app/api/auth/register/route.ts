@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
+import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
+
+// 5 registrations per IP per hour
+const limiter = createRateLimiter({ limit: 5, windowMs: 60 * 60 * 1000 });
 
 const registerSchema = z.object({
   name: z.string().min(2, "Emri duhet të ketë të paktën 2 karaktere"),
@@ -11,13 +15,29 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request.headers);
+  const { success, remaining, resetMs } = limiter.check(ip);
+
+  if (!success) {
+    return NextResponse.json(
+      { error: "Shumë kërkesa. Provoni përsëri më vonë." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil(resetMs / 1000)),
+          "X-RateLimit-Remaining": "0",
+        },
+      }
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json(
       { error: "Kërkesë e pavlefshme" },
-      { status: 400 }
+      { status: 400, headers: { "X-RateLimit-Remaining": String(remaining) } }
     );
   }
 

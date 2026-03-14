@@ -86,6 +86,21 @@ p, li, dd, figcaption { text-wrap: pretty; }
   top: 0;
 }
 
+/* Firefox fix: will-change:transform on SVG breaks marker rendering in Firefox.
+   Override to auto for the zoom-animated SVG pane only. */
+@-moz-document url-prefix() {
+  svg.leaflet-zoom-animated {
+    will-change: auto !important;
+  }
+}
+
+/* Ensure marker visibility across all browsers */
+.leaflet-marker-pane,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+  visibility: visible !important;
+}
+
 /* Leaflet popup overrides */
 .leaflet-popup-content-wrapper {
   border-radius: 1rem !important;
