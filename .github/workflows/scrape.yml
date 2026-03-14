@@ -13,7 +13,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        spider: [merrjep, mirlir, celesi, duashpi, njoftime, shpi, indomio, century21, realestate, propertyhub, kerko360, homezone, futurehome]
+        spider: [merrjep, mirlir, duashpi, njoftime, shpi, indomio, century21, realestate, propertyhub, kerko360, futurehome]
+        # Excluded: celesi (Cloudflare blocked), homezone (DNS down since Mar 2026)
 
     steps:
       - uses: actions/checkout@v4
@@ -37,13 +38,14 @@ jobs:
 
           python -m scrapy crawl "${SPIDER_NAME}" \
             -s HTTPCACHE_ENABLED=False \
-            -s LOG_LEVEL=INFO 2>&1 | tee "/tmp/${SPIDER_NAME}.log"
+            -s LOG_LEVEL=INFO \
+            -s CLOSESPIDER_TIMEOUT=780 2>&1 | tee "/tmp/${SPIDER_NAME}.log"
 
           count=$(grep -oP "'item_scraped_count': \K\d+" "/tmp/${SPIDER_NAME}.log" || echo "0")
           reason=$(grep -oP "'finish_reason': '\K[^']+" "/tmp/${SPIDER_NAME}.log" || echo "unknown")
 
           echo "Result: $count items ($reason)"
 
-          if [ "$reason" != "finished" ] && [ "$reason" != "closespider_itemcount" ]; then
+          if [ "$reason" != "finished" ] && [ "$reason" != "closespider_itemcount" ] && [ "$reason" != "closespider_timeout" ]; then
             echo "::warning::Spider ${SPIDER_NAME} finished with: $reason"
           fi

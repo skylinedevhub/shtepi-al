@@ -49,27 +49,7 @@ jobs:
           count=$(grep -oP "'item_scraped_count': \K\d+" /tmp/mirlir.log || echo "0")
           echo "mirlir scraped $count items"
 
-  celesi:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-          cache-dependency-path: scrapy_project/requirements.txt
-      - run: pip install -r scrapy_project/requirements.txt
-      - name: Crawl celesi
-        working-directory: scrapy_project
-        env:
-          DATABASE_URL: ${{ secrets.SCRAPER_DATABASE_URL }}
-        run: |
-          python -m scrapy crawl celesi \
-            -s HTTPCACHE_ENABLED=False \
-            -s LOG_LEVEL=INFO 2>&1 | tee /tmp/celesi.log
-          count=$(grep -oP "'item_scraped_count': \K\d+" /tmp/celesi.log || echo "0")
-          echo "celesi scraped $count items"
+  # celesi: SKIPPED — Cloudflare blocks Scrapy (see issue #7)
 
   duashpi:
     runs-on: ubuntu-latest
@@ -247,27 +227,7 @@ jobs:
           count=$(grep -oP "'item_scraped_count': \K\d+" /tmp/kerko360.log || echo "0")
           echo "kerko360 scraped $count items"
 
-  homezone:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-          cache-dependency-path: scrapy_project/requirements.txt
-      - run: pip install -r scrapy_project/requirements.txt
-      - name: Crawl homezone
-        working-directory: scrapy_project
-        env:
-          DATABASE_URL: ${{ secrets.SCRAPER_DATABASE_URL }}
-        run: |
-          python -m scrapy crawl homezone \
-            -s HTTPCACHE_ENABLED=False \
-            -s LOG_LEVEL=INFO 2>&1 | tee /tmp/homezone.log
-          count=$(grep -oP "'item_scraped_count': \K\d+" /tmp/homezone.log || echo "0")
-          echo "homezone scraped $count items"
+  # homezone: SKIPPED — DNS down since March 2026
 
   futurehome:
     runs-on: ubuntu-latest

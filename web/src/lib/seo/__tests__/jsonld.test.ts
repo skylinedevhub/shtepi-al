@@ -6,6 +6,9 @@ import {
 } from "../jsonld";
 import type { Listing } from "@/lib/types";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Any = any;
+
 const mockListing: Listing = {
   id: "b902fe46-775e-4735-b18e-f41b2e695b17",
   source: "merrjep",
@@ -40,6 +43,8 @@ const mockListing: Listing = {
   created_at: null,
   has_elevator: true,
   has_parking: false,
+  latitude: 41.3275,
+  longitude: 19.8189,
   is_furnished: null,
   is_new_build: null,
 };
@@ -53,12 +58,12 @@ describe("buildListingJsonLd", () => {
     expect(jsonLd["@context"]).toBe("https://schema.org");
     expect(jsonLd["@type"]).toBe("RealEstateListing");
     expect(jsonLd.name).toBe("Apartament 2+1 në Bllok");
-    expect(jsonLd.offers.price).toBe(85000);
-    expect(jsonLd.offers.priceCurrency).toBe("EUR");
-    expect(jsonLd.address.addressLocality).toBe("Tiranë");
-    expect(jsonLd.address.addressCountry).toBe("AL");
+    expect((jsonLd.offers as Any).price).toBe(85000);
+    expect((jsonLd.offers as Any).priceCurrency).toBe("EUR");
+    expect((jsonLd.address as Any).addressLocality).toBe("Tiranë");
+    expect((jsonLd.address as Any).addressCountry).toBe("AL");
     expect(jsonLd.numberOfRooms).toBe(3);
-    expect(jsonLd.floorSize.value).toBe(95);
+    expect((jsonLd.floorSize as Any).value).toBe(95);
   });
 
   it("omits optional fields when null", () => {
@@ -74,8 +79,8 @@ describe("buildWebsiteJsonLd", () => {
   it("produces WebSite schema with SearchAction", () => {
     const jsonLd = buildWebsiteJsonLd();
     expect(jsonLd["@type"]).toBe("WebSite");
-    expect(jsonLd.potentialAction["@type"]).toBe("SearchAction");
-    expect(jsonLd.potentialAction.target.urlTemplate).toContain("{search_term}");
+    expect((jsonLd.potentialAction as Any)["@type"]).toBe("SearchAction");
+    expect((jsonLd.potentialAction as Any).target.urlTemplate).toContain("{search_term}");
   });
 });
 
@@ -87,8 +92,8 @@ describe("buildBreadcrumbJsonLd", () => {
       { name: "Apartament 2+1" },
     ]);
     expect(jsonLd["@type"]).toBe("BreadcrumbList");
-    expect(jsonLd.itemListElement).toHaveLength(3);
-    expect(jsonLd.itemListElement[0].position).toBe(1);
-    expect(jsonLd.itemListElement[2].item).toBeUndefined();
+    expect(jsonLd.itemListElement as Any[]).toHaveLength(3);
+    expect((jsonLd.itemListElement as Any[])[0].position).toBe(1);
+    expect((jsonLd.itemListElement as Any[])[2].item).toBeUndefined();
   });
 });
