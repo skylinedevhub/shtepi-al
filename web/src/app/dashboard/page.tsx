@@ -70,6 +70,16 @@ export default function DashboardPage() {
             Mirë se vini, {user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? "Përdorues"}
           </p>
         </div>
+        <div className="flex w-full gap-3 sm:w-auto">
+          <Link
+            href="/dashboard/favorites"
+            className="inline-flex items-center justify-center gap-2 rounded-btn border border-warm-gray-light px-5 py-3 text-sm font-medium text-navy transition hover:bg-cream-dark"
+          >
+            <svg className="h-4 w-4 text-terracotta" fill="currentColor" viewBox="0 0 24 24" stroke="none">
+              <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+            </svg>
+            Të ruajturat
+          </Link>
         <Link
           href="/listings/new"
           className="btn-press inline-flex w-full items-center justify-center gap-2 rounded-btn bg-terracotta px-6 py-3 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-terracotta-dark hover:shadow-md sm:w-auto"
@@ -89,6 +99,7 @@ export default function DashboardPage() {
           </svg>
           Posto njoftim
         </Link>
+        </div>
       </div>
 
       {loading ? (

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import nextDynamic from "next/dynamic";
 import { notFound } from "next/navigation";
-import { getListingByShortId } from "@/lib/db/queries";
+import { getListingByShortId, getListingGroupInfo } from "@/lib/db/queries";
 import { parseSlugId } from "@/lib/seo/slugs";
 import { buildListingMetadata } from "@/lib/seo/metadata";
 import { buildListingJsonLd, buildBreadcrumbJsonLd } from "@/lib/seo/jsonld";
@@ -11,6 +11,10 @@ import { buildListingPath } from "@/lib/seo/slugs";
 import JsonLd from "@/components/JsonLd";
 import ImageGallery from "@/components/ImageGallery";
 import ShareButton from "@/components/ShareButton";
+import FavoriteButton from "@/components/FavoriteButton";
+import PriceHistoryChart from "@/components/PriceHistoryChart";
+import ContactForm from "@/components/ContactForm";
+import WhatsAppButton from "@/components/WhatsAppButton";
 import { ChevronIcon } from "@/components/icons/ChevronIcon";
 
 const DetailMap = nextDynamic(() => import("@/components/DetailMap"), { ssr: false });
@@ -112,7 +116,10 @@ export default async function ListingDetailPage({ params }: Props) {
             )}
           </div>
         </div>
-        <ShareButton />
+        <div className="flex gap-2">
+          <FavoriteButton listingId={listing.id} variant="inline" />
+          <ShareButton />
+        </div>
       </div>
 
       {/* Details grid */}
@@ -178,6 +185,9 @@ export default async function ListingDetailPage({ params }: Props) {
         </div>
       )}
 
+      {/* Price History */}
+      <PriceHistoryChart listingId={listing.id} />
+
       {/* Contact */}
       {(listing.poster_name || listing.poster_phone) && (
         <div className="mt-6 rounded-2xl border border-terracotta/20 bg-terracotta-light p-5">
@@ -193,18 +203,33 @@ export default async function ListingDetailPage({ params }: Props) {
             )}
           </div>
           {listing.poster_phone && (
-            <a
-              href={`tel:${listing.poster_phone}`}
-              className="btn-press mt-3 inline-flex w-full items-center justify-center gap-2 rounded-btn bg-terracotta px-5 py-3 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-terracotta-dark hover:shadow-md sm:w-auto sm:justify-start sm:py-2.5"
-            >
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-              {listing.poster_phone}
-            </a>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <a
+                href={`tel:${listing.poster_phone}`}
+                className="btn-press inline-flex w-full items-center justify-center gap-2 rounded-btn bg-terracotta px-5 py-3 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-terracotta-dark hover:shadow-md sm:w-auto sm:justify-start sm:py-2.5"
+              >
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                {listing.poster_phone}
+              </a>
+              <WhatsAppButton
+                phone={listing.poster_phone}
+                listingTitle={listing.title}
+                listingUrl={canonicalUrl}
+              />
+            </div>
           )}
         </div>
       )}
+
+      {/* Contact Form */}
+      <div className="mt-6">
+        <ContactForm listingId={listing.id} listingTitle={listing.title} />
+      </div>
+
+      {/* Also listed on (cross-source group) */}
+      <AlsoListedOn listingId={listing.id} groupId={listing.listing_group_id} source={listing.source} />
 
       {/* Source link */}
       <div className="mt-6 flex flex-col gap-3 border-t border-warm-gray-light pt-5 sm:flex-row sm:items-center sm:justify-between">
@@ -223,6 +248,55 @@ export default async function ListingDetailPage({ params }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
         </a>
+      </div>
+    </div>
+  );
+}
+
+async function AlsoListedOn({
+  listingId,
+  groupId,
+  source,
+}: {
+  listingId: string;
+  groupId: string | null;
+  source: string;
+}) {
+  if (!groupId) return null;
+
+  const members = await getListingGroupInfo(groupId);
+  // Filter out current listing
+  const others = members.filter((m) => m.id !== listingId);
+  if (others.length === 0) return null;
+
+  return (
+    <div className="mt-6 rounded-2xl border border-navy/10 bg-navy/[0.02] p-5">
+      <h2 className="font-display text-lg font-semibold text-navy">
+        Shiko edhe në:
+      </h2>
+      <p className="mt-1 text-sm text-warm-gray">
+        Ky njoftim gjendet edhe në {others.length} {others.length === 1 ? "faqe tjetër" : "faqe të tjera"}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {others.map((m) => (
+          <a
+            key={m.id}
+            href={m.source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-btn border border-warm-gray-light bg-white px-3 py-2 text-sm font-medium text-navy transition hover:bg-cream-dark hover:shadow-sm"
+          >
+            <span className="capitalize">{m.source}</span>
+            {m.price != null && (
+              <span className="text-xs tabular-nums text-warm-gray">
+                €{m.price.toLocaleString("de-DE", { maximumFractionDigits: 0 })}
+              </span>
+            )}
+            <svg className="size-3.5 text-warm-gray-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        ))}
       </div>
     </div>
   );

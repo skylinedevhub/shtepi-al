@@ -81,6 +81,8 @@ export const listings = pgTable(
     hasParking: boolean("has_parking"),
     isFurnished: boolean("is_furnished"),
     isNewBuild: boolean("is_new_build"),
+    // Grouping (cross-source dedup)
+    listingGroupId: uuid("listing_group_id"),
     // Platform fields
     origin: originEnum("origin").default("scraped"),
     userId: uuid("user_id").references(() => profiles.id, {
@@ -115,6 +117,9 @@ export const listings = pgTable(
     index("idx_listings_active_transaction_date")
       .on(table.transactionType, table.firstSeen)
       .where(sql`is_active = true`),
+    index("idx_listings_group")
+      .on(table.listingGroupId)
+      .where(sql`listing_group_id IS NOT NULL`),
     index("idx_listings_geo")
       .on(table.latitude, table.longitude)
       .where(sql`latitude IS NOT NULL AND longitude IS NOT NULL AND is_active = true`),
@@ -171,6 +176,44 @@ export const listingImages = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (table) => [index("idx_listing_images_listing").on(table.listingId)]
+);
+
+// --- Price History ---
+
+export const priceHistory = pgTable(
+  "price_history",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    listingId: uuid("listing_id")
+      .notNull()
+      .references(() => listings.id, { onDelete: "cascade" }),
+    price: real("price").notNull(),
+    currency: varchar("currency", { length: 10 }).default("EUR"),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("idx_price_history_listing").on(table.listingId, table.recordedAt),
+  ]
+);
+
+// --- Inquiries ---
+
+export const inquiries = pgTable(
+  "inquiries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    listingId: uuid("listing_id")
+      .notNull()
+      .references(() => listings.id, { onDelete: "cascade" }),
+    senderName: varchar("sender_name", { length: 255 }).notNull(),
+    senderEmail: varchar("sender_email", { length: 255 }).notNull(),
+    senderPhone: varchar("sender_phone", { length: 50 }),
+    message: text("message").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("idx_inquiries_listing").on(table.listingId, table.createdAt),
+  ]
 );
 
 // --- Favorites ---

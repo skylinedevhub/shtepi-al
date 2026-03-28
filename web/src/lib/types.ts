@@ -36,6 +36,9 @@ export interface Listing {
   has_parking: boolean | null;
   is_furnished: boolean | null;
   is_new_build: boolean | null;
+  listing_group_id: string | null;
+  group_count?: number;
+  group_sources?: string[];
 }
 
 export interface MapPin {

@@ -15,6 +15,7 @@ function rowToListing(row: Record<string, unknown>): Listing {
     has_parking: row.has_parking == null ? null : Boolean(row.has_parking),
     is_furnished: row.is_furnished == null ? null : Boolean(row.is_furnished),
     is_new_build: row.is_new_build == null ? null : Boolean(row.is_new_build),
+    listing_group_id: (row.listing_group_id as string) ?? null,
   } as Listing;
 }
 

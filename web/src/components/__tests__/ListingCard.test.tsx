@@ -21,6 +21,17 @@ vi.mock("@/lib/seo/slugs", () => ({
   buildListingPath: (_t: string, _c: string | null, id: string) => `/listings/test/${id}`,
 }));
 
+vi.mock("../FavoriteButton", () => ({
+  default: ({ listingId }: { listingId: string }) => (
+    <button data-testid={`fav-${listingId}`} />
+  ),
+}));
+
+vi.mock("../SourceBadge", () => ({
+  default: ({ count }: { count: number; sources: string[] }) =>
+    count > 1 ? <span data-testid="source-badge">{count} sites</span> : null,
+}));
+
 import { render } from "@testing-library/react";
 import ListingCard from "../ListingCard";
 import type { Listing } from "@/lib/types";
@@ -64,6 +75,7 @@ function makeListing(overrides: Partial<Listing> = {}): Listing {
     has_parking: null,
     is_furnished: null,
     is_new_build: null,
+    listing_group_id: null,
     ...overrides,
   };
 }
