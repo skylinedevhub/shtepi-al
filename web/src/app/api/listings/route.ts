@@ -3,6 +3,8 @@ import { getListings, getListingById } from "@/lib/db/queries";
 import { getDb } from "@/lib/db/drizzle";
 import { listings } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 import { listingCreateSchema } from "@/lib/validators";
 import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 import type { ListingFilters } from "@/lib/types";
