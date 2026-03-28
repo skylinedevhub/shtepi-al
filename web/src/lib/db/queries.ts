@@ -54,7 +54,7 @@ function dbRowToListing(row: DbRow): Listing {
     has_parking: row.hasParking,
     is_furnished: row.isFurnished,
     is_new_build: row.isNewBuild,
-    listing_group_id: row.listingGroupId ?? null,
+    listing_group_id: null,
   };
 }
 
@@ -129,35 +129,51 @@ export async function getListings(
 
   const listingResults = rows.map(dbRowToListing);
 
-  // Enrich with group data for grouped listings
-  const groupIds = listingResults
-    .map((l) => l.listing_group_id)
-    .filter((g): g is string => g != null);
+  // Enrich with group data (listing_group_id column added by migration 0007)
+  try {
+    const listingIds = listingResults.map((l) => l.id);
+    if (listingIds.length > 0) {
+      const groupRows = await db.execute(sql`
+        SELECT id::text AS lid, listing_group_id::text AS gid
+        FROM listings
+        WHERE id::text = ANY(${listingIds})
+          AND listing_group_id IS NOT NULL
+      `);
+      const idToGroup = new Map<string, string>();
+      for (const r of groupRows as unknown as { lid: string; gid: string }[]) {
+        idToGroup.set(r.lid, r.gid);
+      }
 
-  if (groupIds.length > 0) {
-    const uniqueGroupIds = Array.from(new Set(groupIds));
-    const groupData = await db.execute(sql`
-      SELECT listing_group_id::text AS gid,
-             count(*)::int AS cnt,
-             array_agg(DISTINCT source) AS sources
-      FROM listings
-      WHERE listing_group_id::text = ANY(${uniqueGroupIds})
-        AND is_active = true
-      GROUP BY listing_group_id
-    `);
-    const groupMap = new Map<string, { count: number; sources: string[] }>();
-    for (const row of groupData as unknown as { gid: string; cnt: number; sources: string[] }[]) {
-      groupMap.set(row.gid, { count: row.cnt, sources: row.sources });
-    }
-    for (const listing of listingResults) {
-      if (listing.listing_group_id) {
-        const g = groupMap.get(listing.listing_group_id);
-        if (g) {
-          listing.group_count = g.count;
-          listing.group_sources = g.sources;
+      const groupIds = Array.from(new Set(Array.from(idToGroup.values())));
+      if (groupIds.length > 0) {
+        const groupData = await db.execute(sql`
+          SELECT listing_group_id::text AS gid,
+                 count(*)::int AS cnt,
+                 array_agg(DISTINCT source) AS sources
+          FROM listings
+          WHERE listing_group_id::text = ANY(${groupIds})
+            AND is_active = true
+          GROUP BY listing_group_id
+        `);
+        const groupMap = new Map<string, { count: number; sources: string[] }>();
+        for (const r of groupData as unknown as { gid: string; cnt: number; sources: string[] }[]) {
+          groupMap.set(r.gid, { count: r.cnt, sources: r.sources });
+        }
+        for (const listing of listingResults) {
+          const gid = idToGroup.get(listing.id);
+          if (gid) {
+            listing.listing_group_id = gid;
+            const g = groupMap.get(gid);
+            if (g) {
+              listing.group_count = g.count;
+              listing.group_sources = g.sources;
+            }
+          }
         }
       }
     }
+  } catch {
+    // listing_group_id column may not exist yet (migration 0007 not run)
   }
 
   return {
@@ -390,28 +406,25 @@ export async function getListingGroupInfo(
   const db = getDb();
   if (!db) return [];
 
-  const rows = await db
-    .select({
-      id: listings.id,
-      source: listings.source,
-      sourceUrl: listings.sourceUrl,
-      price: listings.price,
-    })
-    .from(listings)
-    .where(
-      and(
-        eq(listings.listingGroupId, groupId),
-        eq(listings.isActive, true)
-      )
-    )
-    .orderBy(desc(listings.imageCount));
+  try {
+    const rows = await db.execute(sql`
+      SELECT id::text, source, source_url, price
+      FROM listings
+      WHERE listing_group_id = ${groupId}::uuid
+        AND is_active = true
+      ORDER BY image_count DESC NULLS LAST
+    `);
 
-  return rows.map((r) => ({
-    id: r.id,
-    source: r.source ?? "",
-    source_url: r.sourceUrl ?? "",
-    price: r.price,
-  }));
+    return (rows as unknown as { id: string; source: string; source_url: string; price: number | null }[]).map((r) => ({
+      id: r.id,
+      source: r.source ?? "",
+      source_url: r.source_url ?? "",
+      price: r.price,
+    }));
+  } catch {
+    // listing_group_id column may not exist yet
+    return [];
+  }
 }
 
 // --- Price History queries ---

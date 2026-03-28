@@ -81,8 +81,9 @@ export const listings = pgTable(
     hasParking: boolean("has_parking"),
     isFurnished: boolean("is_furnished"),
     isNewBuild: boolean("is_new_build"),
-    // Grouping (cross-source dedup)
-    listingGroupId: uuid("listing_group_id"),
+    // NOTE: listing_group_id column exists in DB (migration 0007) but is
+    // intentionally omitted from the Drizzle schema to avoid SELECT failures
+    // on databases that haven't run the migration yet. Access it via raw SQL.
     // Platform fields
     origin: originEnum("origin").default("scraped"),
     userId: uuid("user_id").references(() => profiles.id, {
@@ -117,9 +118,7 @@ export const listings = pgTable(
     index("idx_listings_active_transaction_date")
       .on(table.transactionType, table.firstSeen)
       .where(sql`is_active = true`),
-    index("idx_listings_group")
-      .on(table.listingGroupId)
-      .where(sql`listing_group_id IS NOT NULL`),
+    // idx_listings_group defined in migration 0007, not in Drizzle (column omitted for compat)
     index("idx_listings_geo")
       .on(table.latitude, table.longitude)
       .where(sql`latitude IS NOT NULL AND longitude IS NOT NULL AND is_active = true`),
