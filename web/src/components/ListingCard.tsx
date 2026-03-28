@@ -6,6 +6,8 @@ import Image from "next/image";
 import type { Listing } from "@/lib/types";
 import { buildListingPath } from "@/lib/seo/slugs";
 import { cn } from "@/lib/cn";
+import FavoriteButton from "./FavoriteButton";
+import SourceBadge from "./SourceBadge";
 
 const SOURCE_COLORS: Record<string, string> = {
   merrjep: "bg-terracotta-light text-terracotta ring-1 ring-terracotta/20",
@@ -23,9 +25,45 @@ const SOURCE_COLORS: Record<string, string> = {
   futurehome: "bg-cream-dark text-terracotta ring-1 ring-terracotta/10",
 };
 
+interface LastPriceChange {
+  old_price: number;
+  new_price: number;
+  currency?: string;
+  changed_at?: string;
+}
+
+interface ListingWithMeta extends Listing {
+  metadata?: { last_price_change?: LastPriceChange } | null;
+}
+
 interface ListingCardProps {
   listing: Listing;
   variant?: "default" | "compact";
+}
+
+function PriceChangeBadge({ metadata }: { metadata?: { last_price_change?: LastPriceChange } | null }) {
+  if (!metadata?.last_price_change) return null;
+  const { old_price, new_price } = metadata.last_price_change;
+  if (old_price == null || new_price == null) return null;
+
+  const diff = new_price - old_price;
+  if (diff === 0) return null;
+
+  const decreased = diff < 0;
+  const formatted = `€${Math.abs(diff).toLocaleString("de-DE", { maximumFractionDigits: 0 })}`;
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+        decreased
+          ? "bg-green-50 text-green-700 ring-1 ring-green-200"
+          : "bg-red-50 text-red-700 ring-1 ring-red-200"
+      )}
+    >
+      {decreased ? "↓" : "↑"} {formatted}
+    </span>
+  );
 }
 
 export default function ListingCard({ listing, variant = "default" }: ListingCardProps) {
@@ -98,6 +136,11 @@ export default function ListingCard({ listing, variant = "default" }: ListingCar
           )}
         </div>
 
+        {/* Favorite button */}
+        <div className="absolute right-2 top-2 z-10">
+          <FavoriteButton listingId={listing.id} variant="overlay" />
+        </div>
+
         {/* Image count */}
         {listing.image_count > 1 && (
           <span className="absolute bottom-2 right-2 rounded-md bg-navy/60 px-1.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
@@ -109,14 +152,24 @@ export default function ListingCard({ listing, variant = "default" }: ListingCar
       {/* Content */}
       <div className={isCompact ? "p-3" : "p-4"}>
         {/* Price */}
-        <div className={cn("font-bold tabular-nums text-navy", isCompact ? "text-base" : "text-lg")}>
-          {priceText}
-          {periodSuffix && (
-            <span className="text-sm font-normal text-warm-gray">
-              {periodSuffix}
-            </span>
-          )}
+        <div className={cn("flex items-center gap-2 font-bold tabular-nums text-navy", isCompact ? "text-base" : "text-lg")}>
+          <span>
+            {priceText}
+            {periodSuffix && (
+              <span className="text-sm font-normal text-warm-gray">
+                {periodSuffix}
+              </span>
+            )}
+          </span>
+          <PriceChangeBadge metadata={(listing as ListingWithMeta).metadata} />
         </div>
+
+        {/* Multi-source badge */}
+        {listing.group_count && listing.group_count > 1 && listing.group_sources && (
+          <div className="mt-1">
+            <SourceBadge sources={listing.group_sources} count={listing.group_count} />
+          </div>
+        )}
 
         {/* Details row */}
         <div className="mt-1.5 flex items-center gap-3 text-sm text-warm-gray">

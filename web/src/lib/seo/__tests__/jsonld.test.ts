@@ -47,6 +47,7 @@ const mockListing: Listing = {
   longitude: 19.8189,
   is_furnished: null,
   is_new_build: null,
+  listing_group_id: null,
 };
 
 describe("buildListingJsonLd", () => {

@@ -97,6 +97,15 @@ function SignInForm() {
             />
           </div>
 
+          <div className="flex justify-end">
+            <Link
+              href="/auth/forgot-password"
+              className="text-sm font-medium text-terracotta transition hover:text-terracotta-dark"
+            >
+              Keni harruar fjalëkalimin?
+            </Link>
+          </div>
+
           <button
             type="submit"
             disabled={loading}

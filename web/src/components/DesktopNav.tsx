@@ -29,6 +29,9 @@ function NavLinks() {
       >
         Qira
       </NavLink>
+      <NavLink href="/agencies" className={linkBase} activeClassName={linkActive}>
+        Agjensitë
+      </NavLink>
     </nav>
   );
 }
@@ -40,6 +43,7 @@ export default function DesktopNav() {
         <span className="rounded-lg px-3 py-2 text-cream/70">Të gjitha</span>
         <span className="rounded-lg px-3 py-2 text-cream/70">Shitje</span>
         <span className="rounded-lg px-3 py-2 text-cream/70">Qira</span>
+        <span className="rounded-lg px-3 py-2 text-cream/70">Agjensitë</span>
       </nav>
     }>
       <NavLinks />

@@ -81,6 +81,9 @@ export const listings = pgTable(
     hasParking: boolean("has_parking"),
     isFurnished: boolean("is_furnished"),
     isNewBuild: boolean("is_new_build"),
+    // NOTE: listing_group_id column exists in DB (migration 0007) but is
+    // intentionally omitted from the Drizzle schema to avoid SELECT failures
+    // on databases that haven't run the migration yet. Access it via raw SQL.
     // Platform fields
     origin: originEnum("origin").default("scraped"),
     userId: uuid("user_id").references(() => profiles.id, {
@@ -115,6 +118,7 @@ export const listings = pgTable(
     index("idx_listings_active_transaction_date")
       .on(table.transactionType, table.firstSeen)
       .where(sql`is_active = true`),
+    // idx_listings_group defined in migration 0007, not in Drizzle (column omitted for compat)
     index("idx_listings_geo")
       .on(table.latitude, table.longitude)
       .where(sql`latitude IS NOT NULL AND longitude IS NOT NULL AND is_active = true`),
@@ -171,6 +175,44 @@ export const listingImages = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (table) => [index("idx_listing_images_listing").on(table.listingId)]
+);
+
+// --- Price History ---
+
+export const priceHistory = pgTable(
+  "price_history",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    listingId: uuid("listing_id")
+      .notNull()
+      .references(() => listings.id, { onDelete: "cascade" }),
+    price: real("price").notNull(),
+    currency: varchar("currency", { length: 10 }).default("EUR"),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("idx_price_history_listing").on(table.listingId, table.recordedAt),
+  ]
+);
+
+// --- Inquiries ---
+
+export const inquiries = pgTable(
+  "inquiries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    listingId: uuid("listing_id")
+      .notNull()
+      .references(() => listings.id, { onDelete: "cascade" }),
+    senderName: varchar("sender_name", { length: 255 }).notNull(),
+    senderEmail: varchar("sender_email", { length: 255 }).notNull(),
+    senderPhone: varchar("sender_phone", { length: 50 }),
+    message: text("message").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("idx_inquiries_listing").on(table.listingId, table.createdAt),
+  ]
 );
 
 // --- Favorites ---

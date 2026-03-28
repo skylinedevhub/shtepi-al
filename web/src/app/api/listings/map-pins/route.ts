@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getMapListings } from "@/lib/db/queries";
 import type { ListingFilters } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     const params = request.nextUrl.searchParams;

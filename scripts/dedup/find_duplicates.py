@@ -16,6 +16,7 @@ import argparse
 import json
 import os
 import sys
+import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -198,6 +199,33 @@ def apply_dedup(cur, conn, clusters):
     return deactivated
 
 
+def apply_grouping(cur, conn, clusters):
+    """Assign listing_group_id to all members of each cluster.
+
+    Unlike --apply, this does NOT deactivate any listings. All copies stay
+    active but are linked by a shared group UUID for display purposes.
+    """
+    grouped = 0
+
+    for cluster in clusters:
+        all_ids = [cluster["keep"]] + cluster["deactivate"]
+        if len(all_ids) < 2:
+            continue
+
+        group_id = str(uuid.uuid4())
+        cur.execute("""
+            UPDATE listings
+            SET listing_group_id = %s::uuid,
+                updated_at = NOW()
+            WHERE id::text = ANY(%s)
+              AND is_active = true
+        """, (group_id, all_ids))
+        grouped += cur.rowcount
+
+    conn.commit()
+    return grouped
+
+
 def revert_dedup(cur, conn):
     """Re-activate all listings that were deduped."""
     cur.execute("""
@@ -213,12 +241,27 @@ def revert_dedup(cur, conn):
     return reverted
 
 
+def revert_grouping(cur, conn):
+    """Remove all listing_group_id assignments."""
+    cur.execute("""
+        UPDATE listings
+        SET listing_group_id = NULL,
+            updated_at = NOW()
+        WHERE listing_group_id IS NOT NULL
+    """)
+    ungrouped = cur.rowcount
+    conn.commit()
+    return ungrouped
+
+
 def main():
     parser = argparse.ArgumentParser(description="ShtëpiAL duplicate finder")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--dry-run", action="store_true", help="Preview duplicates without changes")
     group.add_argument("--apply", action="store_true", help="Mark duplicates as inactive")
+    group.add_argument("--group", action="store_true", help="Link duplicates via listing_group_id (all stay active)")
     group.add_argument("--revert", action="store_true", help="Undo all dedup marks")
+    group.add_argument("--revert-groups", action="store_true", help="Remove all listing_group_id assignments")
     args = parser.parse_args()
 
     conn = psycopg2.connect(get_db_url())
@@ -227,6 +270,13 @@ def main():
     if args.revert:
         reverted = revert_dedup(cur, conn)
         print(f"Reverted {reverted} listings back to active")
+        cur.close()
+        conn.close()
+        return
+
+    if getattr(args, "revert_groups", False):
+        ungrouped = revert_grouping(cur, conn)
+        print(f"Removed grouping from {ungrouped} listings")
         cur.close()
         conn.close()
         return
@@ -288,6 +338,10 @@ def main():
     elif args.apply:
         deactivated = apply_dedup(cur, conn, merged)
         print(f"\nApplied: {deactivated} listings marked inactive")
+
+    elif args.group:
+        grouped = apply_grouping(cur, conn, merged)
+        print(f"\nGrouped: {grouped} listings linked via listing_group_id (all stay active)")
 
     cur.close()
     conn.close()

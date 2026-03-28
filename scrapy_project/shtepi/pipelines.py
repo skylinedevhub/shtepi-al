@@ -549,9 +549,20 @@ class PostgreSQLPipeline:
                         has_parking = EXCLUDED.has_parking,
                         is_furnished = EXCLUDED.is_furnished,
                         is_new_build = EXCLUDED.is_new_build
+                    RETURNING id, (xmax = 0) AS inserted
                     """,
                     params,
                 )
+                row = cursor.fetchone()
+                if row:
+                    returned_id, was_inserted = row
+                    new_price = item.get("price")
+                    # Log price change only for updates (not inserts)
+                    if not was_inserted and new_price is not None:
+                        self._maybe_log_price_change(
+                            cursor, str(returned_id), float(new_price),
+                            item.get("currency_original", "EUR"),
+                        )
             except Exception as exc:
                 self.conn.rollback()
                 failed.append((item.get("source"), item.get("source_id"), str(exc)))
@@ -568,6 +579,60 @@ class PostgreSQLPipeline:
         self._cross_source_dedup(self.buffer)
 
         self.buffer = []
+
+    def _maybe_log_price_change(self, cursor, listing_id, new_price, currency):
+        """Check last recorded price and log if changed."""
+        try:
+            # Get the most recent price from history, or None if no history yet
+            cursor.execute(
+                """SELECT price FROM price_history
+                   WHERE listing_id = %s::uuid
+                   ORDER BY recorded_at DESC LIMIT 1""",
+                (listing_id,),
+            )
+            row = cursor.fetchone()
+            last_price = float(row[0]) if row else None
+
+            # If no history exists, seed with current price (first observation)
+            if last_price is None:
+                cursor.execute(
+                    """INSERT INTO price_history (listing_id, price, currency)
+                       VALUES (%s::uuid, %s, %s)""",
+                    (listing_id, new_price, currency),
+                )
+                return
+
+            # If price hasn't changed, skip
+            if new_price == last_price:
+                return
+
+            # Price changed — log it
+            cursor.execute(
+                """INSERT INTO price_history (listing_id, price, currency)
+                   VALUES (%s::uuid, %s, %s)""",
+                (listing_id, new_price, currency),
+            )
+            # Store last price change info in listing metadata
+            meta = json.dumps({
+                "last_price_change": {
+                    "old_price": last_price,
+                    "new_price": new_price,
+                    "currency": currency,
+                    "changed_at": datetime.now(timezone.utc).isoformat(),
+                }
+            })
+            cursor.execute(
+                """UPDATE listings
+                   SET metadata = COALESCE(metadata, '{}'::jsonb) || %s::jsonb
+                   WHERE id = %s::uuid""",
+                (meta, listing_id),
+            )
+            logger.info(
+                "Price change for %s: €%.0f → €%.0f",
+                listing_id, last_price, new_price,
+            )
+        except Exception as exc:
+            logger.warning("Failed to log price change for %s: %s", listing_id, exc)
 
     # ------------------------------------------------------------------
     # Cross-source dedup (runs after each batch flush)

@@ -37,6 +37,9 @@ function MobileNavLinks({ close }: { close: () => void }) {
       >
         Qira
       </NavLink>
+      <NavLink href="/agencies" onClick={close} className={linkBase} activeClassName={linkActive}>
+        Agjensitë
+      </NavLink>
     </>
   );
 }
@@ -92,6 +95,7 @@ export default function MobileMenu() {
               <span className={linkBase}>Të gjitha njoftimet</span>
               <span className={linkBase}>Shitje</span>
               <span className={linkBase}>Qira</span>
+              <span className={linkBase}>Agjensitë</span>
             </>
           }>
             <MobileNavLinks close={close} />
