@@ -229,7 +229,7 @@ export default async function ListingDetailPage({ params }: Props) {
       </div>
 
       {/* Also listed on (cross-source group) */}
-      <AlsoListedOn listingId={listing.id} groupId={listing.listing_group_id} source={listing.source} />
+      <AlsoListedOn listingId={listing.id} groupId={listing.listing_group_id} />
 
       {/* Source link */}
       <div className="mt-6 flex flex-col gap-3 border-t border-warm-gray-light pt-5 sm:flex-row sm:items-center sm:justify-between">
@@ -256,11 +256,9 @@ export default async function ListingDetailPage({ params }: Props) {
 async function AlsoListedOn({
   listingId,
   groupId,
-  source,
 }: {
   listingId: string;
   groupId: string | null;
-  source: string;
 }) {
   if (!groupId) return null;
 
