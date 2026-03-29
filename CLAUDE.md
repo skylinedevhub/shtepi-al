@@ -3,8 +3,8 @@
 ## Quick Start
 - `cd web && npm run dev` — Next.js frontend (localhost:3000)
 - `cd scrapy_project && scrapy crawl <spider>` — Run a spider locally
-- `cd web && npx vitest run` — Run 124 frontend tests (24 files)
-- `cd scrapy_project && python -m pytest` — Run 701 Python tests
+- `cd web && npx vitest run` — Run 158 frontend tests (29 files)
+- `cd scrapy_project && python -m pytest` — Run 701 Python tests (132 standalone via test_normalizers.py + test_city_coords.py)
 - Git root is `/shtepi-al/`, web CWD is `/shtepi-al/web/` — use absolute paths for git commands
 
 ## Architecture
@@ -29,7 +29,12 @@
 - Numeric query params: use `parseNumericParam()` from `web/src/lib/parse-numeric.ts` — never raw `Number()` on user input
 - Exchange rates: configurable via `EUR_ALL_RATE` / `USD_EUR_RATE` env vars (default 100 / 0.92)
 - Error boundaries: `error.tsx` files in `/`, `/listings`, `/dashboard`, `/admin`
-- City lists: use `QUICK_CITIES` from `web/src/lib/constants.ts` — never hardcode city arrays
+- City lists: 22 canonical cities in `CITIES`, first 6 are `QUICK_CITIES` — never hardcode city arrays
+- City coords: `web/src/lib/city-coords.ts` mirrors `scrapy_project/shtepi/city_coords.py` (source of truth)
+- Neighborhoods: `getNeighborhoods(city)` query + `/api/listings/neighborhoods?city=` route (cached 5min)
+- Map bbox filtering: `sw_lat/sw_lng/ne_lat/ne_lng` in ListingFilters, parsed with `parseNumericParam()`
+- Geolocation: `useGeolocation` hook returns Albanian error messages, "Pranë meje" button in map mode
+- Breadcrumbs: use `buildCityFilterHref(city)` from `slugs.ts` — generates `/listings?city=` not `/{slug}`
 - Firefox Leaflet fix: `will-change: auto !important` on SVG + local marker icons in `web/public/leaflet/`
 
 ## Testing
@@ -39,6 +44,11 @@
 - Pipeline validation tests cover price bounds for sale/rent
 - CSRF tests in `web/src/lib/__tests__/csrf.test.ts` — test origin/referer validation
 - Numeric param tests in `web/src/lib/__tests__/parse-numeric.test.ts`
+- City sync tests in `web/src/lib/__tests__/city-sync.test.ts` — cross-file consistency across 22 cities
+- Breadcrumb URL tests in `web/src/lib/seo/__tests__/breadcrumb-url.test.ts`
+- Neighborhood query tests in `web/src/lib/db/__tests__/neighborhoods.test.ts`
+- Bbox map filtering tests in `web/src/lib/db/__tests__/queries-bbox.test.ts`
+- Geolocation hook tests in `web/src/hooks/__tests__/useGeolocation.test.ts` (jsdom)
 - Scrapy not installed in WSL env — `python3 -m pytest tests/test_normalizers.py` runs standalone
 
 ## Scraping
@@ -58,8 +68,11 @@
 - Rate limit: `web/src/lib/rate-limit.ts` (createRateLimiter, getClientIp)
 - CSRF: `web/src/lib/csrf.ts` (validateCsrf — add to all new mutation endpoints)
 - Numeric parsing: `web/src/lib/parse-numeric.ts` (parseNumericParam — use for all query params)
-- Constants: `web/src/lib/constants.ts` (CITIES, QUICK_CITIES, PROPERTY_TYPES)
-- SEO: `web/src/lib/seo/` (slugs, metadata, jsonld, constants)
+- Constants: `web/src/lib/constants.ts` (CITIES — 22 entries, QUICK_CITIES — first 6, PROPERTY_TYPES)
+- City coords: `web/src/lib/city-coords.ts` (ALBANIAN_CITY_COORDS — 22 cities, ALBANIA_CENTER, CITY_ZOOM)
+- SEO: `web/src/lib/seo/` (slugs — CITY_SLUGS + buildCityFilterHref, metadata, jsonld, constants)
+- Geolocation: `web/src/hooks/useGeolocation.ts` (position, loading, error, locate)
+- Map: `web/src/components/MapView.tsx` (BBox type, onBoundsChange, externalCenter props)
 - Pipelines: `scrapy_project/shtepi/pipelines.py`
 - Normalizers: `scrapy_project/shtepi/normalizers.py`
 - CI: `.github/workflows/ci.yml`, `.github/workflows/scrape.yml`
