@@ -35,6 +35,7 @@ vi.mock("react-leaflet", () => ({
     <div data-testid="popup">{children}</div>
   ),
   useMap: () => ({ setView: vi.fn(), fitBounds: vi.fn(), invalidateSize: vi.fn() }),
+  useMapEvents: () => ({ getBounds: () => ({ getSouthWest: () => ({ lat: 41, lng: 19 }), getNorthEast: () => ({ lat: 42, lng: 20 }) }) }),
 }));
 
 vi.mock("react-leaflet-cluster", () => ({
@@ -93,5 +94,16 @@ describe("MapView", () => {
   it("renders zero markers for empty listings", () => {
     render(<MapView listings={[]} />);
     expect(screen.queryAllByTestId("marker")).toHaveLength(0);
+  });
+
+  it("accepts onBoundsChange callback prop", () => {
+    const onBoundsChange = vi.fn();
+    render(<MapView listings={[]} onBoundsChange={onBoundsChange} />);
+    expect(screen.getByTestId("map-container")).toBeDefined();
+  });
+
+  it("renders without onBoundsChange (backward compatible)", () => {
+    render(<MapView listings={[]} />);
+    expect(screen.getByTestId("map-container")).toBeDefined();
   });
 });

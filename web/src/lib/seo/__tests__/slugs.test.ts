@@ -73,12 +73,33 @@ describe("CITY_SLUGS", () => {
     expect(CITY_SLUGS["Fier"]).toBe("fier");
     expect(CITY_SLUGS["Pogradec"]).toBe("pogradec");
   });
+
+  it("includes all 10 previously missing cities", () => {
+    expect(CITY_SLUGS["Vorë"]).toBe("vore");
+    expect(CITY_SLUGS["Golem"]).toBe("golem");
+    expect(CITY_SLUGS["Himarë"]).toBe("himare");
+    expect(CITY_SLUGS["Ksamil"]).toBe("ksamil");
+    expect(CITY_SLUGS["Dhërmi"]).toBe("dhermi");
+    expect(CITY_SLUGS["Përmet"]).toBe("permet");
+    expect(CITY_SLUGS["Prishtinë"]).toBe("prishtine");
+    expect(CITY_SLUGS["Kamëz"]).toBe("kamez");
+    expect(CITY_SLUGS["Lushnjë"]).toBe("lushnje");
+    expect(CITY_SLUGS["Kavajë"]).toBe("kavaje");
+  });
 });
 
 describe("cityToSlug", () => {
   it("maps known cities to slugs", () => {
     expect(cityToSlug("Tiranë")).toBe("tirane");
     expect(cityToSlug("Gjirokastër")).toBe("gjirokaster");
+    expect(cityToSlug("Vorë")).toBe("vore");
+    expect(cityToSlug("Golem")).toBe("golem");
+    expect(cityToSlug("Himarë")).toBe("himare");
+    expect(cityToSlug("Ksamil")).toBe("ksamil");
+    expect(cityToSlug("Dhërmi")).toBe("dhermi");
+    expect(cityToSlug("Përmet")).toBe("permet");
+    expect(cityToSlug("Prishtinë")).toBe("prishtine");
+    expect(cityToSlug("Kamëz")).toBe("kamez");
   });
 
   it("generates slug for unknown cities", () => {
@@ -96,6 +117,17 @@ describe("slugToCity", () => {
     expect(slugToCity("tirane")).toBe("Tiranë");
     expect(slugToCity("durres")).toBe("Durrës");
     expect(slugToCity("korce")).toBe("Korçë");
+  });
+
+  it("reverses newly added city slugs", () => {
+    expect(slugToCity("vore")).toBe("Vorë");
+    expect(slugToCity("golem")).toBe("Golem");
+    expect(slugToCity("himare")).toBe("Himarë");
+    expect(slugToCity("ksamil")).toBe("Ksamil");
+    expect(slugToCity("dhermi")).toBe("Dhërmi");
+    expect(slugToCity("permet")).toBe("Përmet");
+    expect(slugToCity("prishtine")).toBe("Prishtinë");
+    expect(slugToCity("kamez")).toBe("Kamëz");
   });
 
   it("returns null for unknown slugs", () => {

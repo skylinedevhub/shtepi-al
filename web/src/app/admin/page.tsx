@@ -37,12 +37,19 @@ export default function AdminPage() {
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
+  const [unauthorized, setUnauthorized] = useState(false);
+
   const loadData = useCallback(async () => {
     try {
       const [statsRes, listingsRes] = await Promise.all([
         fetch("/api/admin/stats"),
         fetch("/api/admin/listings"),
       ]);
+
+      if (statsRes.status === 403 || listingsRes.status === 403) {
+        setUnauthorized(true);
+        return;
+      }
 
       if (statsRes.ok) setStats(await statsRes.json());
       if (listingsRes.ok) {
@@ -108,6 +115,21 @@ export default function AdminPage() {
   }
 
   if (loading) return null; // layout shows loading.tsx
+
+  if (unauthorized) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <div className="rounded-card border border-red-200 bg-red-50 p-12 text-center">
+          <h1 className="font-display text-2xl font-bold text-red-700">
+            Akses i refuzuar
+          </h1>
+          <p className="mt-2 text-sm text-red-600">
+            Nuk keni leje për të aksesuar panelin e administrimit.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">

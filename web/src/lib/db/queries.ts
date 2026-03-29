@@ -11,6 +11,7 @@ import {
   seedGetStats,
   seedGetAllActiveListingSlugs,
   seedGetListingByShortId,
+  seedGetNeighborhoods,
 } from "./seed";
 
 type DbRow = typeof listings.$inferSelect;
@@ -81,6 +82,14 @@ function buildFilterConditions(filters: ListingFilters) {
   if (filters.neighborhood)
     conditions.push(eq(listings.neighborhood, filters.neighborhood));
   if (filters.source) conditions.push(eq(listings.source, filters.source));
+  if (filters.sw_lat != null)
+    conditions.push(gte(listings.latitude, filters.sw_lat));
+  if (filters.ne_lat != null)
+    conditions.push(lte(listings.latitude, filters.ne_lat));
+  if (filters.sw_lng != null)
+    conditions.push(gte(listings.longitude, filters.sw_lng));
+  if (filters.ne_lng != null)
+    conditions.push(lte(listings.longitude, filters.ne_lng));
 
   return conditions;
 }
@@ -184,6 +193,26 @@ export async function getMapListings(
     longitude: row.longitude!,
     first_image: row.firstImage,
   }));
+}
+
+export async function getNeighborhoods(city: string): Promise<string[]> {
+  const db = getDb();
+  if (!db) return seedGetNeighborhoods(city);
+
+  const rows = await db
+    .selectDistinct({ neighborhood: listings.neighborhood })
+    .from(listings)
+    .where(
+      and(
+        eq(listings.city, city),
+        eq(listings.isActive, true),
+        sql`${listings.neighborhood} IS NOT NULL`,
+        sql`${listings.neighborhood} != ''`
+      )
+    )
+    .orderBy(listings.neighborhood);
+
+  return rows.map((r) => r.neighborhood!);
 }
 
 export async function getListingById(id: string): Promise<Listing | null> {
@@ -321,18 +350,30 @@ export const getListingByShortId = cache(async function getListingByShortId(
   const padded = shortId.padEnd(8, "0");
   const lowerUuid = `${padded}-0000-0000-0000-000000000000`;
 
-  const lastChar = parseInt(padded[7], 16);
-  if (lastChar >= 15) {
-    // Edge case: 'f' suffix — fall back to text LIKE (rare)
+  // Increment the hex prefix to form the upper bound.
+  // Works for all values including 'f' suffix by carrying over.
+  let carry = 1;
+  const chars = padded.split("");
+  for (let i = chars.length - 1; i >= 0 && carry; i--) {
+    const val = parseInt(chars[i], 16) + carry;
+    chars[i] = (val % 16).toString(16);
+    carry = val >= 16 ? 1 : 0;
+  }
+
+  if (carry) {
+    // All f's (ffffffff) — upper bound is max UUID
+    const upperUuid = "ffffffff-ffff-ffff-ffff-ffffffffffff";
     const [row] = await db
       .select()
       .from(listings)
-      .where(sql`${listings.id}::text LIKE ${shortId + "%"}`)
+      .where(
+        sql`${listings.id} >= ${lowerUuid}::uuid AND ${listings.id} <= ${upperUuid}::uuid`
+      )
       .limit(1);
     return row ? dbRowToListing(row) : null;
   }
 
-  const nextPadded = padded.slice(0, 7) + (lastChar + 1).toString(16);
+  const nextPadded = chars.join("");
   const upperUuid = `${nextPadded}-0000-0000-0000-000000000000`;
 
   const [row] = await db
@@ -705,32 +746,23 @@ export async function getAgencies(
     .from(agencies);
   const total = Number(countResult.count);
 
-  const rows = await db
-    .select({
-      id: agencies.id,
-      name: agencies.name,
-      slug: agencies.slug,
-      logo: agencies.logo,
-      email: agencies.email,
-      phone: agencies.phone,
-      website: agencies.website,
-      description: agencies.description,
-      listingCount: sql<number>`(
-        SELECT count(*) FROM listings
-        WHERE listings.poster_name = ${agencies.name}
-          AND listings.poster_type = 'agency'
-          AND listings.is_active = true
-      )`,
-    })
-    .from(agencies)
-    .orderBy(desc(sql`(
-      SELECT count(*) FROM listings
-      WHERE listings.poster_name = ${agencies.name}
-        AND listings.poster_type = 'agency'
-        AND listings.is_active = true
-    )`))
-    .limit(limit)
-    .offset(offset);
+  const rows = await db.execute(sql`
+    SELECT
+      a.id, a.name, a.slug, a.logo, a.email, a.phone, a.website, a.description,
+      COALESCE(count(l.id), 0)::int AS listing_count
+    FROM agencies a
+    LEFT JOIN listings l
+      ON l.poster_name = a.name
+      AND l.poster_type = 'agency'
+      AND l.is_active = true
+    GROUP BY a.id
+    ORDER BY count(l.id) DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `) as unknown as {
+    id: string; name: string; slug: string | null; logo: string | null;
+    email: string | null; phone: string | null; website: string | null;
+    description: string | null; listing_count: number;
+  }[];
 
   return {
     agencies: rows.map((r) => ({
@@ -742,7 +774,7 @@ export async function getAgencies(
       phone: r.phone,
       website: r.website,
       description: r.description,
-      listing_count: Number(r.listingCount),
+      listing_count: Number(r.listing_count),
     })),
     total,
     page,
@@ -761,26 +793,25 @@ export const getAgencyBySlug = cache(async function getAgencyBySlug(
     return result.agencies.find((a) => a.slug === slug) ?? null;
   }
 
-  const [row] = await db
-    .select({
-      id: agencies.id,
-      name: agencies.name,
-      slug: agencies.slug,
-      logo: agencies.logo,
-      email: agencies.email,
-      phone: agencies.phone,
-      website: agencies.website,
-      description: agencies.description,
-      listingCount: sql<number>`(
-        SELECT count(*) FROM listings
-        WHERE listings.poster_name = ${agencies.name}
-          AND listings.poster_type = 'agency'
-          AND listings.is_active = true
-      )`,
-    })
-    .from(agencies)
-    .where(eq(agencies.slug, slug));
+  const rows = await db.execute(sql`
+    SELECT
+      a.id, a.name, a.slug, a.logo, a.email, a.phone, a.website, a.description,
+      COALESCE(count(l.id), 0)::int AS listing_count
+    FROM agencies a
+    LEFT JOIN listings l
+      ON l.poster_name = a.name
+      AND l.poster_type = 'agency'
+      AND l.is_active = true
+    WHERE a.slug = ${slug}
+    GROUP BY a.id
+    LIMIT 1
+  `) as unknown as {
+    id: string; name: string; slug: string | null; logo: string | null;
+    email: string | null; phone: string | null; website: string | null;
+    description: string | null; listing_count: number;
+  }[];
 
+  const row = rows[0];
   if (!row) return null;
 
   return {
@@ -792,7 +823,7 @@ export const getAgencyBySlug = cache(async function getAgencyBySlug(
     phone: row.phone,
     website: row.website,
     description: row.description,
-    listing_count: Number(row.listingCount),
+    listing_count: Number(row.listing_count),
   };
 });
 

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import "leaflet/dist/leaflet.css";
 import type { MapPin } from "@/lib/types";
@@ -20,10 +20,23 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "/leaflet/marker-shadow.png",
 });
 
+export interface BBox {
+  sw_lat: number;
+  sw_lng: number;
+  ne_lat: number;
+  ne_lng: number;
+}
+
 interface MapViewProps {
   listings: MapPin[];
   /** Extra left padding for fitBounds (e.g. width of an overlay panel). */
   fitPaddingLeft?: number;
+  /** Called when the user pans/zooms (debounced 300ms). */
+  onBoundsChange?: (bounds: BBox) => void;
+  /** External center override (e.g. from geolocation). */
+  externalCenter?: [number, number];
+  /** Zoom level when externalCenter is set. */
+  externalZoom?: number;
 }
 
 function createClusterIcon(cluster: { getChildCount(): number }): L.DivIcon {
@@ -111,7 +124,44 @@ function ListingPopup({ listing }: { listing: MapPin }) {
   );
 }
 
-export default function MapView({ listings, fitPaddingLeft = 0 }: MapViewProps) {
+function SetExternalView({ center, zoom }: { center: [number, number]; zoom: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, zoom);
+  }, [map, center[0], center[1], zoom]);
+  return null;
+}
+
+function BoundsWatcher({ onChange }: { onChange: (bounds: BBox) => void }) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  const handleMove = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      const bounds = map.getBounds();
+      onChangeRef.current({
+        sw_lat: bounds.getSouthWest().lat,
+        sw_lng: bounds.getSouthWest().lng,
+        ne_lat: bounds.getNorthEast().lat,
+        ne_lng: bounds.getNorthEast().lng,
+      });
+    }, 300);
+  }, []);
+
+  const map = useMapEvents({ moveend: handleMove });
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  return null;
+}
+
+export default function MapView({ listings, fitPaddingLeft = 0, onBoundsChange, externalCenter, externalZoom }: MapViewProps) {
   const positions: [number, number][] = listings.map((l) => [l.latitude, l.longitude]);
 
   return (
@@ -127,6 +177,8 @@ export default function MapView({ listings, fitPaddingLeft = 0 }: MapViewProps) 
       />
       <FitBounds positions={positions} paddingLeft={fitPaddingLeft} />
       <InvalidateSize />
+      {onBoundsChange && <BoundsWatcher onChange={onBoundsChange} />}
+      {externalCenter && <SetExternalView center={externalCenter} zoom={externalZoom ?? 14} />}
       <MarkerClusterGroup iconCreateFunction={createClusterIcon} maxClusterRadius={60}>
         {listings.map((listing) => (
           <Marker key={listing.id} position={[listing.latitude, listing.longitude]}>

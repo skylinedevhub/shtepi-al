@@ -7,6 +7,8 @@ import ListingCard from "@/components/ListingCard";
 import FilterSidebar from "@/components/FilterSidebar";
 import SearchBar from "@/components/SearchBar";
 import type { Listing, ListingsResponse, MapPin } from "@/lib/types";
+import type { BBox } from "@/components/MapView";
+import { useGeolocation } from "@/hooks/useGeolocation";
 import { cn } from "@/lib/cn";
 import { CITIES } from "@/lib/constants";
 
@@ -100,6 +102,7 @@ function ListingsContent() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -113,6 +116,8 @@ function ListingsContent() {
 
   // Cache for prefetched map pins (keyed by filter params)
   const mapPinsCacheRef = useRef<{ key: string; data: MapPin[] } | null>(null);
+  const [mapBbox, setMapBbox] = useState<BBox | null>(null);
+  const geo = useGeolocation();
 
   // Preload Leaflet chunk on mount so it's ready when user switches to map
   useEffect(() => {
@@ -152,14 +157,16 @@ function ListingsContent() {
 
       try {
         const res = await fetch(url);
+        if (!res.ok) throw new Error("fetch failed");
         const data: ListingsResponse = await res.json();
         setListings((prev) =>
           append ? [...prev, ...data.listings] : data.listings
         );
         setTotal(data.total);
         setHasMore(data.has_more);
+        setFetchError(false);
       } catch {
-        // API not available (no DB yet)
+        if (!append) setFetchError(true);
       } finally {
         setLoading(false);
       }
@@ -172,27 +179,33 @@ function ListingsContent() {
     fetchListings(1);
   }, [fetchListings]);
 
-  // Fetch ALL geocoded listings for map pins (separate from paginated list)
+  // Fetch geocoded listings for map pins (with optional bbox)
   useEffect(() => {
     if (viewMode !== "map") return;
-    const key = mapPinsCacheKey();
+    const filterKey = mapPinsCacheKey();
+    const bboxStr = mapBbox
+      ? `&sw_lat=${mapBbox.sw_lat}&sw_lng=${mapBbox.sw_lng}&ne_lat=${mapBbox.ne_lat}&ne_lng=${mapBbox.ne_lng}`
+      : "";
+    const fullKey = filterKey + bboxStr;
 
-    // Use prefetched data if available
-    if (mapPinsCacheRef.current?.key === key) {
+    // Use prefetched data if available (only for non-bbox initial load)
+    if (!mapBbox && mapPinsCacheRef.current?.key === filterKey) {
       setMapListings(mapPinsCacheRef.current.data);
       return;
     }
 
     setMapLoading(true);
-    fetch(`/api/listings/map-pins?${key}`)
+    fetch(`/api/listings/map-pins?${filterKey}${bboxStr}`)
       .then((res) => res.json())
       .then((data: MapPin[]) => {
         setMapListings(data);
-        mapPinsCacheRef.current = { key, data };
+        if (!mapBbox) {
+          mapPinsCacheRef.current = { key: filterKey, data };
+        }
       })
       .catch(() => {})
       .finally(() => setMapLoading(false));
-  }, [viewMode, searchParams, mapPinsCacheKey]);
+  }, [viewMode, searchParams, mapPinsCacheKey, mapBbox]);
 
   function loadMore() {
     const nextPage = page + 1;
@@ -243,7 +256,13 @@ function ListingsContent() {
         >
           {/* Map fills entire viewport */}
           <div className="absolute inset-0 z-0">
-            <MapView listings={mapListings} fitPaddingLeft={isDesktop && panelOpen ? 420 : 0} />
+            <MapView
+              listings={mapListings}
+              fitPaddingLeft={isDesktop && panelOpen ? 420 : 0}
+              onBoundsChange={setMapBbox}
+              externalCenter={geo.position ?? undefined}
+              externalZoom={14}
+            />
           </div>
 
           {/* Map loading indicator */}
@@ -255,6 +274,15 @@ function ListingsContent() {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
                 <span className="text-sm font-medium text-navy">Duke ngarkuar hartën...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Geolocation error toast */}
+          {geo.error && (
+            <div className="absolute left-1/2 top-16 z-20 -translate-x-1/2">
+              <div className="rounded-full bg-red-600/90 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur-md">
+                {geo.error}
               </div>
             </div>
           )}
@@ -352,6 +380,33 @@ function ListingsContent() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
+
+                {/* Near me button */}
+                <button
+                  onClick={geo.locate}
+                  disabled={geo.loading}
+                  className={cn(
+                    "pointer-events-auto shrink-0 cursor-pointer rounded-full px-3.5 py-2 text-sm font-medium shadow-sm transition",
+                    geo.position
+                      ? "bg-terracotta text-white"
+                      : "border border-warm-gray-light/30 bg-white/90 text-navy backdrop-blur-md hover:bg-white"
+                  )}
+                >
+                  <span className="flex items-center gap-1.5">
+                    {geo.loading ? (
+                      <svg className="size-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    ) : (
+                      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    )}
+                    Pranë meje
+                  </span>
+                </button>
 
                 {/* Rooms — desktop only */}
                 <div className="hidden items-center gap-1.5 md:flex">
@@ -641,7 +696,25 @@ function ListingsContent() {
             </p>
           </div>
 
-          {loading && listings.length === 0 ? (
+          {fetchError && listings.length === 0 ? (
+            <div className="flex flex-col items-center py-20 text-center">
+              <svg className="mb-4 size-16 text-warm-gray-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <p className="text-lg font-medium text-navy">
+                Gabim në ngarkimin e njoftimeve
+              </p>
+              <p className="mt-1 text-sm text-warm-gray">
+                Nuk mundëm të lidhemi me serverin. Provoni përsëri.
+              </p>
+              <button
+                onClick={() => { setFetchError(false); fetchListings(1); }}
+                className="btn-press mt-4 rounded-btn bg-terracotta px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-terracotta-dark"
+              >
+                Provo përsëri
+              </button>
+            </div>
+          ) : loading && listings.length === 0 ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <SkeletonCard key={i} />

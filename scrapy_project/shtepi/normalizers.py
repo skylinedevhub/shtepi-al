@@ -4,12 +4,13 @@ Handles city names, room configs, prices, and property types
 with Albanian-specific parsing rules.
 """
 
+import os
 import re
 from typing import Optional
 
-# EUR/ALL exchange rate (Bank of Albania approximate rate)
-EUR_ALL_RATE = 100.0
-USD_EUR_RATE = 0.92
+# EUR/ALL exchange rate — configurable via env, default Bank of Albania approximate rate
+EUR_ALL_RATE = float(os.environ.get("EUR_ALL_RATE", "100.0"))
+USD_EUR_RATE = float(os.environ.get("USD_EUR_RATE", "0.92"))
 
 # City name normalization map: variant → canonical form
 CITY_MAP: dict[str, str] = {

@@ -4,12 +4,28 @@ import { getDb } from "@/lib/db/drizzle";
 import { listings } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
 import { listingUpdateSchema } from "@/lib/validators";
+import { validateCsrf } from "@/lib/csrf";
+import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
+
+// 30 listing updates per IP per hour
+const updateLimiter = createRateLimiter({ limit: 30, windowMs: 60 * 60 * 1000 });
 
 interface RouteContext {
   params: { id: string };
 }
 
 export async function PUT(request: NextRequest, { params }: RouteContext) {
+  const csrfError = validateCsrf(request);
+  if (csrfError) return csrfError;
+
+  const ip = getClientIp(request.headers);
+  const { success } = updateLimiter.check(ip);
+  if (!success) {
+    return NextResponse.json(
+      { error: "Shumë kërkesa. Provoni përsëri më vonë." },
+      { status: 429 }
+    );
+  }
   const supabase = await createClient();
   if (!supabase) {
     return NextResponse.json(
@@ -127,9 +143,11 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: RouteContext
 ) {
+  const csrfError = validateCsrf(request);
+  if (csrfError) return csrfError;
   const supabase = await createClient();
   if (!supabase) {
     return NextResponse.json(

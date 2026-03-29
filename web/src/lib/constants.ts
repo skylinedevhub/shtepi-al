@@ -3,6 +3,8 @@ import { PROPERTY_TYPE_SQ } from "./seo/constants";
 export const CITIES = [
   "Tiranë", "Durrës", "Vlorë", "Sarandë", "Shkodër", "Korçë",
   "Elbasan", "Fier", "Berat", "Lushnjë", "Kamëz", "Pogradec",
+  "Kavajë", "Lezhë", "Gjirokastër", "Vorë", "Golem", "Himarë",
+  "Ksamil", "Dhërmi", "Përmet", "Prishtinë",
 ];
 
 export const QUICK_CITIES = CITIES.slice(0, 6);

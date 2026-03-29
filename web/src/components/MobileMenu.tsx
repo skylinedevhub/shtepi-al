@@ -7,6 +7,7 @@ import NavLink from "./NavLink";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { cityToSlug } from "@/lib/seo/slugs";
+import { QUICK_CITIES } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 
 const linkBase =
@@ -104,7 +105,7 @@ export default function MobileMenu() {
           <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-warm-gray">
             Qytete
           </p>
-          {["Tiranë", "Durrës", "Vlorë", "Sarandë", "Shkodër", "Korçë"].map((city) => (
+          {QUICK_CITIES.map((city) => (
             <Link
               key={city}
               href={`/${cityToSlug(city)}`}

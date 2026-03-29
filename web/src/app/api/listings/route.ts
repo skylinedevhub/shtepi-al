@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 import { listingCreateSchema } from "@/lib/validators";
 import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
+import { validateCsrf } from "@/lib/csrf";
+import { parseNumericParam } from "@/lib/parse-numeric";
 import type { ListingFilters } from "@/lib/types";
 
 // 10 listing creates per IP per hour
@@ -34,25 +36,27 @@ export async function GET(request: NextRequest) {
       filters.transaction_type = params.get("transaction_type")!;
     if (params.get("property_type"))
       filters.property_type = params.get("property_type")!;
-    if (params.get("price_min"))
-      filters.price_min = Number(params.get("price_min"));
-    if (params.get("price_max"))
-      filters.price_max = Number(params.get("price_max"));
-    if (params.get("rooms_min"))
-      filters.rooms_min = Number(params.get("rooms_min"));
-    if (params.get("rooms_max"))
-      filters.rooms_max = Number(params.get("rooms_max"));
-    if (params.get("area_min"))
-      filters.area_min = Number(params.get("area_min"));
-    if (params.get("area_max"))
-      filters.area_max = Number(params.get("area_max"));
+    const priceMin = parseNumericParam(params.get("price_min"));
+    if (priceMin !== undefined) filters.price_min = priceMin;
+    const priceMax = parseNumericParam(params.get("price_max"));
+    if (priceMax !== undefined) filters.price_max = priceMax;
+    const roomsMin = parseNumericParam(params.get("rooms_min"));
+    if (roomsMin !== undefined) filters.rooms_min = roomsMin;
+    const roomsMax = parseNumericParam(params.get("rooms_max"));
+    if (roomsMax !== undefined) filters.rooms_max = roomsMax;
+    const areaMin = parseNumericParam(params.get("area_min"));
+    if (areaMin !== undefined) filters.area_min = areaMin;
+    const areaMax = parseNumericParam(params.get("area_max"));
+    if (areaMax !== undefined) filters.area_max = areaMax;
     if (params.get("neighborhood"))
       filters.neighborhood = params.get("neighborhood")!;
     if (params.get("source")) filters.source = params.get("source")!;
     if (params.get("sort"))
       filters.sort = params.get("sort") as ListingFilters["sort"];
-    if (params.get("page")) filters.page = Number(params.get("page"));
-    if (params.get("limit")) filters.limit = Number(params.get("limit"));
+    const pageNum = parseNumericParam(params.get("page"));
+    if (pageNum !== undefined) filters.page = pageNum;
+    const limitNum = parseNumericParam(params.get("limit"));
+    if (limitNum !== undefined) filters.limit = limitNum;
 
     const result = await getListings(filters);
     return NextResponse.json(result, {
@@ -67,9 +71,12 @@ export async function GET(request: NextRequest) {
   }
 }
 
-const EUR_ALL_RATE = 100;
+const EUR_ALL_RATE = Number(process.env.EUR_ALL_RATE) || 100;
 
 export async function POST(request: NextRequest) {
+  const csrfError = validateCsrf(request);
+  if (csrfError) return csrfError;
+
   const ip = getClientIp(request.headers);
   const { success } = createLimiter.check(ip);
   if (!success) {

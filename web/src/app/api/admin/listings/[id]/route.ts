@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUserProfile, updateListingStatus } from "@/lib/db/queries";
+import { validateCsrf } from "@/lib/csrf";
 
 async function verifyAdmin(): Promise<{ error?: NextResponse; userId?: string }> {
   const supabase = await createClient();
@@ -24,9 +25,12 @@ async function verifyAdmin(): Promise<{ error?: NextResponse; userId?: string }>
 }
 
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrfError = validateCsrf(request);
+  if (csrfError) return csrfError;
+
   const { error: authError } = await verifyAdmin();
   if (authError) return authError;
 

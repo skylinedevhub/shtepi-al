@@ -13,6 +13,14 @@ export const CITY_SLUGS: Record<string, string> = {
   "Gjirokastër": "gjirokaster",
   "Kavajë": "kavaje",
   "Lezhë": "lezhe",
+  "Kamëz": "kamez",
+  "Vorë": "vore",
+  "Golem": "golem",
+  "Himarë": "himare",
+  "Ksamil": "ksamil",
+  "Dhërmi": "dhermi",
+  "Përmet": "permet",
+  "Prishtinë": "prishtine",
 };
 
 const SLUG_TO_CITY: Record<string, string> = Object.fromEntries(
@@ -52,6 +60,11 @@ export function slugToCity(slug: string): string | null {
 export function parseSlugId(slug: string): string | null {
   const match = slug.match(/-([0-9a-f]{8})$/);
   return match?.[1] ?? null;
+}
+
+export function buildCityFilterHref(city: string | null | undefined): string {
+  if (!city) return "/listings";
+  return `/listings?city=${encodeURIComponent(city)}`;
 }
 
 export function buildListingPath(

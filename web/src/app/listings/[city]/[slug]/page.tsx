@@ -7,7 +7,7 @@ import { parseSlugId } from "@/lib/seo/slugs";
 import { buildListingMetadata } from "@/lib/seo/metadata";
 import { buildListingJsonLd, buildBreadcrumbJsonLd } from "@/lib/seo/jsonld";
 import { SITE_URL, PROPERTY_TYPE_SQ } from "@/lib/seo/constants";
-import { buildListingPath } from "@/lib/seo/slugs";
+import { buildListingPath, buildCityFilterHref } from "@/lib/seo/slugs";
 import JsonLd from "@/components/JsonLd";
 import ImageGallery from "@/components/ImageGallery";
 import ShareButton from "@/components/ShareButton";
@@ -65,7 +65,7 @@ export default async function ListingDetailPage({ params }: Props) {
         data={buildBreadcrumbJsonLd([
           { name: "Kryefaqja", url: SITE_URL },
           ...(listing.city
-            ? [{ name: listing.city, url: `${SITE_URL}/${city}` }]
+            ? [{ name: listing.city, url: `${SITE_URL}${buildCityFilterHref(listing.city)}` }]
             : []),
           { name: listing.title },
         ])}
@@ -80,7 +80,7 @@ export default async function ListingDetailPage({ params }: Props) {
         {listing.city && (
           <>
             <Link
-              href={`/${city}`}
+              href={buildCityFilterHref(listing.city)}
               className="transition hover:text-terracotta"
             >
               {listing.city}

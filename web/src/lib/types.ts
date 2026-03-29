@@ -70,6 +70,10 @@ export interface ListingFilters {
   sort?: "newest" | "price_asc" | "price_desc" | "area_desc";
   page?: number;
   limit?: number;
+  sw_lat?: number;
+  sw_lng?: number;
+  ne_lat?: number;
+  ne_lng?: number;
 }
 
 export interface ListingsResponse {

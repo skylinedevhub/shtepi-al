@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import ImageUploader from "./ImageUploader";
 import { CITIES, PROPERTY_TYPES } from "@/lib/constants";
+import { buildListingPath } from "@/lib/seo/slugs";
 
 const MapPinPicker = dynamic(() => import("@/components/MapPinPicker"), { ssr: false });
 
@@ -140,7 +141,9 @@ export default function ListingForm({
       if (mode === "create") {
         router.push("/dashboard");
       } else {
-        router.push(`/listings/${listingId}`);
+        router.push(
+          buildListingPath(form.title, form.city || null, listingId!)
+        );
       }
     } catch {
       setError("Diçka shkoi gabim. Provoni përsëri.");

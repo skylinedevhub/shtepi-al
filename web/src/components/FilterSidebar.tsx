@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CITIES, PROPERTY_TYPES } from "@/lib/constants";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
@@ -58,6 +58,20 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly, alwaysDrawe
     router.push(`/listings?${params.toString()}`);
   }
 
+  const selectedCity = currentValue("city");
+  const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!selectedCity) {
+      setNeighborhoods([]);
+      return;
+    }
+    fetch(`/api/listings/neighborhoods?city=${encodeURIComponent(selectedCity)}`)
+      .then((res) => res.json())
+      .then((data: string[]) => setNeighborhoods(data))
+      .catch(() => setNeighborhoods([]));
+  }, [selectedCity]);
+
   const filterContent = (
     <div className="space-y-6">
       {/* Clear all */}
@@ -102,7 +116,17 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly, alwaysDrawe
         <h3 className="mb-2 text-sm font-semibold text-navy">Qyteti</h3>
         <select
           value={currentValue("city")}
-          onChange={(e) => updateFilter("city", e.target.value || null)}
+          onChange={(e) => {
+            const params = new URLSearchParams(searchParams.toString());
+            if (e.target.value) {
+              params.set("city", e.target.value);
+            } else {
+              params.delete("city");
+            }
+            params.delete("neighborhood");
+            params.delete("page");
+            router.push(`/listings?${params.toString()}`);
+          }}
           className="w-full rounded-btn border border-warm-gray-light px-3 py-2 text-sm focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
         >
           <option value="">Të gjitha</option>
@@ -113,6 +137,25 @@ export default function FilterSidebar({ isOpen, onClose, mobileOnly, alwaysDrawe
           ))}
         </select>
       </div>
+
+      {/* Neighborhood — only visible when a city is selected */}
+      {selectedCity && neighborhoods.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-sm font-semibold text-navy">Lagjja</h3>
+          <select
+            value={currentValue("neighborhood")}
+            onChange={(e) => updateFilter("neighborhood", e.target.value || null)}
+            className="w-full rounded-btn border border-warm-gray-light px-3 py-2 text-sm focus:border-terracotta focus:outline-none focus:ring-2 focus:ring-terracotta/20"
+          >
+            <option value="">Të gjitha</option>
+            {neighborhoods.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Property type */}
       <div>

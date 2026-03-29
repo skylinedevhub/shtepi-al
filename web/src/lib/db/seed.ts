@@ -134,6 +134,13 @@ export function seedGetMapListings(filters: ListingFilters): MapPin[] {
 
   return all
     .filter((l) => l.latitude != null && l.longitude != null)
+    .filter((l) => {
+      if (filters.sw_lat != null && l.latitude! < filters.sw_lat) return false;
+      if (filters.ne_lat != null && l.latitude! > filters.ne_lat) return false;
+      if (filters.sw_lng != null && l.longitude! < filters.sw_lng) return false;
+      if (filters.ne_lng != null && l.longitude! > filters.ne_lng) return false;
+      return true;
+    })
     .map((l) => ({
       id: l.id,
       title: l.title,
@@ -147,6 +154,18 @@ export function seedGetMapListings(filters: ListingFilters): MapPin[] {
       longitude: l.longitude!,
       first_image: l.images[0] ?? null,
     }));
+}
+
+export function seedGetNeighborhoods(city: string): string[] {
+  if (!city) return [];
+  const listings = getSeedListings();
+  const neighborhoods = new Set<string>();
+  for (const l of listings) {
+    if (l.city === city && l.neighborhood && l.neighborhood.trim()) {
+      neighborhoods.add(l.neighborhood);
+    }
+  }
+  return Array.from(neighborhoods).sort((a, b) => a.localeCompare(b, "sq"));
 }
 
 export function seedGetListingById(id: string): Listing | null {
