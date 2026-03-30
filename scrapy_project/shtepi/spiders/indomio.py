@@ -2,6 +2,7 @@
 
 Indomio.al is a property portal powered by the Spitogatos network (~35K sale
 listings). It features agency-heavy listings with detailed property features.
+Behind Reese Security bot protection — requires browser impersonation.
 
 URL patterns:
   List:   /en/for-sale/property/{region}?page={N}
@@ -36,6 +37,14 @@ class IndomioSpider(scrapy.Spider):
     name = "indomio"
     allowed_domains = ["indomio.al", "www.indomio.al"]
 
+    # Chrome impersonation needed to bypass Reese Security bot protection.
+    # robots.txt disabled because the protection blocks robots.txt fetches too.
+    custom_settings = {
+        "DOWNLOAD_HANDLERS": {"https": "scrapy_impersonate.ImpersonateDownloadHandler"},
+        "IMPERSONATE_BROWSER": "chrome",
+        "ROBOTSTXT_OBEY": False,
+    }
+
     def start_requests(self):
         for region in REGIONS:
             for txn, path in [("sale", "for-sale"), ("rent", "to-rent")]:
@@ -43,7 +52,7 @@ class IndomioSpider(scrapy.Spider):
                 yield scrapy.Request(
                     url,
                     callback=self.parse,
-                    meta={"transaction_type": txn},
+                    meta={"transaction_type": txn, "impersonate": "chrome"},
                 )
 
     def parse(self, response):
@@ -61,7 +70,7 @@ class IndomioSpider(scrapy.Spider):
                 yield scrapy.Request(
                     response.urljoin(detail_url),
                     callback=self.parse_detail,
-                    meta={"transaction_type": txn_type},
+                    meta={"transaction_type": txn_type, "impersonate": "chrome"},
                 )
 
         # Pagination: follow "next" link
@@ -76,7 +85,7 @@ class IndomioSpider(scrapy.Spider):
                     yield scrapy.Request(
                         response.urljoin(href),
                         callback=self.parse,
-                        meta={"transaction_type": txn_type},
+                        meta={"transaction_type": txn_type, "impersonate": "chrome"},
                     )
                     break
 

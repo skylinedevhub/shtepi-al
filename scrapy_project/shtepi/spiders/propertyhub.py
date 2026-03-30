@@ -37,20 +37,56 @@ class PropertyhubSpider(scrapy.Spider):
         """Parse search results page with property cards."""
         txn_type = response.meta.get("transaction_type", "sale")
 
+        seen = set()
+
+        # Old theme: .property_listing_blog cards with h4 a links
         for card in response.css(".property_listing_blog"):
             link = card.css("h4 a::attr(href)").get()
             if not link:
                 link = card.attrib.get("data-link")
-            if link:
+            if link and link not in seen:
+                seen.add(link)
                 yield scrapy.Request(
                     response.urljoin(link),
                     callback=self.parse_detail,
                     meta={"transaction_type": txn_type},
                 )
 
-        # Pagination: next page (fa-angle-right icon)
+        # New theme: pack-listing-title links or featured_prop_type5 cards
+        for a in response.css("a.pack-listing-title"):
+            link = a.attrib.get("href")
+            if link and link not in seen:
+                seen.add(link)
+                yield scrapy.Request(
+                    response.urljoin(link),
+                    callback=self.parse_detail,
+                    meta={"transaction_type": txn_type},
+                )
+
+        # Fallback: any /properties/{slug}/ links not yet seen
+        for a in response.css("a[href*='/properties/']"):
+            link = a.attrib.get("href")
+            if not link:
+                continue
+            # Skip pagination, type-filter, and base /properties/ links
+            if "page/" in link or "type=" in link:
+                continue
+            if link.rstrip("/").endswith("/properties"):
+                continue
+            if link not in seen:
+                seen.add(link)
+                yield scrapy.Request(
+                    response.urljoin(link),
+                    callback=self.parse_detail,
+                    meta={"transaction_type": txn_type},
+                )
+
+        # Pagination: next page arrow (fa-angle-right or fa-chevron-right)
         for li in response.css(".pagination li"):
-            icon = li.css("span.fa-angle-right")
+            icon = li.css(
+                "span.fa-angle-right, i.fa-angle-right, "
+                "span.fa-chevron-right, i.fa-chevron-right"
+            )
             if icon:
                 href = li.css("a::attr(href)").get()
                 if href:
@@ -73,13 +109,30 @@ class PropertyhubSpider(scrapy.Spider):
         title = response.css("h1::text").get("")
         item["title"] = title.strip() or None
 
-        # Price
+        # Price — old: .listing_price, new: price may be in heading or
+        # standalone div near title
         price_text = response.css(".listing_price::text").get("")
+        if not price_text:
+            price_text = response.css(
+                ".price_area::text, .property_price::text"
+            ).get("")
+        if not price_text:
+            # Fallback: look for € symbol in text nodes near h1
+            for el in response.css(
+                ".single-overview-section *::text, "
+                ".property-detail-page *::text"
+            ).getall():
+                if "€" in el or "ALL" in el:
+                    price_text = el.strip()
+                    break
         item["price"], item["currency_original"] = self._parse_price(price_text)
 
         # Transaction type from labels or title
         txn = response.meta.get("transaction_type", "sale")
-        labels = response.css(".property-labels a::text, .label-sale::text, .label-rent::text").getall()
+        labels = response.css(
+            ".property-labels a::text, .label-sale::text, .label-rent::text, "
+            "a[href*='/llojet/']::text"
+        ).getall()
         labels_lower = " ".join(labels).lower()
         if "shitje" in labels_lower or "sale" in labels_lower:
             txn = "sale"
@@ -95,17 +148,29 @@ class PropertyhubSpider(scrapy.Spider):
         item["price_period"] = "monthly" if txn == "rent" else "total"
 
         # City and area from links
-        city = response.css(".property_city::text, a[href*='/city/']::text").get()
+        city = response.css(
+            ".property_city::text, a[href*='/city/']::text"
+        ).get()
         if city:
             item["city"] = city.strip()
-        area = response.css(".property_area::text, a[href*='/area/']::text").get()
+        area = response.css(
+            ".property_area::text, a[href*='/area/']::text"
+        ).get()
         if area:
             item["neighborhood"] = area.strip()
 
         # Property stats: bedrooms, rooms, bathrooms, area
+        # Old theme: .listing_detail li, .property_stats li
+        # New theme: .property_listing_details_v2_item divs
+        stat_texts = []
         for li in response.css(".listing_detail li, .property_stats li"):
             text = li.css("::text").getall()
-            text_joined = " ".join(t.strip() for t in text).strip()
+            stat_texts.append(" ".join(t.strip() for t in text).strip())
+        for div in response.css(".property_listing_details_v2_item"):
+            text = div.css("::text").getall()
+            stat_texts.append(" ".join(t.strip() for t in text).strip())
+
+        for text_joined in stat_texts:
             text_lower = text_joined.lower()
 
             bed_match = re.search(r'(\d+)\s*dhoma?\s*gjumi', text_lower)
@@ -125,7 +190,8 @@ class PropertyhubSpider(scrapy.Spider):
 
         # Property type from category or title
         category = response.css(
-            ".property_meta a::text, .label-category::text, a[href*='/listings-al/']::text"
+            ".property_meta a::text, .label-category::text, "
+            "a[href*='/listings-al/']::text"
         ).get("")
         item["property_type"] = self._detect_property_type(
             category or item.get("title") or ""
@@ -137,16 +203,29 @@ class PropertyhubSpider(scrapy.Spider):
             if room_match:
                 item["room_config"] = room_match.group(1)
 
-        # Description
+        # Description — old: .property_description p, new: .wpestate_property_description
         desc_parts = response.css(".property_description p::text").getall()
+        if not desc_parts:
+            desc_parts = response.css(
+                ".wpestate_property_description p::text, "
+                ".wpestate_property_description ::text"
+            ).getall()
         description = "\n".join(p.strip() for p in desc_parts if p.strip())
         if description:
             item["description"] = description
 
-        # Features
+        # Features — old: .feature_item, new: #accordion_features_details
         features_text = " ".join(
-            response.css(".feature_item::text, .property_features .feature_item::text").getall()
+            response.css(
+                ".feature_item::text, .property_features .feature_item::text"
+            ).getall()
         ).lower()
+        if not features_text.strip():
+            features_text = " ".join(
+                response.css(
+                    "#accordion_features_details ::text"
+                ).getall()
+            ).lower()
         if "mobiluar" in features_text:
             item["is_furnished"] = True
         if "parking" in features_text or "garazh" in features_text:
@@ -154,25 +233,39 @@ class PropertyhubSpider(scrapy.Spider):
         if "ashensor" in features_text or "elevator" in features_text:
             item["has_elevator"] = True
 
-        # Images — WordPress WPEstate theme uses Bootstrap carousel
+        # Images — old: .carousel-inner .item img, new: #carousel-property-page-header img
         images = response.css(
             '.carousel-inner .item img[src*="wp-content/uploads"]::attr(src)'
         ).getall()
         if not images:
             images = response.css(
+                '#carousel-property-page-header img[src*="wp-content/uploads"]::attr(src)'
+            ).getall()
+        if not images:
+            images = response.css(
                 '.carousel-indicators li img[src*="wp-content/uploads"]::attr(src)'
+            ).getall()
+        if not images:
+            images = response.css(
+                '.property-gallery img[src*="wp-content/uploads"]::attr(src)'
             ).getall()
         if not images:
             images = response.css('img[src*="wp-content/uploads"]::attr(src)').getall()
         item["images"] = images
         item["image_count"] = len(images)
 
-        # Agent
-        agent_name = response.css(".agent-name a::text, .agent-name::text").get()
-        if agent_name:
+        # Agent — old: .agent-name, new: .agent_contanct_form
+        agent_name = response.css(
+            ".agent-name a::text, .agent-name::text, "
+            ".agent_contanct_form h3::text, .agent_contanct_form h4::text, "
+            ".agent_contanct_form a::text"
+        ).get()
+        if agent_name and "@" not in agent_name and not agent_name.strip().isdigit():
             item["poster_name"] = agent_name.strip()
             item["poster_type"] = "agency"
-        agent_phone = response.css(".agent-phone::text, a[href^='tel:']::text").get()
+        agent_phone = response.css(
+            ".agent-phone::text, a[href^='tel:']::text"
+        ).get()
         if agent_phone:
             item["poster_phone"] = agent_phone.strip()
 

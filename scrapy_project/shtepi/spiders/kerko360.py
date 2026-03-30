@@ -39,6 +39,8 @@ class Kerko360Spider(scrapy.Spider):
         for card in response.css(".properties-item"):
             link = card.css(".title h3 a::attr(href)").get()
             if not link:
+                link = card.css("h3 a::attr(href)").get()
+            if not link:
                 link = card.css(".properties-image > a::attr(href)").get()
             if link:
                 yield scrapy.Request(
@@ -47,15 +49,28 @@ class Kerko360Spider(scrapy.Spider):
                     meta={"transaction_type": txn_type},
                 )
 
-        # Pagination
-        current = response.css(".pagination .page-item.active .page-link::text").get("1")
+        # Pagination — find current page number and request the next
+        current_text = response.css(
+            ".pagination-area li.active span::text"
+        ).get()
+        if not current_text:
+            # Legacy structure fallback
+            current_text = response.css(
+                ".pagination .page-item.active .page-link::text"
+            ).get()
+        current = current_text or "1"
         try:
             next_page = int(current) + 1
         except ValueError:
             next_page = 2
         next_link = response.css(
-            f'.pagination a.page-link[href*="page={next_page}"]::attr(href)'
+            f'.pagination-area a[href*="page={next_page}"]::attr(href)'
         ).get()
+        if not next_link:
+            # Legacy fallback
+            next_link = response.css(
+                f'.pagination a.page-link[href*="page={next_page}"]::attr(href)'
+            ).get()
         if next_link:
             yield scrapy.Request(
                 response.urljoin(next_link),
@@ -75,8 +90,16 @@ class Kerko360Spider(scrapy.Spider):
         title = response.css("h1::text").get("")
         item["title"] = title.strip() or None
 
-        # Price
-        price_text = response.css(".property-price::text, .price::text").getall()
+        # Price — may be in .property-price div, .price div, or an h2
+        price_text = response.css(
+            ".property-price::text, .price::text"
+        ).getall()
+        if not price_text:
+            # New layout: price in an h2 like "Çmimi: 950,000 €"
+            for h2 in response.css("h2::text").getall():
+                if "€" in h2 or "ALL" in h2 or "Çmimi" in h2.lower():
+                    price_text = [h2]
+                    break
         price_str = " ".join(price_text).strip()
         item["price"], item["currency_original"] = self._parse_price(price_str)
 
@@ -147,13 +170,25 @@ class Kerko360Spider(scrapy.Spider):
             if room_match:
                 item["room_config"] = room_match.group(1)
 
-        # City from address
+        # City from address section
         city_el = response.css(".address-list li")
+        if not city_el:
+            # New layout: <ul> after an <h3>Adresa</h3> heading, no class
+            for h3 in response.css("h3"):
+                if "Adresa" in h3.css("::text").get(""):
+                    ul = h3.xpath("following-sibling::ul[1]")
+                    if ul:
+                        city_el = ul.css("li")
+                    break
         for li in city_el:
             text = li.css("::text").getall()
             text_joined = " ".join(t.strip() for t in text)
             if "Qytet" in text_joined:
+                # Try <span> first (legacy), then second text node
                 city_val = li.css("span::text").get("")
+                if not city_val:
+                    parts = [t.strip() for t in text if t.strip() and t.strip() != "Qytet"]
+                    city_val = parts[0] if parts else ""
                 if city_val:
                     item["city"] = city_val.strip()
 
@@ -165,6 +200,9 @@ class Kerko360Spider(scrapy.Spider):
                 text_joined = " ".join(t.strip() for t in text)
                 if "Adresa" in text_joined:
                     address_text = li.css("span::text").get("")
+                    if not address_text:
+                        parts = [t.strip() for t in text if t.strip() and t.strip() != "Adresa"]
+                        address_text = parts[0] if parts else ""
                     break
 
         # Coordinates from Google Maps link
@@ -179,11 +217,20 @@ class Kerko360Spider(scrapy.Spider):
 
         # Description
         desc = response.css(".property-description p::text").get("")
+        if not desc.strip():
+            # New layout: <p> after an <h3>Përshkrimi</h3> heading
+            for h3 in response.css("h3"):
+                if "rshkrimi" in h3.css("::text").get(""):
+                    desc = h3.xpath("following-sibling::p[1]/text()").get("")
+                    break
         if desc.strip():
             item["description"] = desc.strip()
 
-        # Images — slick slider gallery with alt="image" markers
+        # Images — gallery with alt="image" markers
         images = response.css('.slick-slide img[alt="image"]::attr(src)').getall()
+        if not images:
+            # New layout uses .antry-img-control wrapper
+            images = response.css('.antry-img-control img[alt="image"]::attr(src)').getall()
         if not images:
             images = response.css('img[src*="/storage/media/"]::attr(src)').getall()
         # Filter placeholder data URIs
@@ -191,7 +238,7 @@ class Kerko360Spider(scrapy.Spider):
         item["images"] = images
         item["image_count"] = len(images)
 
-        # Agent
+        # Agent — try spans inside h6 first (legacy), then plain h6 text
         agent_parts = response.css(".agent-info h6 span::text").getall()
         for part in agent_parts:
             part = part.strip()
@@ -199,6 +246,17 @@ class Kerko360Spider(scrapy.Spider):
                 item["poster_name"] = part
                 item["poster_type"] = "agency"
                 break
+        if not item.get("poster_name"):
+            # New layout: h6 text like "Publikuar nga Gerald Mahilaj" or
+            # just "Gerald Mahilaj" (no spans)
+            for h6 in response.css("h6::text").getall():
+                h6 = h6.strip()
+                if h6.startswith("Publikuar nga"):
+                    name = h6.replace("Publikuar nga", "").strip()
+                    if name:
+                        item["poster_name"] = name
+                        item["poster_type"] = "agency"
+                        break
         # Or from details
         if not item.get("poster_name"):
             agent_name = details.get("Agjenti i pronës", "")
@@ -243,9 +301,22 @@ class Kerko360Spider(scrapy.Spider):
 
     @staticmethod
     def _extract_details(response):
-        """Extract key-value pairs from the details list."""
+        """Extract key-value pairs from the details list.
+
+        Tries the legacy ``.details-list`` class first, then falls back to
+        finding the details ``<ul>`` by its heading (``Detaje``).
+        """
         details = {}
-        for li in response.css(".details-list li"):
+        detail_items = response.css(".details-list li")
+        if not detail_items:
+            # New layout: <ul> after an <h3>Detaje</h3> heading, no class
+            for h3 in response.css("h3"):
+                if "Detaje" in h3.css("::text").get(""):
+                    ul = h3.xpath("following-sibling::ul[1]")
+                    if ul:
+                        detail_items = ul.css("li")
+                    break
+        for li in detail_items:
             texts = li.css("::text").getall()
             texts = [t.strip() for t in texts if t.strip()]
             if len(texts) >= 2:
@@ -253,7 +324,7 @@ class Kerko360Spider(scrapy.Spider):
                 val = texts[1]
                 details[key] = val
             elif len(texts) == 1:
-                # Boolean features (checkmark only)
+                # Boolean features (checkmark only) or comma-separated
                 key = texts[0]
                 details[key] = "yes"
         return details

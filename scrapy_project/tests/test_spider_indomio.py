@@ -244,5 +244,61 @@ class TestStartRequests:
         assert len(sale_reqs) == 11
         assert len(rent_reqs) == 11
 
+    def test_requests_use_browser_impersonation(self):
+        spider = IndomioSpider()
+        requests = list(spider.start_requests())
+        for req in requests:
+            assert req.meta.get("impersonate") == "chrome"
+
+
+# ─── Browser impersonation settings ────────────────────────────
+
+
+class TestCustomSettings:
+    def test_uses_impersonate_download_handler(self):
+        spider = IndomioSpider()
+        handlers = spider.custom_settings.get("DOWNLOAD_HANDLERS", {})
+        assert "scrapy_impersonate" in handlers.get("https", "")
+
+    def test_impersonates_chrome(self):
+        spider = IndomioSpider()
+        assert spider.custom_settings.get("IMPERSONATE_BROWSER") == "chrome"
+
+    def test_disables_robotstxt(self):
+        spider = IndomioSpider()
+        assert spider.custom_settings.get("ROBOTSTXT_OBEY") is False
+
+    def test_detail_requests_use_impersonation(self):
+        """Detail page requests from parse() must include impersonate meta."""
+        spider = IndomioSpider()
+        response = _fake_response(
+            "indomio_list.html",
+            url="https://www.indomio.al/en/for-sale/property/tirana-city",
+        )
+        response.meta["transaction_type"] = "sale"
+        results = list(spider.parse(response))
+        detail_reqs = [
+            r for r in results
+            if isinstance(r, Request) and "/en/" in r.url and "page=" not in r.url
+        ]
+        for req in detail_reqs:
+            assert req.meta.get("impersonate") == "chrome"
+
+    def test_pagination_requests_use_impersonation(self):
+        """Pagination requests from parse() must include impersonate meta."""
+        spider = IndomioSpider()
+        response = _fake_response(
+            "indomio_list.html",
+            url="https://www.indomio.al/en/for-sale/property/tirana-city",
+        )
+        response.meta["transaction_type"] = "sale"
+        results = list(spider.parse(response))
+        page_reqs = [
+            r for r in results
+            if isinstance(r, Request) and "page=" in r.url
+        ]
+        for req in page_reqs:
+            assert req.meta.get("impersonate") == "chrome"
+
 
 import re
