@@ -20,6 +20,14 @@ class PropertyhubSpider(scrapy.Spider):
     name = "propertyhub"
     allowed_domains = ["propertyhub.al"]
 
+    # Chrome impersonation needed to bypass bot protection (403 without it).
+    # robots.txt disabled because the protection blocks robots.txt fetches too.
+    custom_settings = {
+        "DOWNLOAD_HANDLERS": {"https": "scrapy_impersonate.ImpersonateDownloadHandler"},
+        "IMPERSONATE_BROWSER": "chrome",
+        "ROBOTSTXT_OBEY": False,
+    }
+
     START_URLS = [
         ("https://propertyhub.al/properties/?type=sale", "sale"),
         ("https://propertyhub.al/properties/?type=rent", "rent"),
@@ -30,7 +38,7 @@ class PropertyhubSpider(scrapy.Spider):
             yield scrapy.Request(
                 url,
                 callback=self.parse,
-                meta={"transaction_type": txn},
+                meta={"transaction_type": txn, "impersonate": "chrome"},
             )
 
     def parse(self, response):
@@ -49,7 +57,7 @@ class PropertyhubSpider(scrapy.Spider):
                 yield scrapy.Request(
                     response.urljoin(link),
                     callback=self.parse_detail,
-                    meta={"transaction_type": txn_type},
+                    meta={"transaction_type": txn_type, "impersonate": "chrome"},
                 )
 
         # New theme: pack-listing-title links or featured_prop_type5 cards
@@ -60,7 +68,7 @@ class PropertyhubSpider(scrapy.Spider):
                 yield scrapy.Request(
                     response.urljoin(link),
                     callback=self.parse_detail,
-                    meta={"transaction_type": txn_type},
+                    meta={"transaction_type": txn_type, "impersonate": "chrome"},
                 )
 
         # Fallback: any /properties/{slug}/ links not yet seen
@@ -78,7 +86,7 @@ class PropertyhubSpider(scrapy.Spider):
                 yield scrapy.Request(
                     response.urljoin(link),
                     callback=self.parse_detail,
-                    meta={"transaction_type": txn_type},
+                    meta={"transaction_type": txn_type, "impersonate": "chrome"},
                 )
 
         # Pagination: next page arrow (fa-angle-right or fa-chevron-right)
@@ -93,7 +101,7 @@ class PropertyhubSpider(scrapy.Spider):
                     yield scrapy.Request(
                         response.urljoin(href),
                         callback=self.parse,
-                        meta={"transaction_type": txn_type},
+                        meta={"transaction_type": txn_type, "impersonate": "chrome"},
                     )
                 break
 

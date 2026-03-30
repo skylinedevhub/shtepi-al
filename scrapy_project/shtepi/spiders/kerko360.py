@@ -19,6 +19,14 @@ class Kerko360Spider(scrapy.Spider):
     name = "kerko360"
     allowed_domains = ["kerko360.al"]
 
+    # Chrome impersonation needed to bypass bot protection (403 without it).
+    # robots.txt disabled because the protection blocks robots.txt fetches too.
+    custom_settings = {
+        "DOWNLOAD_HANDLERS": {"https": "scrapy_impersonate.ImpersonateDownloadHandler"},
+        "IMPERSONATE_BROWSER": "chrome",
+        "ROBOTSTXT_OBEY": False,
+    }
+
     START_URLS = [
         ("https://kerko360.al/listings?category=1&action=sale", "sale"),
         ("https://kerko360.al/listings?category=1&action=rent", "rent"),
@@ -29,7 +37,7 @@ class Kerko360Spider(scrapy.Spider):
             yield scrapy.Request(
                 url,
                 callback=self.parse,
-                meta={"transaction_type": txn},
+                meta={"transaction_type": txn, "impersonate": "chrome"},
             )
 
     def parse(self, response):
@@ -46,7 +54,7 @@ class Kerko360Spider(scrapy.Spider):
                 yield scrapy.Request(
                     response.urljoin(link),
                     callback=self.parse_detail,
-                    meta={"transaction_type": txn_type},
+                    meta={"transaction_type": txn_type, "impersonate": "chrome"},
                 )
 
         # Pagination — find current page number and request the next
@@ -75,7 +83,7 @@ class Kerko360Spider(scrapy.Spider):
             yield scrapy.Request(
                 response.urljoin(next_link),
                 callback=self.parse,
-                meta={"transaction_type": txn_type},
+                meta={"transaction_type": txn_type, "impersonate": "chrome"},
             )
 
     def parse_detail(self, response):
