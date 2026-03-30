@@ -13,9 +13,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        spider: [merrjep, mirlir, duashpi, njoftime, shpi, century21, realestate, propertyhub, kerko360, futurehome]
-        # Excluded: celesi (Cloudflare blocked), homezone (DNS down since Mar 2026),
-        #           indomio (Reese Security JS challenge — needs scrapy-playwright)
+        spider: [merrjep, mirlir, duashpi, njoftime, shpi, century21, realestate, futurehome]
+        # Excluded:
+        #   celesi     — Cloudflare blocked
+        #   homezone   — DNS down since Mar 2026
+        #   indomio    — Reese Security JS challenge, needs scrapy-playwright
+        #   kerko360   — Cloudflare 403 even with impersonation, needs scrapy-playwright
+        #   propertyhub — Cloudflare 403 even with impersonation, needs scrapy-playwright
 
     steps:
       - uses: actions/checkout@v4
