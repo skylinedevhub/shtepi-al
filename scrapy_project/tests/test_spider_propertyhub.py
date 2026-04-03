@@ -199,6 +199,61 @@ class TestStartRequests:
         assert any("sale" in u for u in urls)
         assert any("rent" in u for u in urls)
 
+    def test_requests_use_playwright_meta(self):
+        spider = PropertyhubSpider()
+        requests = list(spider.start_requests())
+        for req in requests:
+            assert req.meta.get("playwright") is True
+
+
+# ─── Playwright settings ─────────────────────────────────────────
+
+
+class TestCustomSettings:
+    def test_uses_playwright_download_handler(self):
+        spider = PropertyhubSpider()
+        handlers = spider.custom_settings.get("DOWNLOAD_HANDLERS", {})
+        assert "scrapy_playwright" in handlers.get("https", "")
+
+    def test_sets_playwright_browser_type(self):
+        spider = PropertyhubSpider()
+        assert spider.custom_settings.get("PLAYWRIGHT_BROWSER_TYPE") == "chromium"
+
+    def test_disables_robotstxt(self):
+        spider = PropertyhubSpider()
+        assert spider.custom_settings.get("ROBOTSTXT_OBEY") is False
+
+    def test_detail_requests_use_playwright(self):
+        spider = PropertyhubSpider()
+        response = _fake_response(
+            "propertyhub_list.html",
+            url="https://propertyhub.al/properties/?type=sale",
+        )
+        response.meta["transaction_type"] = "sale"
+        results = list(spider.parse(response))
+        detail_reqs = [
+            r for r in results
+            if isinstance(r, Request) and "/properties/" in r.url
+            and "page/" not in r.url and "type=" not in r.url
+        ]
+        for req in detail_reqs:
+            assert req.meta.get("playwright") is True
+
+    def test_pagination_requests_use_playwright(self):
+        spider = PropertyhubSpider()
+        response = _fake_response(
+            "propertyhub_list.html",
+            url="https://propertyhub.al/properties/?type=sale",
+        )
+        response.meta["transaction_type"] = "sale"
+        results = list(spider.parse(response))
+        page_reqs = [
+            r for r in results
+            if isinstance(r, Request) and "page/2" in r.url
+        ]
+        for req in page_reqs:
+            assert req.meta.get("playwright") is True
+
 
 # ─── New theme (v2) list page parsing ───────────────────────────────
 

@@ -204,3 +204,57 @@ class TestStartRequests:
         urls = [r.url for r in requests]
         assert any("sale" in u for u in urls)
         assert any("rent" in u for u in urls)
+
+    def test_requests_use_playwright_meta(self):
+        spider = Kerko360Spider()
+        requests = list(spider.start_requests())
+        for req in requests:
+            assert req.meta.get("playwright") is True
+
+
+# ─── Playwright settings ─────────────────────────────────────────
+
+
+class TestCustomSettings:
+    def test_uses_playwright_download_handler(self):
+        spider = Kerko360Spider()
+        handlers = spider.custom_settings.get("DOWNLOAD_HANDLERS", {})
+        assert "scrapy_playwright" in handlers.get("https", "")
+
+    def test_sets_playwright_browser_type(self):
+        spider = Kerko360Spider()
+        assert spider.custom_settings.get("PLAYWRIGHT_BROWSER_TYPE") == "chromium"
+
+    def test_disables_robotstxt(self):
+        spider = Kerko360Spider()
+        assert spider.custom_settings.get("ROBOTSTXT_OBEY") is False
+
+    def test_detail_requests_use_playwright(self):
+        spider = Kerko360Spider()
+        response = _fake_response(
+            "kerko360_list.html",
+            url="https://kerko360.al/listings?category=1&action=sale",
+        )
+        response.meta["transaction_type"] = "sale"
+        results = list(spider.parse(response))
+        detail_reqs = [
+            r for r in results
+            if isinstance(r, Request) and "/listing/" in r.url
+        ]
+        for req in detail_reqs:
+            assert req.meta.get("playwright") is True
+
+    def test_pagination_requests_use_playwright(self):
+        spider = Kerko360Spider()
+        response = _fake_response(
+            "kerko360_list.html",
+            url="https://kerko360.al/listings?category=1&action=sale",
+        )
+        response.meta["transaction_type"] = "sale"
+        results = list(spider.parse(response))
+        page_reqs = [
+            r for r in results
+            if isinstance(r, Request) and "page=2" in r.url
+        ]
+        for req in page_reqs:
+            assert req.meta.get("playwright") is True

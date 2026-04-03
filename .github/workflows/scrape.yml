@@ -15,11 +15,8 @@ jobs:
       matrix:
         spider: [merrjep, mirlir, duashpi, njoftime, shpi, century21, realestate, futurehome]
         # Excluded:
-        #   celesi     — Cloudflare blocked
-        #   homezone   — DNS down since Mar 2026
-        #   indomio    — Reese Security JS challenge, needs scrapy-playwright
-        #   kerko360   — Cloudflare 403 even with impersonation, needs scrapy-playwright
-        #   propertyhub — Cloudflare 403 even with impersonation, needs scrapy-playwright
+        #   homezone   — DNS down since Mar 2026, monitor
+        # Playwright spiders (celesi, indomio, kerko360, propertyhub) run in scrape-playwright job below
 
     steps:
       - uses: actions/checkout@v4
@@ -55,9 +52,55 @@ jobs:
             echo "::warning::Spider ${SPIDER_NAME} finished with: $reason"
           fi
 
+  # Playwright-based spiders (heavier runtime: installs Chromium)
+  scrape-playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        spider: [indomio, kerko360, propertyhub, celesi]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: scrapy_project/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r scrapy_project/requirements.txt
+
+      - name: Install Playwright Chromium
+        run: playwright install --with-deps chromium
+
+      - name: "Crawl: ${{ matrix.spider }}"
+        working-directory: scrapy_project
+        env:
+          DATABASE_URL: ${{ secrets.SCRAPER_DATABASE_URL }}
+          SPIDER_NAME: ${{ matrix.spider }}
+        run: |
+          echo "Starting ${SPIDER_NAME} at $(date -u +%H:%M:%S)"
+
+          python -m scrapy crawl "${SPIDER_NAME}" \
+            -s HTTPCACHE_ENABLED=False \
+            -s LOG_LEVEL=INFO \
+            -s CLOSESPIDER_TIMEOUT=780 2>&1 | tee "/tmp/${SPIDER_NAME}.log"
+
+          count=$(grep -oP "'item_scraped_count': \K\d+" "/tmp/${SPIDER_NAME}.log" || echo "0")
+          reason=$(grep -oP "'finish_reason': '\K[^']+" "/tmp/${SPIDER_NAME}.log" || echo "unknown")
+
+          echo "Result: $count items ($reason)"
+
+          if [ "$reason" != "finished" ] && [ "$reason" != "closespider_itemcount" ] && [ "$reason" != "closespider_timeout" ]; then
+            echo "::warning::Spider ${SPIDER_NAME} finished with: $reason"
+          fi
+
   # Run after all spiders complete — mark listings not seen in 14 days as inactive
   mark-stale:
-    needs: scrape
+    needs: [scrape, scrape-playwright]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

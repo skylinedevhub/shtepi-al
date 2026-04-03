@@ -19,12 +19,15 @@ class Kerko360Spider(scrapy.Spider):
     name = "kerko360"
     allowed_domains = ["kerko360.al"]
 
-    # Chrome impersonation needed to bypass bot protection (403 without it).
+    # Playwright needed to bypass Cloudflare JS challenge (403 without it).
     # robots.txt disabled because the protection blocks robots.txt fetches too.
     custom_settings = {
-        "DOWNLOAD_HANDLERS": {"https": "scrapy_impersonate.ImpersonateDownloadHandler"},
-        "IMPERSONATE_BROWSER": "chrome",
+        "DOWNLOAD_HANDLERS": {
+            "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
+        },
+        "PLAYWRIGHT_BROWSER_TYPE": "chromium",
         "ROBOTSTXT_OBEY": False,
+        "TWISTED_REACTOR": "twisted.internet.asyncioreactor.AsyncioSelectorReactor",
     }
 
     START_URLS = [
@@ -37,7 +40,7 @@ class Kerko360Spider(scrapy.Spider):
             yield scrapy.Request(
                 url,
                 callback=self.parse,
-                meta={"transaction_type": txn, "impersonate": "chrome"},
+                meta={"transaction_type": txn, "playwright": True},
             )
 
     def parse(self, response):
@@ -54,7 +57,7 @@ class Kerko360Spider(scrapy.Spider):
                 yield scrapy.Request(
                     response.urljoin(link),
                     callback=self.parse_detail,
-                    meta={"transaction_type": txn_type, "impersonate": "chrome"},
+                    meta={"transaction_type": txn_type, "playwright": True},
                 )
 
         # Pagination — find current page number and request the next
@@ -83,7 +86,7 @@ class Kerko360Spider(scrapy.Spider):
             yield scrapy.Request(
                 response.urljoin(next_link),
                 callback=self.parse,
-                meta={"transaction_type": txn_type, "impersonate": "chrome"},
+                meta={"transaction_type": txn_type, "playwright": True},
             )
 
     def parse_detail(self, response):

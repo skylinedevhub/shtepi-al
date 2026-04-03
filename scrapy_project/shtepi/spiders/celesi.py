@@ -47,14 +47,29 @@ class CelesiSpider(scrapy.Spider):
         "https://www.gazetacelesi.al/en/shtepi-me-qera/pjese-vile",
     ]
 
+    # Playwright needed to bypass Cloudflare JS challenge.
     custom_settings = {
+        "DOWNLOAD_HANDLERS": {
+            "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
+        },
+        "PLAYWRIGHT_BROWSER_TYPE": "chromium",
+        "ROBOTSTXT_OBEY": False,
         "DOWNLOAD_DELAY": 2.0,
         "CONCURRENT_REQUESTS_PER_DOMAIN": 2,
+        "TWISTED_REACTOR": "twisted.internet.asyncioreactor.AsyncioSelectorReactor",
     }
 
     # Regex to extract the numeric source_id from URLs like:
     # /shtepi/njoftime/apartament-31-ne-shitje-komuna-e-parisit-1680001.html
     SOURCE_ID_RE = re.compile(r"-(\d+)\.html$")
+
+    def start_requests(self):
+        for url in self.start_urls:
+            yield scrapy.Request(
+                url,
+                callback=self.parse,
+                meta={"playwright": True},
+            )
 
     def parse(self, response):
         """Parse a listing page: extract cards and follow pagination.
@@ -78,7 +93,7 @@ class CelesiSpider(scrapy.Spider):
                 yield scrapy.Request(
                     url=absolute_url,
                     callback=self.parse_detail,
-                    meta={"list_url": response.url},
+                    meta={"list_url": response.url, "playwright": True},
                 )
 
         # Follow pagination: next page links
@@ -96,6 +111,7 @@ class CelesiSpider(scrapy.Spider):
                 yield scrapy.Request(
                     url=absolute_url,
                     callback=self.parse,
+                    meta={"playwright": True},
                 )
 
     def parse_detail(self, response):

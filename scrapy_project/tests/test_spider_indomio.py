@@ -244,32 +244,32 @@ class TestStartRequests:
         assert len(sale_reqs) == 11
         assert len(rent_reqs) == 11
 
-    def test_requests_use_browser_impersonation(self):
+    def test_requests_use_playwright_meta(self):
         spider = IndomioSpider()
         requests = list(spider.start_requests())
         for req in requests:
-            assert req.meta.get("impersonate") == "chrome"
+            assert req.meta.get("playwright") is True
 
 
-# ─── Browser impersonation settings ────────────────────────────
+# ─── Playwright settings ─────────────────────────────────────────
 
 
 class TestCustomSettings:
-    def test_uses_impersonate_download_handler(self):
+    def test_uses_playwright_download_handler(self):
         spider = IndomioSpider()
         handlers = spider.custom_settings.get("DOWNLOAD_HANDLERS", {})
-        assert "scrapy_impersonate" in handlers.get("https", "")
+        assert "scrapy_playwright" in handlers.get("https", "")
 
-    def test_impersonates_chrome(self):
+    def test_sets_playwright_browser_type(self):
         spider = IndomioSpider()
-        assert spider.custom_settings.get("IMPERSONATE_BROWSER") == "chrome"
+        assert spider.custom_settings.get("PLAYWRIGHT_BROWSER_TYPE") == "chromium"
 
     def test_disables_robotstxt(self):
         spider = IndomioSpider()
         assert spider.custom_settings.get("ROBOTSTXT_OBEY") is False
 
-    def test_detail_requests_use_impersonation(self):
-        """Detail page requests from parse() must include impersonate meta."""
+    def test_detail_requests_use_playwright(self):
+        """Detail page requests from parse() must include playwright meta."""
         spider = IndomioSpider()
         response = _fake_response(
             "indomio_list.html",
@@ -282,10 +282,10 @@ class TestCustomSettings:
             if isinstance(r, Request) and "/en/" in r.url and "page=" not in r.url
         ]
         for req in detail_reqs:
-            assert req.meta.get("impersonate") == "chrome"
+            assert req.meta.get("playwright") is True
 
-    def test_pagination_requests_use_impersonation(self):
-        """Pagination requests from parse() must include impersonate meta."""
+    def test_pagination_requests_use_playwright(self):
+        """Pagination requests from parse() must include playwright meta."""
         spider = IndomioSpider()
         response = _fake_response(
             "indomio_list.html",
@@ -298,7 +298,7 @@ class TestCustomSettings:
             if isinstance(r, Request) and "page=" in r.url
         ]
         for req in page_reqs:
-            assert req.meta.get("impersonate") == "chrome"
+            assert req.meta.get("playwright") is True
 
 
 import re

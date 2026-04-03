@@ -20,12 +20,15 @@ class PropertyhubSpider(scrapy.Spider):
     name = "propertyhub"
     allowed_domains = ["propertyhub.al"]
 
-    # Chrome impersonation needed to bypass bot protection (403 without it).
+    # Playwright needed to bypass Cloudflare JS challenge (403 without it).
     # robots.txt disabled because the protection blocks robots.txt fetches too.
     custom_settings = {
-        "DOWNLOAD_HANDLERS": {"https": "scrapy_impersonate.ImpersonateDownloadHandler"},
-        "IMPERSONATE_BROWSER": "chrome",
+        "DOWNLOAD_HANDLERS": {
+            "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
+        },
+        "PLAYWRIGHT_BROWSER_TYPE": "chromium",
         "ROBOTSTXT_OBEY": False,
+        "TWISTED_REACTOR": "twisted.internet.asyncioreactor.AsyncioSelectorReactor",
     }
 
     START_URLS = [
@@ -38,7 +41,7 @@ class PropertyhubSpider(scrapy.Spider):
             yield scrapy.Request(
                 url,
                 callback=self.parse,
-                meta={"transaction_type": txn, "impersonate": "chrome"},
+                meta={"transaction_type": txn, "playwright": True},
             )
 
     def parse(self, response):
@@ -57,7 +60,7 @@ class PropertyhubSpider(scrapy.Spider):
                 yield scrapy.Request(
                     response.urljoin(link),
                     callback=self.parse_detail,
-                    meta={"transaction_type": txn_type, "impersonate": "chrome"},
+                    meta={"transaction_type": txn_type, "playwright": True},
                 )
 
         # New theme: pack-listing-title links or featured_prop_type5 cards
@@ -68,7 +71,7 @@ class PropertyhubSpider(scrapy.Spider):
                 yield scrapy.Request(
                     response.urljoin(link),
                     callback=self.parse_detail,
-                    meta={"transaction_type": txn_type, "impersonate": "chrome"},
+                    meta={"transaction_type": txn_type, "playwright": True},
                 )
 
         # Fallback: any /properties/{slug}/ links not yet seen
@@ -86,7 +89,7 @@ class PropertyhubSpider(scrapy.Spider):
                 yield scrapy.Request(
                     response.urljoin(link),
                     callback=self.parse_detail,
-                    meta={"transaction_type": txn_type, "impersonate": "chrome"},
+                    meta={"transaction_type": txn_type, "playwright": True},
                 )
 
         # Pagination: next page arrow (fa-angle-right or fa-chevron-right)
@@ -101,7 +104,7 @@ class PropertyhubSpider(scrapy.Spider):
                     yield scrapy.Request(
                         response.urljoin(href),
                         callback=self.parse,
-                        meta={"transaction_type": txn_type, "impersonate": "chrome"},
+                        meta={"transaction_type": txn_type, "playwright": True},
                     )
                 break
 

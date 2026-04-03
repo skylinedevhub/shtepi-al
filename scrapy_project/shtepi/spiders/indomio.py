@@ -37,12 +37,15 @@ class IndomioSpider(scrapy.Spider):
     name = "indomio"
     allowed_domains = ["indomio.al", "www.indomio.al"]
 
-    # Chrome impersonation needed to bypass Reese Security bot protection.
+    # Playwright needed to bypass Reese Security JS challenge.
     # robots.txt disabled because the protection blocks robots.txt fetches too.
     custom_settings = {
-        "DOWNLOAD_HANDLERS": {"https": "scrapy_impersonate.ImpersonateDownloadHandler"},
-        "IMPERSONATE_BROWSER": "chrome",
+        "DOWNLOAD_HANDLERS": {
+            "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
+        },
+        "PLAYWRIGHT_BROWSER_TYPE": "chromium",
         "ROBOTSTXT_OBEY": False,
+        "TWISTED_REACTOR": "twisted.internet.asyncioreactor.AsyncioSelectorReactor",
     }
 
     def start_requests(self):
@@ -52,7 +55,7 @@ class IndomioSpider(scrapy.Spider):
                 yield scrapy.Request(
                     url,
                     callback=self.parse,
-                    meta={"transaction_type": txn, "impersonate": "chrome"},
+                    meta={"transaction_type": txn, "playwright": True},
                 )
 
     def parse(self, response):
@@ -70,7 +73,7 @@ class IndomioSpider(scrapy.Spider):
                 yield scrapy.Request(
                     response.urljoin(detail_url),
                     callback=self.parse_detail,
-                    meta={"transaction_type": txn_type, "impersonate": "chrome"},
+                    meta={"transaction_type": txn_type, "playwright": True},
                 )
 
         # Pagination: follow "next" link
@@ -85,7 +88,7 @@ class IndomioSpider(scrapy.Spider):
                     yield scrapy.Request(
                         response.urljoin(href),
                         callback=self.parse,
-                        meta={"transaction_type": txn_type, "impersonate": "chrome"},
+                        meta={"transaction_type": txn_type, "playwright": True},
                     )
                     break
 
