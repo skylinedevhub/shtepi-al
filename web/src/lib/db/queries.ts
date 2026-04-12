@@ -108,6 +108,20 @@ export async function getListings(
     .where(where);
   const total = Number(countResult.count);
 
+  // Ranking boost: when no explicit sort is chosen, agencies with active
+  // subscriptions get priority based on their plan's ranking_boost (0-3).
+  // Explicit sorts (price, area, newest) are user-chosen and bypass boost.
+  const useRankingBoost = !filters.sort || filters.sort === "newest";
+  const boostExpr = sql`COALESCE(
+    (SELECT (p.features->>'ranking_boost')::int
+     FROM agencies a
+     JOIN subscriptions s ON s.agency_id = a.id AND s.status = 'active'
+     JOIN plans p ON p.id = s.plan_id
+     WHERE a.name = ${listings.posterName}
+       AND ${listings.posterType} = 'agency'
+     LIMIT 1
+    ), 0)`;
+
   let orderByClause;
   switch (filters.sort) {
     case "price_asc":
@@ -132,7 +146,11 @@ export async function getListings(
     .select()
     .from(listings)
     .where(where)
-    .orderBy(orderByClause)
+    .orderBy(
+      ...(useRankingBoost
+        ? [desc(boostExpr), orderByClause]
+        : [orderByClause])
+    )
     .limit(limit)
     .offset(offset);
 

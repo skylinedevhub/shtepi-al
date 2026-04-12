@@ -91,3 +91,102 @@ export interface Stats {
   by_source: Record<string, number>;
   by_transaction: Record<string, number>;
 }
+
+// --- Revenue model types ---
+
+export interface PlanFeatures {
+  listing_limit: number | null;
+  lead_limit_monthly: number | null;
+  featured_cities: number | null;
+  has_crm_export: boolean;
+  has_whatsapp_routing: boolean;
+  has_api_access: boolean;
+  has_analytics_advanced: boolean;
+  team_seats: number;
+  ranking_boost: number;
+}
+
+export interface Plan {
+  id: string;
+  name: string;
+  slug: string;
+  type: "agency" | "buyer" | "data";
+  price_eur: number; // cents
+  billing_interval: "monthly" | "yearly";
+  features: PlanFeatures;
+  is_active: boolean;
+  sort_order: number;
+  stripe_price_id: string | null;
+  stripe_product_id: string | null;
+}
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  agency_id: string | null;
+  plan_id: string;
+  stripe_subscription_id: string | null;
+  stripe_customer_id: string | null;
+  status: "trialing" | "active" | "past_due" | "canceled" | "incomplete";
+  current_period_start: string | null;
+  current_period_end: string | null;
+  canceled_at: string | null;
+  created_at: string;
+}
+
+export interface Invoice {
+  id: string;
+  subscription_id: string;
+  stripe_invoice_id: string | null;
+  amount_eur: number; // cents
+  status: "draft" | "open" | "paid" | "void" | "uncollectible";
+  pdf_url: string | null;
+  hosted_invoice_url: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  paid_at: string | null;
+  created_at: string;
+}
+
+export interface AdCampaign {
+  id: string;
+  agency_id: string;
+  name: string;
+  type: "sponsored_listing" | "banner" | "hero_carousel" | "city_takeover" | "sidebar";
+  bid_type: "cpm" | "cpc" | "cpl" | "flat_monthly";
+  bid_amount_eur: number; // cents
+  budget_eur: number | null;
+  spent_eur: number;
+  target_cities: string[] | null;
+  target_devices: string[] | null;
+  start_date: string;
+  end_date: string;
+  status: "draft" | "active" | "paused" | "completed" | "rejected";
+  max_impressions_per_user: number;
+  listing_ids: string[] | null;
+  creative_url: string | null;
+  click_url: string | null;
+}
+
+export interface LeadCredit {
+  id: string;
+  agency_id: string;
+  plan_credits: number;
+  bonus_credits: number;
+  used_credits: number;
+  period_start: string;
+  period_end: string;
+}
+
+export interface SubscriptionWithPlan extends Subscription {
+  plan: Plan;
+}
+
+export interface UsageSummary {
+  listings_used: number;
+  listings_limit: number | null;
+  leads_used: number;
+  leads_limit: number | null;
+  plan_name: string;
+  plan_slug: string;
+}
