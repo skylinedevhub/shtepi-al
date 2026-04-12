@@ -450,6 +450,103 @@ export const leadCredits = pgTable(
   ]
 );
 
+// --- Developer Projects ---
+export const developerProjects = pgTable(
+  "developer_projects",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    developerName: varchar("developer_name", { length: 200 }).notNull(),
+    projectName: varchar("project_name", { length: 200 }).notNull(),
+    slug: varchar("slug", { length: 200 }).notNull().unique(),
+    description: text("description"),
+    projectType: varchar("project_type", { length: 50 }),
+    status: varchar("project_status", { length: 50 }).default("selling"),
+    city: varchar("city", { length: 100 }),
+    neighborhood: varchar("neighborhood", { length: 200 }),
+    address: text("address"),
+    latitude: real("latitude"),
+    longitude: real("longitude"),
+    priceFromEur: integer("price_from_eur"),
+    priceToEur: integer("price_to_eur"),
+    unitsTotal: integer("units_total"),
+    unitsAvailable: integer("units_available"),
+    completionDate: timestamp("completion_date", { withTimezone: true }),
+    amenities: jsonb("amenities").$type<string[]>(),
+    images: jsonb("images").$type<string[]>().default([]),
+    brochureUrl: text("brochure_url"),
+    contactPhone: varchar("contact_phone", { length: 50 }),
+    contactEmail: varchar("contact_email", { length: 255 }),
+    contactWhatsapp: varchar("contact_whatsapp", { length: 50 }),
+    website: text("website"),
+    campaignId: uuid("campaign_id"),
+    isFeatured: boolean("is_featured").default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("idx_projects_city").on(table.city),
+    index("idx_projects_featured").on(table.isFeatured),
+  ]
+);
+
+// --- Price Alerts (Buyer Plus) ---
+export const priceAlerts = pgTable(
+  "price_alerts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+    listingId: uuid("listing_id").notNull().references(() => listings.id, { onDelete: "cascade" }),
+    thresholdEur: real("threshold_eur"),
+    isActive: boolean("is_active").default(true),
+    triggeredAt: timestamp("triggered_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("idx_price_alerts_user").on(table.userId),
+    index("idx_price_alerts_listing").on(table.listingId),
+  ]
+);
+
+// --- Saved Searches (Buyer Plus) ---
+export const savedSearches = pgTable(
+  "saved_searches",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 200 }).notNull(),
+    filters: jsonb("filters").$type<Record<string, unknown>>().notNull(),
+    notify: boolean("notify").default(false),
+    lastNotifiedAt: timestamp("last_notified_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("idx_saved_searches_user").on(table.userId),
+  ]
+);
+
+// --- Partner Ads ---
+
+export const partnerAds = pgTable(
+  "partner_ads",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    partnerName: varchar("partner_name", { length: 200 }).notNull(),
+    partnerType: varchar("partner_type", { length: 50 }).notNull(),
+    logoUrl: text("logo_url"),
+    description: text("description"),
+    clickUrl: text("click_url").notNull(),
+    placement: varchar("placement", { length: 50 }).notNull(),
+    priceMonthlyEur: integer("price_monthly_eur"),
+    cities: jsonb("cities").$type<string[]>(),
+    isActive: boolean("is_active").default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("idx_partner_ads_placement").on(table.placement, table.isActive),
+  ]
+);
+
 // --- Listing images ---
 
 export const listingImages = pgTable(
