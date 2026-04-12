@@ -563,6 +563,74 @@ export const listingRefreshes = pgTable(
   ]
 );
 
+// --- API Keys ---
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+    keyHash: text("key_hash").notNull(),
+    keyPrefix: varchar("key_prefix", { length: 12 }).notNull(),
+    name: varchar("name", { length: 200 }).notNull(),
+    scopes: jsonb("scopes").$type<string[]>().default([]),
+    rateLimitPerMinute: integer("rate_limit_per_minute").default(60),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    isActive: boolean("is_active").default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_api_keys_user").on(table.userId),
+    index("idx_api_keys_prefix").on(table.keyPrefix),
+  ]
+);
+
+// --- Coupons ---
+export const coupons = pgTable("coupons", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  code: varchar("code", { length: 50 }).notNull().unique(),
+  discountType: varchar("discount_type", { length: 20 }).notNull(),
+  discountValue: integer("discount_value").notNull(),
+  applicablePlans: jsonb("applicable_plans").$type<string[]>(),
+  maxUses: integer("max_uses"),
+  usedCount: integer("used_count").default(0),
+  validFrom: timestamp("valid_from", { withTimezone: true }),
+  validUntil: timestamp("valid_until", { withTimezone: true }),
+  createdBy: uuid("created_by").references(() => profiles.id),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+// --- Affiliates ---
+export const affiliates = pgTable("affiliates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  code: varchar("code", { length: 50 }).notNull().unique(),
+  commissionRate: integer("commission_rate").default(20),
+  totalReferrals: integer("total_referrals").default(0),
+  totalEarnedEur: integer("total_earned_eur").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+// --- Referrals ---
+export const referrals = pgTable(
+  "referrals",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    affiliateId: uuid("affiliate_id").notNull().references(() => affiliates.id),
+    referredUserId: uuid("referred_user_id").notNull().references(() => profiles.id),
+    subscriptionId: uuid("subscription_id").references(() => subscriptions.id),
+    commissionEur: integer("commission_eur"),
+    status: varchar("status", { length: 20 }).default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_referrals_affiliate").on(table.affiliateId),
+  ]
+);
+
 // --- Listing images ---
 
 export const listingImages = pgTable(
