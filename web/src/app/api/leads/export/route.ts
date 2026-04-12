@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { eq, and, desc } from "drizzle-orm";
+import { NextResponse } from "next/server";
+import { eq, desc } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { getDb } from "@/lib/db/drizzle";
 import { inquiries, profiles } from "@/lib/db/schema";
 import { requirePlan } from "@/lib/billing/gating";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const supabase = await createClient();
   if (!supabase) {
     return NextResponse.json({ error: "Auth nuk disponohet." }, { status: 503 });

@@ -5,7 +5,7 @@
  * Powers both the market data dashboard (€199/mo) and API (€499/mo).
  */
 
-import { sql, eq, and, gte, lte, desc } from "drizzle-orm";
+import { sql, eq, and } from "drizzle-orm";
 import { getDb } from "../db/drizzle";
 import { listings } from "../db/schema";
 

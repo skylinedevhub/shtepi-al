@@ -14,7 +14,7 @@ import {
 } from "@/lib/db/schema";
 import { getStripeServer } from "./stripe";
 import { getPlanBySlug } from "./plans";
-import type { SubscriptionWithPlan, UsageSummary, Plan, PlanFeatures } from "@/lib/types";
+import type { SubscriptionWithPlan, UsageSummary, PlanFeatures } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
 // Helpers

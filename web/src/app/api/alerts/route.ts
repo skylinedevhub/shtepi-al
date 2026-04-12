@@ -5,7 +5,7 @@ import { createRateLimiter, getClientIp } from "@/lib/rate-limit";
 import { getDb } from "@/lib/db/drizzle";
 import { priceAlerts } from "@/lib/db/schema";
 import { getUserPlanLimits } from "@/lib/billing/gating";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 // 30 alert operations per IP per hour
 const alertLimiter = createRateLimiter({ limit: 30, windowMs: 60 * 60 * 1000 });
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(alert, { status: 201 });
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   const supabase = await createClient();
   if (!supabase) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

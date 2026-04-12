@@ -3,7 +3,7 @@ import { eq, sql, desc } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { getUserProfile } from "@/lib/db/queries";
 import { getDb } from "@/lib/db/drizzle";
-import { subscriptions, plans, agencies, invoices } from "@/lib/db/schema";
+import { subscriptions, plans, agencies } from "@/lib/db/schema";
 import { parseNumericParam } from "@/lib/parse-numeric";
 
 async function verifyAdmin(): Promise<{ error?: NextResponse }> {

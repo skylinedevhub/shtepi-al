@@ -142,17 +142,30 @@ export async function getListings(
   const limit = Math.min(filters.limit ?? 24, 100);
   const offset = (page - 1) * limit;
 
-  const rows = await db
-    .select()
-    .from(listings)
-    .where(where)
-    .orderBy(
-      ...(useRankingBoost
-        ? [desc(boostExpr), orderByClause]
-        : [orderByClause])
-    )
-    .limit(limit)
-    .offset(offset);
+  let rows;
+  try {
+    rows = await db
+      .select()
+      .from(listings)
+      .where(where)
+      .orderBy(
+        ...(useRankingBoost
+          ? [desc(boostExpr), orderByClause]
+          : [orderByClause])
+      )
+      .limit(limit)
+      .offset(offset);
+  } catch {
+    // Ranking boost subquery references subscriptions/plans tables which may
+    // not exist yet if migration 0008 hasn't been run. Fall back to simple sort.
+    rows = await db
+      .select()
+      .from(listings)
+      .where(where)
+      .orderBy(orderByClause)
+      .limit(limit)
+      .offset(offset);
+  }
 
   const listingResults = rows.map(dbRowToListing);
 
