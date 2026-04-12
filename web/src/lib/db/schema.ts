@@ -547,6 +547,22 @@ export const partnerAds = pgTable(
   ]
 );
 
+// --- Listing Refreshes ---
+export const listingRefreshes = pgTable(
+  "listing_refreshes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    listingId: uuid("listing_id")
+      .notNull()
+      .references(() => listings.id, { onDelete: "cascade" }),
+    refreshedAt: timestamp("refreshed_at", { withTimezone: true }).defaultNow(),
+    type: varchar("type", { length: 20 }).default("manual"),
+  },
+  (table) => [
+    index("idx_refreshes_listing").on(table.listingId),
+  ]
+);
+
 // --- Listing images ---
 
 export const listingImages = pgTable(
