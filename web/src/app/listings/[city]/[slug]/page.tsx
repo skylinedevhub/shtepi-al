@@ -14,6 +14,8 @@ import ShareButton from "@/components/ShareButton";
 import FavoriteButton from "@/components/FavoriteButton";
 import PriceHistoryChart from "@/components/PriceHistoryChart";
 import ContactForm from "@/components/ContactForm";
+import MortgageCalculator from "@/components/MortgageCalculator";
+import PartnerSidebar from "@/components/PartnerSidebar";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import { ChevronIcon } from "@/components/icons/ChevronIcon";
 
@@ -223,9 +225,19 @@ export default async function ListingDetailPage({ params }: Props) {
         </div>
       )}
 
-      {/* Contact Form */}
-      <div className="mt-6">
-        <ContactForm listingId={listing.id} listingTitle={listing.title} />
+      {/* Contact Form + Sidebar */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="space-y-6">
+          <ContactForm listingId={listing.id} listingTitle={listing.title} />
+        </div>
+
+        {/* Sidebar: Mortgage Calculator + Partner Ads */}
+        <aside className="space-y-6">
+          {listing.transaction_type === "sale" && listing.price != null && (
+            <MortgageCalculator price={listing.price} />
+          )}
+          <PartnerSidebar city={listing.city} placement="detail_sidebar" />
+        </aside>
       </div>
 
       {/* Also listed on (cross-source group) */}
