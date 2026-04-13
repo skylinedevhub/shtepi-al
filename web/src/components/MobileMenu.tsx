@@ -41,6 +41,9 @@ function MobileNavLinks({ close }: { close: () => void }) {
       <NavLink href="/agencies" onClick={close} className={linkBase} activeClassName={linkActive}>
         Agjensitë
       </NavLink>
+      <NavLink href="/vleresimi" onClick={close} className={linkBase} activeClassName={linkActive}>
+        Vlerësimi
+      </NavLink>
     </>
   );
 }
@@ -97,6 +100,7 @@ export default function MobileMenu() {
               <span className={linkBase}>Shitje</span>
               <span className={linkBase}>Qira</span>
               <span className={linkBase}>Agjensitë</span>
+              <span className={linkBase}>Vlerësimi</span>
             </>
           }>
             <MobileNavLinks close={close} />

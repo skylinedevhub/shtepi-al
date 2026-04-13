@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getProjects, getFeaturedProjects } from "@/lib/db/projects";
 import { CITIES } from "@/lib/constants";
 import { parseNumericParam } from "@/lib/parse-numeric";
-import type { ProjectFilters, DeveloperProject } from "@/lib/types";
+import type { ProjectFilters } from "@/lib/types";
 import ProjectCard from "./ProjectCard";
 import FeaturedCarousel from "./FeaturedCarousel";
 

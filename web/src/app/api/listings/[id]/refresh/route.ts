@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { validateCsrf } from "@/lib/csrf";
 import { createRateLimiter, getClientIp } from "@/lib/rate-limit";

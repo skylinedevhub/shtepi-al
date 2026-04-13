@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq, sql, desc, and, gte } from "drizzle-orm";
+import { eq, sql, desc, and } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { getUserProfile } from "@/lib/db/queries";
 import { getDb } from "@/lib/db/drizzle";
@@ -106,8 +106,6 @@ export async function GET() {
       : arpa * 20;
 
   // --- MRR Growth: compare to last month's MRR ---
-  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-
   const [lastMonthMrrResult] = await db
     .select({
       mrr: sql<number>`coalesce(sum(${plans.priceEur}), 0)::int`,

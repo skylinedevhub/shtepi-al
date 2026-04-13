@@ -1,6 +1,6 @@
 import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { getDb } from "../db/drizzle";
-import { adCampaigns, adImpressions, listings } from "../db/schema";
+import { adCampaigns } from "../db/schema";
 import { checkFrequencyCap } from "./frequency";
 
 export interface AdContext {

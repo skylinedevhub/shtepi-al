@@ -714,3 +714,57 @@ export const favorites = pgTable(
   },
   (table) => [primaryKey({ columns: [table.userId, table.listingId] })]
 );
+
+// --- Cadastral Zones (property valuation reference data) ---
+
+export const cadastralZones = pgTable("cadastral_zones", {
+  zkNumer: integer("zk_numer").primaryKey(),
+  zkEmer: text("zk_emer"),
+  displayLabel: text("display_label"),
+  buildingPriceZoneId: integer("building_price_zone_id"),
+});
+
+// --- Building Price Zones (Lek/m² by building type) ---
+
+export const buildingPriceZones = pgTable("building_price_zones", {
+  id: integer("id").primaryKey(),
+  priceBanimi: integer("price_banimi"),
+  priceTregtimi: integer("price_tregtimi"),
+  priceIndustriale: integer("price_industriale"),
+  priceBujqesoreBlegtorale: integer("price_bujqesore_blegtorale"),
+});
+
+// --- Land Prices per Zone (Lek/m²) ---
+
+export const landPrices = pgTable("land_prices", {
+  zkNumer: integer("zk_numer").primaryKey(),
+  truall: real("truall"),
+  kullote: real("kullote"),
+  bujqesore: real("bujqesore"),
+  pyll: real("pyll"),
+});
+
+// --- Property Valuations (saved calculation results) ---
+
+export const propertyValuations = pgTable(
+  "property_valuations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    zkNumer: integer("zk_numer").notNull(),
+    propertyNo: text("property_no"),
+    areaSqm: real("area_sqm").notNull(),
+    buildYear: integer("build_year").notNull(),
+    propertyType: text("property_type").notNull(),
+    marketValueAll: real("market_value_all").notNull(),
+    referenceValueAll: real("reference_value_all").notNull(),
+    breakdown: jsonb("breakdown").$type<Record<string, number>>(),
+    listingId: uuid("listing_id").references(() => listings.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("idx_valuations_zk").on(table.zkNumer),
+    index("idx_valuations_listing").on(table.listingId),
+  ]
+);

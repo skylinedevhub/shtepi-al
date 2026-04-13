@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ListingDetailPage({ params }: Props) {
-  const { city, slug } = await params;
+  const { slug } = await params;
   const shortId = parseSlugId(slug);
   if (!shortId) notFound();
 

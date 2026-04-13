@@ -186,7 +186,6 @@ function ListingsContent() {
     const bboxStr = mapBbox
       ? `&sw_lat=${mapBbox.sw_lat}&sw_lng=${mapBbox.sw_lng}&ne_lat=${mapBbox.ne_lat}&ne_lng=${mapBbox.ne_lng}`
       : "";
-    const fullKey = filterKey + bboxStr;
 
     // Use prefetched data if available (only for non-bbox initial load)
     if (!mapBbox && mapPinsCacheRef.current?.key === filterKey) {

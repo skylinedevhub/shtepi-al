@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getUserProfile } from "@/lib/db/queries";

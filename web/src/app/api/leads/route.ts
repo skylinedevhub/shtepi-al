@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { getDb } from "@/lib/db/drizzle";
-import { inquiries, profiles, agencies, listings } from "@/lib/db/schema";
+import { inquiries, profiles } from "@/lib/db/schema";
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
