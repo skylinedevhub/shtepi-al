@@ -270,3 +270,11 @@ export interface UsageSummary {
   plan_name: string;
   plan_slug: string;
 }
+
+// --- Valuation types (re-exported from valuation module for API responses) ---
+
+export type {
+  ValuationResult,
+  ValuationBreakdown,
+  CadastralZone,
+} from "./valuation/types";
