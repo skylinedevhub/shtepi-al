@@ -30,18 +30,24 @@ export async function getValuationZones(): Promise<CadastralZone[]> {
   const db = getDb();
   if (!db) return SEED_ZONES;
 
-  const rows = await db
-    .select({
-      zkNumer: cadastralZones.zkNumer,
-      displayLabel: cadastralZones.displayLabel,
-    })
-    .from(cadastralZones)
-    .orderBy(cadastralZones.zkNumer);
+  try {
+    const rows = await db
+      .select({
+        zkNumer: cadastralZones.zkNumer,
+        displayLabel: cadastralZones.displayLabel,
+      })
+      .from(cadastralZones)
+      .orderBy(cadastralZones.zkNumer);
 
-  return rows.map((r) => ({
-    zk_numer: r.zkNumer,
-    display_label: r.displayLabel ?? String(r.zkNumer),
-  }));
+    if (rows.length === 0) return SEED_ZONES;
+    return rows.map((r) => ({
+      zk_numer: r.zkNumer,
+      display_label: r.displayLabel ?? String(r.zkNumer),
+    }));
+  } catch {
+    // Table not yet created (pre-migration) — fall back to seed
+    return SEED_ZONES;
+  }
 }
 
 export async function getBasePrice(
@@ -51,8 +57,7 @@ export async function getBasePrice(
   const isBuilding = (BUILDING_TYPES as string[]).includes(propertyType);
   const db = getDb();
 
-  if (!db) {
-    // Seed fallback
+  const seedFallback = () => {
     if (isBuilding) {
       const priceZoneId = SEED_ZONE_TO_PRICE_ZONE[zkNumer];
       if (!priceZoneId) return null;
@@ -61,40 +66,47 @@ export async function getBasePrice(
     }
     const landRow = SEED_LAND_PRICES[zkNumer];
     return landRow?.[propertyType] ?? null;
-  }
+  };
 
-  if (isBuilding) {
-    const zone = await db
-      .select({ buildingPriceZoneId: cadastralZones.buildingPriceZoneId })
-      .from(cadastralZones)
-      .where(eq(cadastralZones.zkNumer, zkNumer))
-      .limit(1);
+  if (!db) return seedFallback();
 
-    const priceZoneId = zone[0]?.buildingPriceZoneId;
-    if (!priceZoneId) return null;
+  try {
+    if (isBuilding) {
+      const zone = await db
+        .select({ buildingPriceZoneId: cadastralZones.buildingPriceZoneId })
+        .from(cadastralZones)
+        .where(eq(cadastralZones.zkNumer, zkNumer))
+        .limit(1);
 
-    const priceRow = await db
+      const priceZoneId = zone[0]?.buildingPriceZoneId;
+      if (!priceZoneId) return null;
+
+      const priceRow = await db
+        .select()
+        .from(buildingPriceZones)
+        .where(eq(buildingPriceZones.id, priceZoneId))
+        .limit(1);
+
+      if (!priceRow[0]) return null;
+      const col = BUILDING_PRICE_COLUMN[propertyType] as keyof (typeof priceRow)[0];
+      return (priceRow[0][col] as number) ?? null;
+    }
+
+    // Land type
+    const landRow = await db
       .select()
-      .from(buildingPriceZones)
-      .where(eq(buildingPriceZones.id, priceZoneId))
+      .from(landPrices)
+      .where(eq(landPrices.zkNumer, zkNumer))
       .limit(1);
 
-    if (!priceRow[0]) return null;
-    const col = BUILDING_PRICE_COLUMN[propertyType] as keyof (typeof priceRow)[0];
-    return (priceRow[0][col] as number) ?? null;
+    if (!landRow[0]) return null;
+    return (
+      (landRow[0][propertyType as keyof (typeof landRow)[0]] as number) ?? null
+    );
+  } catch {
+    // Table not yet created (pre-migration) — fall back to seed
+    return seedFallback();
   }
-
-  // Land type
-  const landRow = await db
-    .select()
-    .from(landPrices)
-    .where(eq(landPrices.zkNumer, zkNumer))
-    .limit(1);
-
-  if (!landRow[0]) return null;
-  return (
-    (landRow[0][propertyType as keyof (typeof landRow)[0]] as number) ?? null
-  );
 }
 
 export async function saveValuation(params: {
