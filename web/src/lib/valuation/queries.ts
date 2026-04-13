@@ -119,7 +119,7 @@ export async function saveValuation(params: {
     propertyType: params.propertyType,
     marketValueAll: params.marketValueAll,
     referenceValueAll: params.referenceValueAll,
-    breakdown: params.breakdown as Record<string, number>,
+    breakdown: params.breakdown as unknown as Record<string, number>,
     listingId: params.listingId ?? null,
   });
 }
