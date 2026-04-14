@@ -29,7 +29,7 @@ describe("POST /api/valuation/calculate", () => {
     expect(data.market_value).toBeGreaterThan(0);
     expect(data.reference_value).toBeGreaterThan(0);
     expect(data.breakdown).toBeDefined();
-    expect(data.breakdown.base_price).toBe(159100); // seed price for zone 8270
+    expect(data.breakdown.base_price).toBe(103500); // DevInfProna price for zone 8270 (Q.TIRANE)
     expect(data.breakdown.type_coef).toBe(1.0);
   });
 

@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import ValuationCalculator from "../ValuationCalculator";
 
 const mockZones = {
   zones: [
-    { zk_numer: 8270, display_label: "8270 - Tirane Qender" },
-    { zk_numer: 3290, display_label: "3290 - Durres Qender" },
+    { zk_numer: 8270, display_label: "8270 - Q.TIRANE (TIRANË)" },
+    { zk_numer: 3290, display_label: "3290 - SELISHTE (POGRADEC)" },
   ],
 };
 
@@ -15,7 +15,7 @@ beforeEach(() => {
 });
 
 describe("ValuationCalculator", () => {
-  it("renders form with all required fields", async () => {
+  it("renders form with zone mode selector and core fields", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockZones),
@@ -24,7 +24,9 @@ describe("ValuationCalculator", () => {
     render(<ValuationCalculator />);
 
     await waitFor(() => {
-      expect(screen.getByText("Zona Kadastrale")).toBeDefined();
+      expect(
+        screen.getByText(/si deshironi te zgjidhni zonen/i)
+      ).toBeDefined();
     });
     expect(screen.getByText("Siperfaqja (m²)")).toBeDefined();
     expect(screen.getByText("Viti i Ndertimit")).toBeDefined();
@@ -45,7 +47,7 @@ describe("ValuationCalculator", () => {
     });
   });
 
-  it("loads and displays zone options from API", async () => {
+  it("shows manual input when 'Vendos Vleren' selected", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockZones),
@@ -54,8 +56,40 @@ describe("ValuationCalculator", () => {
     render(<ValuationCalculator />);
 
     await waitFor(() => {
-      expect(screen.getByText("8270 - Tirane Qender")).toBeDefined();
-      expect(screen.getByText("3290 - Durres Qender")).toBeDefined();
+      expect(screen.getByLabelText(/si deshironi/i)).toBeDefined();
+    });
+
+    fireEvent.change(screen.getByLabelText(/si deshironi/i), {
+      target: { value: "manual" },
+    });
+
+    expect(screen.getByPlaceholderText("p.sh. 8270")).toBeDefined();
+  });
+
+  it("shows searchable zone list when 'Zgjidh nga Lista' selected", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockZones),
+    });
+
+    render(<ValuationCalculator />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/si deshironi/i)).toBeDefined();
+    });
+
+    fireEvent.change(screen.getByLabelText(/si deshironi/i), {
+      target: { value: "list" },
+    });
+
+    const searchInput = screen.getByPlaceholderText(/kerko zone/i);
+    expect(searchInput).toBeDefined();
+
+    // Focus to open dropdown, then check zone labels
+    fireEvent.focus(searchInput);
+    await waitFor(() => {
+      expect(screen.getByText("8270 - Q.TIRANE (TIRANË)")).toBeDefined();
+      expect(screen.getByText("3290 - SELISHTE (POGRADEC)")).toBeDefined();
     });
   });
 

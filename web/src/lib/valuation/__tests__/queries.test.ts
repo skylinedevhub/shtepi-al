@@ -34,18 +34,19 @@ describe("getBasePrice (seed fallback)", () => {
   });
 
   it("returns correct seed prices", async () => {
-    // Seed: zone 8270 → price zone 1 → price_banimi = 159100
+    // Seed: zone 8270 (Q.TIRANE) → building price zone → price_banimi = 103500
     const buildingPrice = await getBasePrice(8270, "ndertese_banimi");
-    expect(buildingPrice).toBe(159100);
+    expect(buildingPrice).toBe(103500);
 
-    // Seed: zone 8270 → truall = 25000
+    // Seed: zone 8270 (Q.TIRANE) → truall = 66969
     const landPrice = await getBasePrice(8270, "truall");
-    expect(landPrice).toBe(25000);
+    expect(landPrice).toBe(66969);
   });
 
   it("returns different prices for different zones", async () => {
+    // 8270 = Q.TIRANE (Tirana), 3290 = SELISHTE (Pogradec) — different municipalities
     const tiranaPrice = await getBasePrice(8270, "ndertese_banimi");
-    const durresPrice = await getBasePrice(3290, "ndertese_banimi");
-    expect(tiranaPrice).not.toBe(durresPrice);
+    const pogradecPrice = await getBasePrice(3290, "ndertese_banimi");
+    expect(tiranaPrice).not.toBe(pogradecPrice);
   });
 });

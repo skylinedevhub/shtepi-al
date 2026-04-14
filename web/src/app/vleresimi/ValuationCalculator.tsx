@@ -1,14 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { CadastralZone, ValuationResult } from "@/lib/valuation/types";
 import { VALUATION_PROPERTY_TYPES } from "@/lib/valuation/types";
+
+type ZoneInputMode = "" | "manual" | "list";
 
 export default function ValuationCalculator() {
   const [zones, setZones] = useState<CadastralZone[]>([]);
   const [zonesLoading, setZonesLoading] = useState(true);
   const [zkNumer, setZkNumer] = useState("");
+  const [zoneInputMode, setZoneInputMode] = useState<ZoneInputMode>("");
   const [zoneSearch, setZoneSearch] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [areaSqm, setAreaSqm] = useState("");
   const [buildYear, setBuildYear] = useState("");
   const [propertyType, setPropertyType] = useState("");
@@ -16,6 +20,7 @@ export default function ValuationCalculator() {
   const [result, setResult] = useState<ValuationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/valuation/zones")
@@ -25,11 +30,32 @@ export default function ValuationCalculator() {
       .finally(() => setZonesLoading(false));
   }, []);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const filteredZones = zoneSearch
     ? zones.filter((z) =>
         z.display_label.toLowerCase().includes(zoneSearch.toLowerCase())
       )
     : zones;
+
+  const selectedZoneLabel = zones.find(
+    (z) => String(z.zk_numer) === zkNumer
+  )?.display_label;
+
+  function selectZone(zk: string, label: string) {
+    setZkNumer(zk);
+    setZoneSearch(label);
+    setDropdownOpen(false);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -74,37 +100,132 @@ export default function ValuationCalculator() {
         onSubmit={handleSubmit}
         className="space-y-5 rounded-xl border border-cream-dark bg-white p-6 shadow-sm"
       >
+        {/* Zone input mode selector — matches pashalegalservices dual-mode */}
         <div>
-          <label htmlFor="zone-search" className={labelClass}>
-            Zona Kadastrale
+          <label htmlFor="zone-mode" className={labelClass}>
+            Si deshironi te zgjidhni zonen kadastrale?
           </label>
-          <input
-            id="zone-search"
-            type="text"
-            placeholder={
-              zonesLoading ? "Duke ngarkuar..." : "Kerko zone..."
-            }
-            value={zoneSearch}
-            onChange={(e) => setZoneSearch(e.target.value)}
-            className={inputClass}
-            disabled={zonesLoading}
-          />
           <select
-            value={zkNumer}
-            onChange={(e) => setZkNumer(e.target.value)}
-            className={`${inputClass} mt-2`}
+            id="zone-mode"
+            value={zoneInputMode}
+            onChange={(e) => {
+              setZoneInputMode(e.target.value as ZoneInputMode);
+              setZkNumer("");
+              setZoneSearch("");
+              setDropdownOpen(false);
+            }}
+            className={inputClass}
             required
-            size={5}
-            aria-label="Zgjidhni zonen kadastrale"
           >
-            <option value="">Zgjidhni zonen</option>
-            {filteredZones.map((z) => (
-              <option key={z.zk_numer} value={z.zk_numer}>
-                {z.display_label}
-              </option>
-            ))}
+            <option value="">-- Zgjidhni menyren --</option>
+            <option value="manual">Vendos Vleren</option>
+            <option value="list">Zgjidh nga Lista</option>
           </select>
         </div>
+
+        {/* Manual zone entry */}
+        {zoneInputMode === "manual" && (
+          <div>
+            <label htmlFor="zone-manual" className={labelClass}>
+              Vendos Vleren e ZK
+            </label>
+            <input
+              id="zone-manual"
+              type="number"
+              min="1"
+              value={zkNumer}
+              onChange={(e) => setZkNumer(e.target.value)}
+              className={inputClass}
+              required
+              placeholder="p.sh. 8270"
+            />
+          </div>
+        )}
+
+        {/* Searchable zone dropdown */}
+        {zoneInputMode === "list" && (
+          <div ref={dropdownRef} className="relative">
+            <label htmlFor="zone-search" className={labelClass}>
+              Zgjidh Zonen Kadastrale
+            </label>
+            <input
+              id="zone-search"
+              type="text"
+              placeholder={
+                zonesLoading ? "Duke ngarkuar..." : "Kerko zone (emer ose numer)..."
+              }
+              value={zoneSearch}
+              onChange={(e) => {
+                setZoneSearch(e.target.value);
+                setDropdownOpen(true);
+                // Clear selection when typing
+                if (selectedZoneLabel !== e.target.value) {
+                  setZkNumer("");
+                }
+              }}
+              onFocus={() => setDropdownOpen(true)}
+              className={inputClass}
+              disabled={zonesLoading}
+              autoComplete="off"
+              role="combobox"
+              aria-expanded={dropdownOpen}
+              aria-controls="zone-listbox"
+              aria-label="Kerko zone kadastrale"
+            />
+            {/* Hidden required input for form validation */}
+            <input
+              type="hidden"
+              name="zk_numer"
+              value={zkNumer}
+              required
+            />
+            {!zkNumer && zoneInputMode === "list" && (
+              <input
+                tabIndex={-1}
+                className="sr-only"
+                required
+                value=""
+                onChange={() => {}}
+                aria-hidden="true"
+              />
+            )}
+            {dropdownOpen && filteredZones.length > 0 && (
+              <ul
+                id="zone-listbox"
+                role="listbox"
+                className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-cream-dark bg-white shadow-lg"
+              >
+                {filteredZones.slice(0, 100).map((z) => (
+                  <li
+                    key={z.zk_numer}
+                    role="option"
+                    aria-selected={String(z.zk_numer) === zkNumer}
+                    className={`cursor-pointer px-3 py-2 text-sm transition hover:bg-cream ${
+                      String(z.zk_numer) === zkNumer
+                        ? "bg-gold/10 font-medium text-navy"
+                        : "text-warm-gray"
+                    }`}
+                    onClick={() =>
+                      selectZone(String(z.zk_numer), z.display_label)
+                    }
+                  >
+                    {z.display_label}
+                  </li>
+                ))}
+                {filteredZones.length > 100 && (
+                  <li className="px-3 py-2 text-xs text-warm-gray">
+                    Shkruani me shume per te ngushtuar rezultatet ({filteredZones.length} gjetur)
+                  </li>
+                )}
+              </ul>
+            )}
+            {dropdownOpen && zoneSearch && filteredZones.length === 0 && (
+              <div className="absolute z-50 mt-1 w-full rounded-lg border border-cream-dark bg-white px-3 py-2 text-sm text-warm-gray shadow-lg">
+                Nuk u gjet asnje zone
+              </div>
+            )}
+          </div>
+        )}
 
         <div>
           <label htmlFor="property-no" className={labelClass}>
