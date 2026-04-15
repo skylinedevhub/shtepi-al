@@ -1,0 +1,391 @@
+{
+  "version": "1.0",
+  "name": "ShtëpiAL",
+  "url": "https://shtepial.al",
+  "repo": {
+    "owner": "skylinedevhub",
+    "repo": "shtepi-al",
+    "branch": "main"
+  },
+  "colors": [
+    { "hex": "#1B2A4A", "role": "primary", "cssVariable": "navy", "name": "Navy" },
+    { "hex": "#2D3F63", "role": "primary", "cssVariable": "navy-light", "name": "Navy Light" },
+    { "hex": "#FDF8F0", "role": "background", "cssVariable": "--background", "name": "Cream" },
+    { "hex": "#F5EDE0", "role": "background", "cssVariable": "cream-dark", "name": "Cream Dark" },
+    { "hex": "#C75B39", "role": "accent", "cssVariable": "terracotta", "name": "Terracotta" },
+    { "hex": "#A8462A", "role": "accent", "cssVariable": "terracotta-dark", "name": "Terracotta Dark" },
+    { "hex": "#F4E0D8", "role": "accent", "cssVariable": "terracotta-light", "name": "Terracotta Light" },
+    { "hex": "#D4A843", "role": "secondary", "cssVariable": "gold", "name": "Gold" },
+    { "hex": "#F5EDD4", "role": "secondary", "cssVariable": "gold-light", "name": "Gold Light" },
+    { "hex": "#8B8178", "role": "text", "cssVariable": "warm-gray", "name": "Warm Gray" },
+    { "hex": "#D5CFC7", "role": "text", "cssVariable": "warm-gray-light", "name": "Warm Gray Light" },
+    { "hex": "#374151", "role": "text", "cssVariable": "--foreground", "name": "Foreground" }
+  ],
+  "fonts": [
+    {
+      "family": "Playfair Display",
+      "weights": [400, 600, 700],
+      "role": "heading",
+      "source": "google-fonts",
+      "url": "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700",
+      "cssVariable": "--font-playfair",
+      "tailwindClass": "font-display"
+    },
+    {
+      "family": "DM Sans",
+      "weights": [400, 500, 700],
+      "role": "body",
+      "source": "google-fonts",
+      "url": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700",
+      "cssVariable": "--font-dm-sans",
+      "tailwindClass": "font-sans"
+    }
+  ],
+  "logos": [
+    {
+      "path": "web/src/app/layout.tsx",
+      "type": "wordmark",
+      "format": "text",
+      "description": "Text-based logo: 'Shtëpi' in gold (#D4A843) + 'AL' in cream (#FDF8F0), font-display (Playfair Display), font-bold, tracking-tight"
+    }
+  ],
+  "tone": {
+    "primary_tone": "trustworthy-professional",
+    "formality_score": 0.65,
+    "personality_traits": [
+      "authoritative",
+      "warm",
+      "locally-rooted",
+      "straightforward",
+      "service-oriented"
+    ],
+    "target_audience": "Albanian property seekers (buyers, renters), real estate agencies, property investors, and developers in Albania",
+    "vocabulary_complexity": "simple",
+    "language": "sq (Albanian)",
+    "key_themes": [
+      "centralized property discovery",
+      "Albanian real estate market transparency",
+      "agency growth tools",
+      "fair pricing and market data",
+      "local expertise"
+    ],
+    "sample_copy": [
+      "Gjej shtëpinë tënde — Find your home",
+      "Të gjitha njoftimet e pasurive të paluajtshme në Shqipëri, në një vend. — All real estate listings in Albania, in one place.",
+      "Agregator i njoftimeve të pasurive të paluajtshme në Shqipëri. Gjeni apartamente, shtëpi, vila dhe tokë nga burime të ndryshme, në një vend.",
+      "Rritni agjensinë tuaj me mjete profesionale per menaxhimin e njoftimeve, leads dhe analitikes. — Grow your agency with professional tools.",
+      "Gjeni pronën e ëndrrave tuaja me avantazh. Qasje e hershme, njoftime çmimi, dhe analiza tregu. — Find your dream property with an advantage.",
+      "Llogaritni vleren e tregut bazuar ne te dhenat kadastrale te Shqiperise — Calculate market value based on Albanian cadastral data."
+    ]
+  },
+  "content": {
+    "tagline": "Gjej shtëpinë tënde në Shqipëri",
+    "value_propositions": [
+      "Aggregates listings from 13 Albanian real estate portals into one search",
+      "Fair price scoring compares listing prices to market averages per city",
+      "Agency subscription plans with lead management, CRM export, and ranking boosts",
+      "Buyer Plus gives early access (2h), price drop alerts, and ad-free experience for €4.99/mo",
+      "Market data dashboards and API for investors and developers",
+      "Property valuation tool using official cadastral zone data (3057 zones from DevInfProna)"
+    ],
+    "key_messages": [
+      "All Albanian real estate in one place",
+      "Grow your agency with professional tools",
+      "Transparent market data for smarter decisions",
+      "Early access and fair price insights for buyers",
+      "13 sources, 22 cities, one search"
+    ],
+    "pages": [
+      { "path": "/", "title": "Kryefaqja (Home)", "purpose": "Hero with search bar, quick city links, recent listings grid, stats counter" },
+      { "path": "/listings", "title": "Njoftimet (Listings)", "purpose": "Full listing search with filters, map/list toggle, sorting, pagination" },
+      { "path": "/listings/[city]", "title": "City Listings", "purpose": "City-specific listings with SEO metadata" },
+      { "path": "/listings/[city]/[slug]", "title": "Listing Detail", "purpose": "Full listing detail with gallery, map, contact form, price history, mortgage calculator" },
+      { "path": "/[city]", "title": "City Landing", "purpose": "SEO landing pages for each of 22 Albanian cities" },
+      { "path": "/[city]/[transactionType]", "title": "City + Type Landing", "purpose": "SEO pages for city + sale/rent combinations" },
+      { "path": "/agencies", "title": "Agjensitë (Agencies)", "purpose": "Agency directory with listing counts" },
+      { "path": "/agencies/[slug]", "title": "Agency Profile", "purpose": "Individual agency page with their listings" },
+      { "path": "/pricing", "title": "Çmimet (Pricing)", "purpose": "Agency subscription plans: Starter €49, Growth €149, Premium €399, Enterprise custom" },
+      { "path": "/buyer-plus", "title": "Buyer Plus", "purpose": "Consumer subscription landing page: €4.99/mo for early access, price alerts, ad-free" },
+      { "path": "/projects", "title": "Projektet (Projects)", "purpose": "New development projects directory with featured carousel" },
+      { "path": "/projects/[slug]", "title": "Project Detail", "purpose": "Individual developer project with contact form and comparison tool" },
+      { "path": "/vleresimi", "title": "Vlerësimi (Valuation)", "purpose": "Property valuation calculator using official cadastral zone data" },
+      { "path": "/data", "title": "Të dhëna tregu (Market Data)", "purpose": "Market data product landing page: dashboard €199/mo, API €499/mo" },
+      { "path": "/data/dashboard", "title": "Dashboard i tregut", "purpose": "Market analytics dashboard with city metrics, trends, yield data" },
+      { "path": "/dashboard", "title": "Paneli (Dashboard)", "purpose": "User dashboard: own listings, favorites, campaigns, leads, subscription" },
+      { "path": "/dashboard/favorites", "title": "Të preferuarat", "purpose": "User's saved/favorited listings" },
+      { "path": "/dashboard/leads", "title": "Leads", "purpose": "Agency lead management with scoring and CRM export" },
+      { "path": "/dashboard/campaigns", "title": "Fushatat (Campaigns)", "purpose": "Agency ad campaign management" },
+      { "path": "/dashboard/subscription", "title": "Abonimin (Subscription)", "purpose": "Subscription management with Stripe portal" },
+      { "path": "/admin", "title": "Admin", "purpose": "Admin panel: moderate listings, manage plans, view revenue" },
+      { "path": "/auth/signin", "title": "Hyrje (Sign In)", "purpose": "Login page with Google OAuth via Supabase" },
+      { "path": "/auth/register", "title": "Regjistrohu (Register)", "purpose": "Registration page" }
+    ],
+    "features": [
+      { "name": "Multi-source Aggregation", "description": "Crawls 13 Albanian real estate portals daily via Scrapy spiders, deduplicates, normalizes, and stores in PostgreSQL" },
+      { "name": "Interactive Map Search", "description": "Leaflet-based map with clustering, bbox filtering, geolocation ('Pranë meje'), and popup listing cards" },
+      { "name": "Advanced Filtering", "description": "Filter by city, transaction type, property type, price range, area range, rooms, and source" },
+      { "name": "Agency Subscriptions", "description": "4-tier agency plans (Starter/Growth/Premium/Enterprise) with listing limits, lead credits, CRM export, ranking boost" },
+      { "name": "Sponsored Listings", "description": "Ad system with CPM/CPC/CPL bidding, frequency caps, impression batching, and sponsored badges" },
+      { "name": "Buyer Plus", "description": "Consumer subscription for early access, unlimited price alerts, unlimited saved searches, ad-free experience" },
+      { "name": "Fair Price Score", "description": "Compares listing price per m² against market average for the city and property type" },
+      { "name": "Property Valuation", "description": "Calculator using 3057 official cadastral zones from DevInfProna with reference values" },
+      { "name": "Market Data", "description": "Dashboard and API products with avg €/m², median price, rent yield, inventory depth per city" },
+      { "name": "Lead Management", "description": "Lead scoring, status tracking, notes, CRM export for agencies" },
+      { "name": "Price History", "description": "Tracks price changes over time with visual chart on listing detail pages" },
+      { "name": "Mortgage Calculator", "description": "Inline calculator on listing pages with configurable rate, term, and down payment" },
+      { "name": "Developer Projects", "description": "Directory of new construction projects with featured carousel, filters, and contact forms" },
+      { "name": "SEO City Pages", "description": "Pre-rendered landing pages for all 22 Albanian cities with structured data (JSON-LD)" }
+    ]
+  },
+  "components": [
+    {
+      "name": "SearchBar",
+      "path": "web/src/components/SearchBar.tsx",
+      "category": "feature",
+      "exportName": "SearchBar",
+      "props": {},
+      "remotionReady": false
+    },
+    {
+      "name": "ListingCard",
+      "path": "web/src/components/ListingCard.tsx",
+      "category": "feature",
+      "exportName": "ListingCard",
+      "props": { "listing": "Listing", "variant": "'default' | 'compact' | 'sponsored'" },
+      "remotionReady": true
+    },
+    {
+      "name": "FilterSidebar",
+      "path": "web/src/components/FilterSidebar.tsx",
+      "category": "feature",
+      "exportName": "FilterSidebar",
+      "props": { "isOpen": "boolean", "onClose": "() => void", "mobileOnly": "boolean", "alwaysDrawer": "boolean" },
+      "remotionReady": false
+    },
+    {
+      "name": "MapView",
+      "path": "web/src/components/MapView.tsx",
+      "category": "feature",
+      "exportName": "MapView",
+      "props": { "listings": "MapPin[]", "fitPaddingLeft": "number", "onBoundsChange": "(bbox: BBox) => void", "externalCenter": "[number, number]", "externalZoom": "number" },
+      "remotionReady": false
+    },
+    {
+      "name": "ImageGallery",
+      "path": "web/src/components/ImageGallery.tsx",
+      "category": "ui",
+      "exportName": "ImageGallery",
+      "props": { "images": "string[]", "alt": "string" },
+      "remotionReady": true
+    },
+    {
+      "name": "FairPriceBadge",
+      "path": "web/src/components/FairPriceBadge.tsx",
+      "category": "ui",
+      "exportName": "FairPriceBadge",
+      "props": { "score": "number", "label": "string", "size": "'sm' | 'md' | 'lg'" },
+      "remotionReady": true
+    },
+    {
+      "name": "SourceBadge",
+      "path": "web/src/components/SourceBadge.tsx",
+      "category": "ui",
+      "exportName": "SourceBadge",
+      "props": { "sources": "string[]", "count": "number" },
+      "remotionReady": true
+    },
+    {
+      "name": "SponsoredBadge",
+      "path": "web/src/components/SponsoredBadge.tsx",
+      "category": "ui",
+      "exportName": "SponsoredBadge",
+      "props": { "size": "'sm' | 'md'", "className": "string" },
+      "remotionReady": true
+    },
+    {
+      "name": "SponsoredListingCard",
+      "path": "web/src/components/SponsoredListingCard.tsx",
+      "category": "marketing",
+      "exportName": "SponsoredListingCard",
+      "props": { "listing": "Listing", "campaignId": "string", "placement": "string", "variant": "'default' | 'compact'" },
+      "remotionReady": false
+    },
+    {
+      "name": "PriceHistoryChart",
+      "path": "web/src/components/PriceHistoryChart.tsx",
+      "category": "feature",
+      "exportName": "PriceHistoryChart",
+      "props": { "listingId": "string" },
+      "remotionReady": false
+    },
+    {
+      "name": "MortgageCalculator",
+      "path": "web/src/components/MortgageCalculator.tsx",
+      "category": "feature",
+      "exportName": "MortgageCalculator",
+      "props": { "price": "number", "currency": "'EUR' | 'ALL'" },
+      "remotionReady": false
+    },
+    {
+      "name": "ContactForm",
+      "path": "web/src/components/ContactForm.tsx",
+      "category": "feature",
+      "exportName": "ContactForm",
+      "props": { "listingId": "string", "listingTitle": "string" },
+      "remotionReady": false
+    },
+    {
+      "name": "FavoriteButton",
+      "path": "web/src/components/FavoriteButton.tsx",
+      "category": "ui",
+      "exportName": "FavoriteButton",
+      "props": { "listingId": "string", "initialFavorited": "boolean", "size": "'sm' | 'md'" },
+      "remotionReady": false
+    },
+    {
+      "name": "WhatsAppButton",
+      "path": "web/src/components/WhatsAppButton.tsx",
+      "category": "ui",
+      "exportName": "WhatsAppButton",
+      "props": { "phone": "string", "listingTitle": "string", "listingUrl": "string" },
+      "remotionReady": false
+    },
+    {
+      "name": "ShareButton",
+      "path": "web/src/components/ShareButton.tsx",
+      "category": "ui",
+      "exportName": "ShareButton",
+      "props": {},
+      "remotionReady": false
+    },
+    {
+      "name": "DetailMap",
+      "path": "web/src/components/DetailMap.tsx",
+      "category": "feature",
+      "exportName": "DetailMap",
+      "props": { "latitude": "number", "longitude": "number" },
+      "remotionReady": false
+    },
+    {
+      "name": "MapPinPicker",
+      "path": "web/src/components/MapPinPicker.tsx",
+      "category": "feature",
+      "exportName": "MapPinPicker",
+      "props": { "city": "string", "latitude": "number | null", "longitude": "number | null", "onChange": "(lat: number, lng: number) => void" },
+      "remotionReady": false
+    },
+    {
+      "name": "ImageUploader",
+      "path": "web/src/components/ImageUploader.tsx",
+      "category": "ui",
+      "exportName": "ImageUploader",
+      "props": { "images": "string[]", "onImagesChange": "(imgs: string[]) => void", "maxImages": "number" },
+      "remotionReady": false
+    },
+    {
+      "name": "ListingForm",
+      "path": "web/src/components/ListingForm.tsx",
+      "category": "feature",
+      "exportName": "ListingForm",
+      "props": { "mode": "'create' | 'edit'", "initialData": "Partial<Listing>" },
+      "remotionReady": false
+    },
+    {
+      "name": "PartnerSidebar",
+      "path": "web/src/components/PartnerSidebar.tsx",
+      "category": "marketing",
+      "exportName": "PartnerSidebar",
+      "props": { "placement": "string", "city": "string", "transactionType": "string" },
+      "remotionReady": false
+    },
+    {
+      "name": "AuthButton",
+      "path": "web/src/components/AuthButton.tsx",
+      "category": "ui",
+      "exportName": "AuthButton",
+      "props": {},
+      "remotionReady": false
+    },
+    {
+      "name": "DesktopNav",
+      "path": "web/src/components/DesktopNav.tsx",
+      "category": "layout",
+      "exportName": "DesktopNav",
+      "props": {},
+      "remotionReady": false
+    },
+    {
+      "name": "MobileMenu",
+      "path": "web/src/components/MobileMenu.tsx",
+      "category": "layout",
+      "exportName": "MobileMenu",
+      "props": {},
+      "remotionReady": false
+    },
+    {
+      "name": "NavLink",
+      "path": "web/src/components/NavLink.tsx",
+      "category": "layout",
+      "exportName": "NavLink",
+      "props": { "href": "string", "children": "React.ReactNode", "className": "string", "activeClassName": "string" },
+      "remotionReady": false
+    },
+    {
+      "name": "Providers",
+      "path": "web/src/components/Providers.tsx",
+      "category": "layout",
+      "exportName": "Providers",
+      "props": { "children": "React.ReactNode" },
+      "remotionReady": false
+    },
+    {
+      "name": "JsonLd",
+      "path": "web/src/components/JsonLd.tsx",
+      "category": "ui",
+      "exportName": "JsonLd",
+      "props": { "data": "Record<string, unknown>" },
+      "remotionReady": false
+    },
+    {
+      "name": "ChevronIcon",
+      "path": "web/src/components/icons/ChevronIcon.tsx",
+      "category": "ui",
+      "exportName": "ChevronIcon",
+      "props": {},
+      "remotionReady": true
+    }
+  ],
+  "tech": {
+    "framework": "next.js",
+    "frameworkVersion": "14.2.35",
+    "language": "typescript",
+    "styling": "tailwind",
+    "tailwindVersion": "3.4.1",
+    "key_dependencies": [
+      "react",
+      "react-dom",
+      "next",
+      "tailwindcss",
+      "drizzle-orm",
+      "@supabase/supabase-js",
+      "@supabase/ssr",
+      "stripe",
+      "@stripe/stripe-js",
+      "leaflet",
+      "react-leaflet",
+      "react-leaflet-cluster",
+      "resend",
+      "zod",
+      "clsx",
+      "tailwind-merge"
+    ],
+    "testing": ["vitest", "@testing-library/react", "jsdom"],
+    "scraping": ["scrapy (Python, separate project in scrapy_project/)"],
+    "video": ["remotion (social/ directory for social media video generation)"],
+    "database": "Supabase PostgreSQL with Drizzle ORM",
+    "auth": "Supabase Auth with Google OAuth",
+    "payments": "Stripe subscriptions + webhooks",
+    "deployment": "Vercel (auto-deploy from main)",
+    "ci": "GitHub Actions (ci.yml + scrape.yml)"
+  }
+}
