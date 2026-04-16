@@ -13,6 +13,18 @@ import {
 } from "@/lib/db/schema";
 
 // ---------------------------------------------------------------------------
+// Error classes
+// ---------------------------------------------------------------------------
+
+/** Thrown for transient errors (e.g. DB unreachable) — Stripe should retry. */
+class TransientError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TransientError";
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -81,7 +93,10 @@ async function handleCheckoutCompleted(
   session: Stripe.Checkout.Session
 ): Promise<void> {
   const db = getDb();
-  if (!db) return;
+  if (!db) {
+    console.error("[stripe-webhook] No database connection for checkout.session.completed");
+    throw new TransientError("No database connection");
+  }
 
   const stripeSubscriptionId =
     typeof session.subscription === "string"
@@ -181,7 +196,10 @@ async function handleSubscriptionCreated(
   sub: Stripe.Subscription
 ): Promise<void> {
   const db = getDb();
-  if (!db) return;
+  if (!db) {
+    console.error("[stripe-webhook] No database connection for customer.subscription.created");
+    throw new TransientError("No database connection");
+  }
 
   const stripeSubscriptionId = sub.id;
   const stripeCustomerId =
@@ -273,7 +291,10 @@ async function handleSubscriptionUpdated(
   sub: Stripe.Subscription
 ): Promise<void> {
   const db = getDb();
-  if (!db) return;
+  if (!db) {
+    console.error("[stripe-webhook] No database connection for customer.subscription.updated");
+    throw new TransientError("No database connection");
+  }
 
   const stripeSubscriptionId = sub.id;
   const status = mapStatus(sub.status);
@@ -345,7 +366,10 @@ async function handleSubscriptionDeleted(
   sub: Stripe.Subscription
 ): Promise<void> {
   const db = getDb();
-  if (!db) return;
+  if (!db) {
+    console.error("[stripe-webhook] No database connection for customer.subscription.deleted");
+    throw new TransientError("No database connection");
+  }
 
   const stripeSubscriptionId = sub.id;
   const now = new Date();
@@ -386,7 +410,10 @@ async function handleSubscriptionDeleted(
 
 async function handleInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
   const db = getDb();
-  if (!db) return;
+  if (!db) {
+    console.error("[stripe-webhook] No database connection for invoice.paid");
+    throw new TransientError("No database connection");
+  }
 
   const stripeInvoiceId = invoice.id;
   const stripeSubscriptionId = getInvoiceSubscriptionId(invoice);
@@ -491,7 +518,10 @@ async function handleInvoicePaymentFailed(
   invoice: Stripe.Invoice
 ): Promise<void> {
   const db = getDb();
-  if (!db) return;
+  if (!db) {
+    console.error("[stripe-webhook] No database connection for invoice.payment_failed");
+    throw new TransientError("No database connection");
+  }
 
   const stripeInvoiceId = invoice.id;
   const stripeSubscriptionId = getInvoiceSubscriptionId(invoice);
@@ -646,7 +676,7 @@ export async function POST(request: NextRequest) {
         break;
 
       default:
-        console.log("[stripe-webhook] Unhandled event type:", event.type);
+        console.warn("[stripe-webhook] Unhandled event type:", event.type);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -656,7 +686,13 @@ export async function POST(request: NextRequest) {
       event.id,
       message
     );
-    // Still return 200 — we don't want Stripe to retry on our processing errors
+
+    // Transient errors (DB down, connection lost) → 500 so Stripe retries
+    if (err instanceof TransientError) {
+      return json(500, { error: "Transient error, please retry" });
+    }
+
+    // Permanent errors (bad data, missing metadata) → 200 to prevent infinite retries
   }
 
   return json(200, { received: true });

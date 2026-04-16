@@ -13,6 +13,11 @@ from datetime import datetime, timezone
 
 import requests
 
+try:
+    import psycopg2
+except ImportError:
+    psycopg2 = None  # type: ignore[assignment]
+
 logger = logging.getLogger(__name__)
 
 from shtepi.city_coords import CITY_COORDS
@@ -169,6 +174,11 @@ class GeocodingPipeline:
             )
             self._last_request = time.time()
 
+            # Don't cache transient HTTP errors — allow retry on next run
+            if resp.status_code == 429 or resp.status_code >= 500:
+                logger.warning("Geocoding service returned %d for %s, %s", resp.status_code, city, address)
+                return None  # Don't cache — transient error
+
             if resp.status_code == 200:
                 data = resp.json()
                 if data:
@@ -179,7 +189,12 @@ class GeocodingPipeline:
             self._cache[cache_key] = None
             return None
 
-        except Exception:
+        except requests.RequestException as e:
+            logger.warning("Geocoding HTTP error for %s, %s: %s", city, address, e)
+            self._cache[cache_key] = None
+            return None
+        except (KeyError, ValueError, IndexError) as e:
+            logger.warning("Geocoding parse error for %s, %s: %s", city, address, e)
             self._cache[cache_key] = None
             return None
 
@@ -426,8 +441,8 @@ class PostgreSQLPipeline:
         try:
             if self.conn and not self.conn.closed:
                 self.conn.close()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Error closing connection during reconnect: %s", e)
         self.conn = psycopg2.connect(self.database_url)
 
     def _flush(self):
@@ -439,7 +454,8 @@ class PostgreSQLPipeline:
             cursor = self.conn.cursor()
             cursor.execute("SELECT 1")
             cursor.close()
-        except Exception:
+        except Exception as e:
+            logger.debug("Connection health check failed: %s", e)
             self._reconnect()
 
         failed = []
@@ -631,7 +647,7 @@ class PostgreSQLPipeline:
                 "Price change for %s: €%.0f → €%.0f",
                 listing_id, last_price, new_price,
             )
-        except Exception as exc:
+        except psycopg2.Error as exc:
             logger.warning("Failed to log price change for %s: %s", listing_id, exc)
 
     # ------------------------------------------------------------------
@@ -686,7 +702,8 @@ class PostgreSQLPipeline:
         try:
             cursor = self.conn.cursor()
             cursor.execute("SELECT 1")
-        except Exception:
+        except Exception as e:
+            logger.debug("Cross-source dedup connection check failed: %s", e)
             self._reconnect()
             cursor = self.conn.cursor()
 
