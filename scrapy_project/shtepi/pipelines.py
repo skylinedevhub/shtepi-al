@@ -647,8 +647,11 @@ class PostgreSQLPipeline:
                 "Price change for %s: €%.0f → €%.0f",
                 listing_id, last_price, new_price,
             )
-        except psycopg2.Error as exc:
-            logger.warning("Failed to log price change for %s: %s", listing_id, exc)
+        except Exception as exc:
+            if psycopg2 is not None and isinstance(exc, psycopg2.Error):
+                logger.warning("Failed to log price change for %s: %s", listing_id, exc)
+            else:
+                raise
 
     # ------------------------------------------------------------------
     # Cross-source dedup (runs after each batch flush)
