@@ -10,8 +10,10 @@ __pycache__/
 .scrapy/
 httpcache/
 *.egg
+.venv/
 
 # Node
+node_modules/
 web/node_modules/
 web/.next/
 web/out/
@@ -31,6 +33,7 @@ logs/
 
 # Worktrees
 .worktrees/
+.claude/worktrees/
 
 # OS
 .DS_Store

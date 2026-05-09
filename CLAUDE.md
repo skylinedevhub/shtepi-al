@@ -47,6 +47,13 @@ ShtëpiAL monetizes via 5 revenue streams. All billing runs through Stripe.
 - API product (€499/mo) with key-based auth at `/api/v1/`
 - City metrics: avg €/m², median price, rent yield, inventory depth
 
+## Property Valuation (`/vleresimi`)
+- Cadastral calculator at `web/src/app/vleresimi/` (`ValuationCalculator.tsx`, `page.tsx`, `error.tsx`)
+- 3057 zones sourced from DevInfProna (`web/src/lib/valuation/devinf-data.json`)
+- Engine: `web/src/lib/valuation/engine.ts`; zone queries: `queries.ts`; seed fallback: `seed.ts`; types: `types.ts`
+- API: `GET /api/valuation/zones`, `POST /api/valuation/calculate`
+- Graceful seed fallback when cadastral tables not yet migrated
+
 ## Key Patterns
 - All UI text in Albanian. Error messages, labels, placeholders — all Albanian.
 - `getDb()` returns null without DATABASE_URL — all query functions have seed fallback
@@ -56,11 +63,13 @@ ShtëpiAL monetizes via 5 revenue streams. All billing runs through Stripe.
 - Edge runtime: middleware.ts must not import bcrypt or heavy Node.js modules
 - Brand palette: navy (#1B2A4A), cream (#FDF8F0), terracotta (#C75B39), gold (#D4A843), warm-gray (#8B8178)
 - Design system source of truth: `web/design-system/MASTER.md`
+- Sub-system architecture maps: `docs/codemaps/` — start here when picking up an unfamiliar slice of the platform
 - Rate limiting: in-memory sliding-window in `web/src/lib/rate-limit.ts` — usage: `createRateLimiter({ limit: N, windowMs: N })`, then `limiter.check(ip)` returns `{ success }`
 - CSRF protection: `web/src/lib/csrf.ts` validates Origin/Referer on all mutation endpoints
 - Numeric query params: use `parseNumericParam()` from `web/src/lib/parse-numeric.ts` — never raw `Number()` on user input
 - Exchange rates: configurable via `EUR_ALL_RATE` / `USD_EUR_RATE` env vars (default 100 / 0.92)
-- Error boundaries: `error.tsx` files in `/`, `/listings`, `/dashboard`, `/admin`, `/pricing`
+- Error boundaries: `error.tsx` files in `/`, `/listings`, `/dashboard`, `/admin`, `/pricing`, `/vleresimi`
+- Listings route uses co-located private folders: `web/src/app/listings/_components/` and `_hooks/` — follow this pattern for new page-scoped code
 - City lists: 22 canonical cities in `CITIES`, first 6 are `QUICK_CITIES` — never hardcode city arrays
 - City coords: `web/src/lib/city-coords.ts` mirrors `scrapy_project/shtepi/city_coords.py` (source of truth)
 - Neighborhoods: `getNeighborhoods(city)` query + `/api/listings/neighborhoods?city=` route (cached 5min)
@@ -118,8 +127,12 @@ ShtëpiAL monetizes via 5 revenue streams. All billing runs through Stripe.
 - COALESCE guards prevent NULL coords from overwriting existing values
 - `bool()` wrapper required for psycopg2 BOOLEAN columns
 - city_coords.py is shared source of truth for 22 Albanian city coordinates
-- `scripts/mark_stale.py` deactivates listings unseen for 14 days (runs after daily scrape)
-- `scripts/fix_price_outliers.py` one-time cleanup for price outliers
+- `scripts/mark_stale.py` — deactivates listings unseen for 14 days (runs after daily scrape)
+- `scripts/fix_price_outliers.py` — one-time cleanup for price outliers
+- `scripts/backfill_geocode.py` — geocode existing listings missing coords
+- `scripts/migrate-sqlite-to-pg.py` — one-time SQLite → Postgres migration helper
+- `scripts/run_spiders.sh` — local helper to run all spiders
+- `scripts/dedup/` — dedup tooling
 
 ## Database Schema
 Core tables: `listings`, `profiles`, `agencies`, `favorites`, `listing_images`, `price_history`, `inquiries`
@@ -142,7 +155,6 @@ Core tables: `listings`, `profiles`, `agencies`, `favorites`, `listing_images`, 
 - `price_alerts`, `saved_searches` — Buyer Plus features (migration 0011)
 - `listing_refreshes` — auto-repost audit trail (migration 0012)
 - `api_keys` — B2B API authentication (migration 0013)
-- `coupons`, `affiliates`, `referrals` — discount/referral system (migration 0014)
 
 ### Schema extensions to existing tables
 - `agencies`: added `stripe_customer_id`, `plan_id`, `subscription_status`
@@ -154,7 +166,7 @@ Core tables: `listings`, `profiles`, `agencies`, `favorites`, `listing_images`, 
 
 ### Core
 - Schema: `web/src/lib/db/schema.ts` (all tables — listings, profiles, agencies, plans, subscriptions, campaigns, etc.)
-- Queries: `web/src/lib/db/queries.ts` (listings with seed fallback, ranking boost, agencies LEFT JOIN)
+- Queries: `web/src/lib/db/queries.ts` is a barrel; real code lives in `web/src/lib/db/queries/{listings,favorites,agencies,admin,_utils}.ts` (listings has seed fallback, ranking boost; agencies uses LEFT JOIN)
 - Types: `web/src/lib/types.ts` (Listing, Plan, Subscription, AdCampaign, DeveloperProject, etc.)
 - Rate limit: `web/src/lib/rate-limit.ts` (createRateLimiter, getClientIp)
 - CSRF: `web/src/lib/csrf.ts` (validateCsrf — add to all new mutation endpoints)
@@ -190,7 +202,7 @@ Core tables: `listings`, `profiles`, `agencies`, `favorites`, `listing_images`, 
 - Pipelines: `scrapy_project/shtepi/pipelines.py`
 - Normalizers: `scrapy_project/shtepi/normalizers.py`
 - CI: `.github/workflows/ci.yml`, `.github/workflows/scrape.yml`
-- Migrations: `web/src/lib/db/migrations/` (001 through 0013)
+- Migrations: `web/src/lib/db/migrations/` (001 + 0001–0013; gap at 0006)
 
 ## API Routes
 
@@ -206,6 +218,8 @@ Core tables: `listings`, `profiles`, `agencies`, `favorites`, `listing_images`, 
 - `GET /api/projects/[slug]` — project detail
 - `GET /api/partners` — active partner ads by placement
 - `GET /api/analytics/market` — market data (cached 5min)
+- `GET /api/valuation/zones` — cadastral zone list (seed fallback)
+- `POST /api/valuation/calculate` — compute valuation from zone + inputs
 
 ### Authenticated (require Supabase auth)
 - `POST /api/listings` — create listing (rate limited 10/hr, CSRF)
