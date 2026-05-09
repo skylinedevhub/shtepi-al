@@ -1,4 +1,4 @@
-import { eq, gte, lte, sql } from "drizzle-orm";
+import { eq, gte, lte } from "drizzle-orm";
 import { listings } from "../schema";
 import type { Listing, ListingFilters } from "../../types";
 

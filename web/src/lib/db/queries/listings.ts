@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, sql, desc, asc } from "drizzle-orm";
+import { eq, and, sql, desc, asc } from "drizzle-orm";
 import { cache } from "react";
 import { getDb } from "../drizzle";
 import { listings, priceHistory, profiles } from "../schema";
