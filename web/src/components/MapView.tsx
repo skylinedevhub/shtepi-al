@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import "leaflet/dist/leaflet.css";
 import type { MapPin } from "@/lib/types";
@@ -31,8 +31,6 @@ interface MapViewProps {
   listings: MapPin[];
   /** Extra left padding for fitBounds (e.g. width of an overlay panel). */
   fitPaddingLeft?: number;
-  /** Called when the user pans/zooms (debounced 300ms). */
-  onBoundsChange?: (bounds: BBox) => void;
   /** External center override (e.g. from geolocation). */
   externalCenter?: [number, number];
   /** Zoom level when externalCenter is set. */
@@ -58,21 +56,50 @@ function createClusterIcon(cluster: { getChildCount(): number }): L.DivIcon {
   });
 }
 
-function FitBounds({ positions, paddingLeft = 0 }: { positions: [number, number][]; paddingLeft?: number }) {
+/**
+ * Auto-fits the map view to the given pin set exactly once per identity.
+ * "Identity" = the sorted, comma-joined string of (lat,lng) tuples. So:
+ *   - filter change → new pin set → fits once
+ *   - parent re-render with same pins → does nothing
+ *   - paddingLeft change (panel toggle) → does nothing
+ * This is the fix for the bug where zoom/pan kept resetting.
+ */
+function FitBoundsOnce({
+  positions,
+  paddingLeft,
+}: {
+  positions: [number, number][];
+  paddingLeft: number;
+}) {
   const map = useMap();
+  const lastFittedKey = useRef<string | null>(null);
+  const paddingLeftRef = useRef(paddingLeft);
+  paddingLeftRef.current = paddingLeft;
+
   useEffect(() => {
-    if (positions.length === 0) return;
+    if (positions.length === 0) {
+      lastFittedKey.current = null;
+      return;
+    }
+
+    const key = positions
+      .map((p) => `${p[0].toFixed(5)},${p[1].toFixed(5)}`)
+      .sort()
+      .join("|");
+    if (lastFittedKey.current === key) return;
+    lastFittedKey.current = key;
+
     if (positions.length === 1) {
       map.setView(positions[0], 14);
       return;
     }
     const bounds = L.latLngBounds(positions);
-    // paddingTopLeft: [left, top], paddingBottomRight: [right, bottom]
     map.fitBounds(bounds, {
-      paddingTopLeft: [paddingLeft + 40, 100],
+      paddingTopLeft: [paddingLeftRef.current + 40, 100],
       paddingBottomRight: [40, 40],
     });
-  }, [map, positions, paddingLeft]);
+  }, [map, positions]);
+
   return null;
 }
 
@@ -128,41 +155,20 @@ function SetExternalView({ center, zoom }: { center: [number, number]; zoom: num
   const map = useMap();
   useEffect(() => {
     map.setView(center, zoom);
-  }, [map, center[0], center[1], zoom]);
+  }, [map, center, zoom]);
   return null;
 }
 
-function BoundsWatcher({ onChange }: { onChange: (bounds: BBox) => void }) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
-
-  const handleMove = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      const bounds = map.getBounds();
-      onChangeRef.current({
-        sw_lat: bounds.getSouthWest().lat,
-        sw_lng: bounds.getSouthWest().lng,
-        ne_lat: bounds.getNorthEast().lat,
-        ne_lng: bounds.getNorthEast().lng,
-      });
-    }, 300);
-  }, []);
-
-  const map = useMapEvents({ moveend: handleMove });
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  return null;
-}
-
-export default function MapView({ listings, fitPaddingLeft = 0, onBoundsChange, externalCenter, externalZoom }: MapViewProps) {
-  const positions: [number, number][] = listings.map((l) => [l.latitude, l.longitude]);
+function MapViewInner({
+  listings,
+  fitPaddingLeft = 0,
+  externalCenter,
+  externalZoom,
+}: MapViewProps) {
+  const positions = useMemo<[number, number][]>(
+    () => listings.map((l) => [l.latitude, l.longitude]),
+    [listings]
+  );
 
   return (
     <MapContainer
@@ -175,9 +181,8 @@ export default function MapView({ listings, fitPaddingLeft = 0, onBoundsChange, 
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <FitBounds positions={positions} paddingLeft={fitPaddingLeft} />
+      <FitBoundsOnce positions={positions} paddingLeft={fitPaddingLeft} />
       <InvalidateSize />
-      {onBoundsChange && <BoundsWatcher onChange={onBoundsChange} />}
       {externalCenter && <SetExternalView center={externalCenter} zoom={externalZoom ?? 14} />}
       <MarkerClusterGroup iconCreateFunction={createClusterIcon} maxClusterRadius={60}>
         {listings.map((listing) => (
@@ -191,3 +196,6 @@ export default function MapView({ listings, fitPaddingLeft = 0, onBoundsChange, 
     </MapContainer>
   );
 }
+
+const MapView = memo(MapViewInner);
+export default MapView;

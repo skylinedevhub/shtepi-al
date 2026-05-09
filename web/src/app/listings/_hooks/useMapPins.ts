@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import type { MapPin } from "@/lib/types";
-import type { BBox } from "@/components/MapView";
 
 interface UseMapPinsResult {
   mapListings: MapPin[];
@@ -12,8 +11,7 @@ interface UseMapPinsResult {
 
 export function useMapPins(
   viewMode: "grid" | "map",
-  searchParams: URLSearchParams,
-  mapBbox: BBox | null
+  searchParams: URLSearchParams
 ): UseMapPinsResult {
   const [mapListings, setMapListings] = useState<MapPin[]>([]);
   const [mapLoading, setMapLoading] = useState(false);
@@ -40,27 +38,22 @@ export function useMapPins(
   useEffect(() => {
     if (viewMode !== "map") return;
     const filterKey = mapPinsCacheKey();
-    const bboxStr = mapBbox
-      ? `&sw_lat=${mapBbox.sw_lat}&sw_lng=${mapBbox.sw_lng}&ne_lat=${mapBbox.ne_lat}&ne_lng=${mapBbox.ne_lng}`
-      : "";
 
-    if (!mapBbox && mapPinsCacheRef.current?.key === filterKey) {
+    if (mapPinsCacheRef.current?.key === filterKey) {
       setMapListings(mapPinsCacheRef.current.data);
       return;
     }
 
     setMapLoading(true);
-    fetch(`/api/listings/map-pins?${filterKey}${bboxStr}`)
+    fetch(`/api/listings/map-pins?${filterKey}`)
       .then((res) => res.json())
       .then((data: MapPin[]) => {
         setMapListings(data);
-        if (!mapBbox) {
-          mapPinsCacheRef.current = { key: filterKey, data };
-        }
+        mapPinsCacheRef.current = { key: filterKey, data };
       })
       .catch(() => {})
       .finally(() => setMapLoading(false));
-  }, [viewMode, searchParams, mapPinsCacheKey, mapBbox]);
+  }, [viewMode, mapPinsCacheKey]);
 
   return { mapListings, mapLoading, prefetchMapPins };
 }

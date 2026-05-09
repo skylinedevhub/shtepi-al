@@ -6,7 +6,6 @@ import dynamic from "next/dynamic";
 import ListingCard from "@/components/ListingCard";
 import FilterSidebar from "@/components/FilterSidebar";
 import SearchBar from "@/components/SearchBar";
-import type { BBox } from "@/components/MapView";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { cn } from "@/lib/cn";
 import { CITIES } from "@/lib/constants";
@@ -38,14 +37,13 @@ function ListingsContent() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "map">("grid");
   const [panelOpen, setPanelOpen] = useState(true);
-  const [mapBbox, setMapBbox] = useState<BBox | null>(null);
   const isDesktop = useIsDesktop();
   const geo = useGeolocation();
 
   const { listings, total, loading, fetchError, page, hasMore, loadMore, retry } =
     useListingsFetch(searchParams);
   const { mapListings, mapLoading, prefetchMapPins } =
-    useMapPins(viewMode, searchParams, mapBbox);
+    useMapPins(viewMode, searchParams);
 
   const currentSort = searchParams.get("sort") ?? "newest";
 
@@ -100,7 +98,6 @@ function ListingsContent() {
             <MapView
               listings={mapListings}
               fitPaddingLeft={isDesktop && panelOpen ? 420 : 0}
-              onBoundsChange={setMapBbox}
               externalCenter={geo.position ?? undefined}
               externalZoom={14}
             />
