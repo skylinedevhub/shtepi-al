@@ -76,7 +76,7 @@ export function computeSnapshotRows(
     }
   }
 
-  return [...groups.values()].map((g) => ({
+  return Array.from(groups.values()).map((g) => ({
     snapshotDate,
     city: g.city,
     transactionType: g.transactionType,
