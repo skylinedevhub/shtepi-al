@@ -1,7 +1,7 @@
 # Market Intel Portal — Design Spec
 
 **Date:** 2026-05-16
-**Status:** Approved (high-level), pending spec review
+**Status:** Implemented (pending production rollout)
 **Supersedes:** [`market-analytics.md`](./market-analytics.md) (audit notes)
 
 ## Overview
