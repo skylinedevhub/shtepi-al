@@ -1,27 +1,4 @@
-export const ALBANIAN_CITY_COORDS: Record<string, [number, number]> = {
-  "Tiranë": [41.3275, 19.8187],
-  "Durrës": [41.3246, 19.4565],
-  "Vlorë": [40.4660, 19.4913],
-  "Sarandë": [39.8661, 20.0050],
-  "Shkodër": [42.0693, 19.5126],
-  "Korçë": [40.6186, 20.7808],
-  "Elbasan": [41.1125, 20.0822],
-  "Fier": [40.7239, 19.5563],
-  "Berat": [40.7058, 19.9522],
-  "Lushnjë": [40.9419, 19.7050],
-  "Kamëz": [41.3817, 19.7600],
-  "Pogradec": [40.9025, 20.6525],
-  "Kavajë": [41.1856, 19.5569],
-  "Lezhë": [41.7836, 19.6436],
-  "Gjirokastër": [40.0758, 20.1389],
-  "Vorë": [41.3939, 19.6522],
-  "Golem": [41.2514, 19.4756],
-  "Himarë": [40.1008, 19.7453],
-  "Ksamil": [39.7831, 20.0003],
-  "Dhërmi": [40.1525, 19.6097],
-  "Përmet": [40.2336, 20.3517],
-  "Prishtinë": [42.6629, 21.1655],
-};
+export { ALBANIAN_CITY_COORDS } from "@repo/analytics";
 
 export const ALBANIA_CENTER: [number, number] = [41.1533, 20.1683];
 export const ALBANIA_DEFAULT_ZOOM = 7;
