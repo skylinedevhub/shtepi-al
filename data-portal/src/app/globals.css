@@ -1,3 +1,124 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --grid: rgba(255, 255, 255, 0.025);
+  }
+
+  html,
+  body {
+    background: #070a14;
+    color: #e2e8f0;
+    font-family:
+      var(--font-sans, Inter),
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: rgba(94, 230, 160, 0.25);
+    color: #fff;
+  }
+
+  /* Scrollbar */
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: #070a14;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: #1f2a44;
+    border-radius: 4px;
+    border: 2px solid #070a14;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: #2c3a5c;
+  }
+}
+
+@layer components {
+  .term-panel {
+    @apply bg-ink-800/80 border border-line backdrop-blur-sm;
+  }
+  .term-panel-header {
+    @apply flex items-center justify-between gap-2 px-3 py-2 border-b border-line
+      text-2xs uppercase tracking-[0.18em] font-mono text-fg-muted;
+  }
+  .term-mono {
+    @apply font-mono tabular-nums;
+  }
+  .term-chip {
+    @apply font-mono text-2xs uppercase tracking-wider px-2 py-0.5 rounded
+      border border-line bg-ink-700 text-fg-muted;
+  }
+  .term-chip-on {
+    @apply bg-acc-mint/10 border-acc-mint/40 text-acc-mint;
+  }
+  .term-btn {
+    @apply font-mono text-xs uppercase tracking-wider px-3 py-1.5 rounded
+      border border-line bg-ink-700 hover:bg-ink-600 hover:border-line-strong
+      text-fg transition;
+  }
+  .term-btn-on {
+    @apply bg-acc-mint/15 border-acc-mint/50 text-acc-mint hover:bg-acc-mint/20;
+  }
+}
+
+/* Leaflet dark fixes */
+.leaflet-container {
+  background: #070a14 !important;
+  font-family: inherit;
+}
+.leaflet-tile-pane {
+  filter: brightness(0.9) contrast(1.05);
+}
+.leaflet-control-attribution {
+  background: rgba(7, 10, 20, 0.75) !important;
+  color: #5a6a8a !important;
+  font-size: 9px !important;
+  padding: 2px 6px !important;
+}
+.leaflet-control-attribution a {
+  color: #8fa0bd !important;
+}
+.leaflet-control-zoom a {
+  background: #0f1628 !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #1f2a44 !important;
+}
+.leaflet-control-zoom a:hover {
+  background: #141c33 !important;
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: #0f1628 !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #1f2a44 !important;
+  box-shadow:
+    0 4px 24px -8px rgba(0, 0, 0, 0.6) !important;
+}
+.leaflet-popup-content {
+  margin: 8px 12px !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}

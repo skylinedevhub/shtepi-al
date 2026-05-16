@@ -3,15 +3,26 @@ import { getDb } from "@/lib/db";
 import { getPriceTrends, getMarketOverview, ALBANIAN_CITY_COORDS } from "@repo/analytics";
 import { createClient } from "@/lib/supabase/server";
 import { getB2bUser } from "@/lib/b2b-user";
-import DashboardControls from "./DashboardControls";
-import PriceChart from "./PriceChart";
+import StatusBar from "./_components/status-bar";
+import TickerTape from "./_components/ticker-tape";
+import FilterRail from "./_components/filter-rail";
+import MetricTiles from "./_components/metric-tiles";
+import MapLoader from "./_components/map-loader";
+import TrendChart from "./_components/trend-chart";
+import CityTable from "./_components/city-table";
+import FooterBar from "./_components/footer-bar";
+import KeyboardShortcuts from "./_components/keyboard-shortcuts";
 
 export const dynamic = "force-dynamic";
 
 interface SearchParams {
   city?: string;
   tx?: string;
+  days?: string;
+  pt?: string;
 }
+
+const ALLOWED_DAYS = new Set([30, 90, 180, 365, 730]);
 
 export default async function DashboardPage({
   searchParams,
@@ -26,60 +37,87 @@ export default async function DashboardPage({
   const b2bUser = await getB2bUser(authData.user.id);
   if (!b2bUser) notFound();
 
-  const { city: rawCity = "", tx = "sale" } = searchParams;
+  const { city: rawCity = "", tx = "sale", days: daysRaw = "180", pt = "" } = searchParams;
   const city = rawCity === "" ? null : rawCity;
   const transactionType = (tx === "rent" ? "rent" : "sale") as "sale" | "rent";
+  const daysNum = Number.parseInt(daysRaw, 10);
+  const days = ALLOWED_DAYS.has(daysNum) ? daysNum : 180;
+  const propertyType = pt && ["apartment", "house", "land", "commercial"].includes(pt) ? pt : "";
 
   const db = getDb();
   const [trend, overview] = await Promise.all([
-    getPriceTrends(db, { city, transactionType, days: 180 }),
+    getPriceTrends(db, { city, transactionType, days }),
     getMarketOverview(db),
   ]);
 
   const cityList = Object.keys(ALBANIAN_CITY_COORDS);
   const cityMetrics = city ? overview.cities.find((c) => c.city === city) ?? null : null;
 
+  const scopeLabel = city ?? "Mesatare kombëtare";
+
   return (
-    <main className="max-w-5xl mx-auto px-4 py-10">
-      <header className="mb-8">
-        <h1 className="text-3xl font-semibold text-navy">Lëvizja e Çmimeve</h1>
-        <p className="text-warmgray">Të dhëna ditore për tregun shqiptar të pasurive të paluajtshme.</p>
-      </header>
+    <div className="h-screen flex flex-col bg-ink-900">
+      <KeyboardShortcuts />
+      <StatusBar email={authData.user.email ?? null} generatedAt={overview.generated_at} />
+      <TickerTape
+        totalListings={overview.total_listings}
+        nationalAvg={overview.national_avg_price_sqm}
+        cities={overview.cities}
+      />
 
-      <DashboardControls cities={cityList} city={city} transactionType={transactionType} />
+      <div className="flex-1 flex min-h-0">
+        <FilterRail
+          cities={cityList}
+          city={city}
+          transactionType={transactionType}
+          days={days}
+          propertyType={propertyType}
+        />
 
-      <section className="mt-8 bg-white rounded-lg border border-warmgray/20 p-6">
-        <h2 className="text-xl font-medium mb-4">
-          {city ?? "Mesatare kombëtare"} — {transactionType === "sale" ? "Shitje" : "Qira"}
-        </h2>
-        {trend.points.length === 0 ? (
-          <p className="text-warmgray py-12 text-center">
-            Të dhëna të pamjaftueshme për këtë periudhë.
-          </p>
-        ) : (
-          <PriceChart points={trend.points} />
-        )}
-      </section>
+        <main className="flex-1 min-w-0 overflow-auto">
+          <div className="p-3 grid gap-3 grid-cols-12 grid-rows-[auto_minmax(360px,1fr)_minmax(280px,auto)]">
+            {/* Top — metric tiles */}
+            <div className="col-span-12">
+              <MetricTiles
+                selected={cityMetrics}
+                overview={overview}
+                transactionType={transactionType}
+              />
+            </div>
 
-      {cityMetrics && (
-        <section className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Metric label="Çmim mesatar / m²" value={cityMetrics.avg_price_sqm} unit="€" />
-          <Metric label="Mediana e çmimit" value={cityMetrics.median_price} unit="€" />
-          <Metric label="Numri i listave" value={cityMetrics.total_listings} />
-          <Metric label="Renta vjetore" value={cityMetrics.rent_yield} unit="%" />
-        </section>
-      )}
-    </main>
-  );
-}
+            {/* Middle — map + chart */}
+            <div className="col-span-12 lg:col-span-7 term-panel flex flex-col overflow-hidden">
+              <header className="term-panel-header">
+                <span>
+                  Hartë e tregut <span className="text-fg normal-case tracking-normal">· €/m²</span>
+                </span>
+                <span className="text-fg-dim">
+                  klikoni një qytet për ta zgjedhur
+                </span>
+              </header>
+              <div className="flex-1 min-h-[360px]">
+                <MapLoader cities={overview.cities} selectedCity={city} />
+              </div>
+            </div>
 
-function Metric({ label, value, unit }: { label: string; value: number | null; unit?: string }) {
-  return (
-    <div className="bg-white rounded border border-warmgray/20 p-4">
-      <p className="text-xs text-warmgray uppercase tracking-wide">{label}</p>
-      <p className="text-xl font-medium text-navy mt-1">
-        {value === null ? "—" : `${value.toLocaleString("sq-AL")}${unit ?? ""}`}
-      </p>
+            <div className="col-span-12 lg:col-span-5 min-h-[360px]">
+              <TrendChart points={trend.points} scope={scopeLabel} transactionType={transactionType} />
+            </div>
+
+            {/* Bottom — city table */}
+            <div className="col-span-12">
+              <CityTable cities={overview.cities} selectedCity={city} />
+            </div>
+          </div>
+        </main>
+      </div>
+
+      <FooterBar
+        totalListings={overview.total_listings}
+        cityCount={overview.cities.length}
+        apiVersion="v1"
+        generatedAt={overview.generated_at}
+      />
     </div>
   );
 }
