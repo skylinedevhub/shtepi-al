@@ -139,18 +139,30 @@ Recharts. Robots disallow all. Transpiles `@repo/analytics` via
 `next.config.js`.
 
 ### Auth gate
-- `data-portal/middleware.ts` —
+- `data-portal/src/middleware.ts` — auth-only gate. Edge runtime.
   - `/login` and `/api/v1/*` pass through.
-  - Anonymous → 307 redirect to `/login`.
-  - Authenticated user without a `b2b_users` row → 403.
-  - 4 tests in `data-portal/middleware.test.ts`.
+  - Uses the canonical `@supabase/ssr` middleware pattern: `createServerClient`
+    reading from `req.cookies` (NOT `cookies()` from `next/headers` — that
+    API is for Server Components and silently no-ops in middleware).
+  - Anonymous → 307 redirect to `/login`. Authenticated user → pass through.
+  - The `b2b_users` membership check is NOT in middleware (Postgres can't
+    run in the Edge runtime). It happens in `dashboard/page.tsx`.
+  - 5 tests in `data-portal/src/middleware.test.ts`. **Critical:** with the
+    `src/app/` directory layout, middleware MUST live at
+    `data-portal/src/middleware.ts`. At `data-portal/middleware.ts` Next.js
+    silently ignores it — confirm by checking for `ƒ Middleware` in the
+    `next build` output.
+- `data-portal/src/app/dashboard/page.tsx` — Server Component (Node runtime)
+  performs the `b2b_users` lookup. Anon falls through to `notFound()` as
+  belt-and-suspenders (middleware already redirected them).
 - `data-portal/src/lib/supabase/{server,client}.ts` — `@supabase/ssr`
-  server-component-safe client. Reads
+  server-component-safe + browser clients. Reads
   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` (clean values — see
   Operational Notes on the `\n` env-var pitfall).
-- `data-portal/src/lib/b2b-user.ts` — `getB2bUser(userId)`.
+- `data-portal/src/lib/b2b-user.ts` — `getB2bUser(userId)`. Called by
+  `dashboard/page.tsx`, not by middleware.
 - `data-portal/src/lib/db.ts` — Drizzle/postgres-js client with
-  `prepare: false` (Supabase pooler safe).
+  `prepare: false` (Supabase pooler safe). Node runtime only.
 
 ### Dashboard UI
 - `data-portal/src/app/page.tsx` — session-aware redirect:

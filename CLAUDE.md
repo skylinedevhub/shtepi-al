@@ -205,7 +205,7 @@ Core tables: `listings`, `profiles`, `agencies`, `favorites`, `listing_images`, 
 - Overview query: `packages/analytics/src/queries/overview.ts` (`getMarketOverview`, moved from `web/`)
 - Cron route: `web/src/app/api/cron/market-snapshot/route.ts`
 - Backfill script: `web/scripts/backfill-market-snapshots.ts` (npm: `backfill:snapshots`)
-- B2B middleware: `data-portal/middleware.ts` (Supabase session + `b2b_users` gate)
+- B2B middleware: `data-portal/src/middleware.ts` (Supabase session redirect to /login; `b2b_users` gate lives in `dashboard/page.tsx` because Postgres isn't available in Edge runtime). With src/app/ layout, middleware MUST live at `src/middleware.ts` — Next.js silently ignores it at the workspace root.
 - B2B helpers: `data-portal/src/lib/{supabase/*,db.ts,b2b-user.ts,api-key-auth.ts}`
 - Dashboard UI: `data-portal/src/app/dashboard/{page.tsx,DashboardControls.tsx,PriceChart.tsx}`
 
