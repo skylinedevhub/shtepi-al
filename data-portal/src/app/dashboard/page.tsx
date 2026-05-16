@@ -1,5 +1,8 @@
+import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
 import { getPriceTrends, getMarketOverview, ALBANIAN_CITY_COORDS } from "@repo/analytics";
+import { createClient } from "@/lib/supabase/server";
+import { getB2bUser } from "@/lib/b2b-user";
 import DashboardControls from "./DashboardControls";
 import PriceChart from "./PriceChart";
 
@@ -15,6 +18,14 @@ export default async function DashboardPage({
 }: {
   searchParams: SearchParams;
 }) {
+  // b2b_users gate runs here (not in middleware — Postgres isn't available
+  // in the Edge runtime). Anon redirect to /login is handled by middleware.
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) notFound();
+  const b2bUser = await getB2bUser(authData.user.id);
+  if (!b2bUser) notFound();
+
   const { city: rawCity = "", tx = "sale" } = searchParams;
   const city = rawCity === "" ? null : rawCity;
   const transactionType = (tx === "rent" ? "rent" : "sale") as "sale" | "rent";

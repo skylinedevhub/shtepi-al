@@ -3,14 +3,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 const mockGetUser = vi.fn();
-const mockGetB2bUser = vi.fn();
 
-vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({ auth: { getUser: mockGetUser } }),
-}));
-
-vi.mock("@/lib/b2b-user", () => ({
-  getB2bUser: (id: string) => mockGetB2bUser(id),
+vi.mock("@supabase/ssr", () => ({
+  createServerClient: () => ({ auth: { getUser: mockGetUser } }),
 }));
 
 import { middleware } from "./middleware";
@@ -22,14 +17,21 @@ function makeReq(path: string, headers: Record<string, string> = {}) {
 describe("data-portal middleware", () => {
   beforeEach(() => {
     mockGetUser.mockReset();
-    mockGetB2bUser.mockReset();
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://test.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY = "test-key";
   });
 
-  it("allows /login through anonymous", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
+  it("allows /login through without calling Supabase", async () => {
     const res = await middleware(makeReq("/login"));
     expect(res.status).not.toBe(403);
     expect(res.headers.get("location")).toBeNull();
+    expect(mockGetUser).not.toHaveBeenCalled();
+  });
+
+  it("allows /api/v1/* through without calling Supabase (API-key auth handles it)", async () => {
+    const res = await middleware(makeReq("/api/v1/trends"));
+    expect(res.headers.get("location")).toBeNull();
+    expect(mockGetUser).not.toHaveBeenCalled();
   });
 
   it("redirects unauthenticated user from / to /login", async () => {
@@ -39,23 +41,16 @@ describe("data-portal middleware", () => {
     expect(res.headers.get("location")).toContain("/login");
   });
 
-  it("returns 403 for authenticated user not in b2b_users", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "u1" } } });
-    mockGetB2bUser.mockResolvedValueOnce(null);
+  it("redirects unauthenticated user from /dashboard to /login", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
     const res = await middleware(makeReq("/dashboard"));
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("/login");
   });
 
-  it("passes through authenticated b2b user", async () => {
+  it("passes through authenticated user (b2b_users check happens in page.tsx)", async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: { id: "u1" } } });
-    mockGetB2bUser.mockResolvedValueOnce({
-      userId: "u1",
-      organization: "Bank of Albania",
-      role: "viewer",
-      planSlug: "intel-dashboard",
-    });
     const res = await middleware(makeReq("/dashboard"));
-    expect(res.status).not.toBe(403);
     expect(res.headers.get("location")).toBeNull();
   });
 });

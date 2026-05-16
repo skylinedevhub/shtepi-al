@@ -1,32 +1,46 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { getB2bUser } from "@/lib/b2b-user";
 
 const PUBLIC_PATHS = ["/login"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // API key paths use a separate auth flow (see /api/v1/* routes).
   if (pathname.startsWith("/api/v1/")) return NextResponse.next();
-
   if (PUBLIC_PATHS.includes(pathname)) return NextResponse.next();
 
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
+  // Canonical @supabase/ssr middleware pattern: read cookies from the
+  // request, not from next/headers (which doesn't work in middleware).
+  let response = NextResponse.next({ request: req });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
+          response = NextResponse.next({ request: req });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
 
+  const { data } = await supabase.auth.getUser();
   if (!data.user) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  const b2bUser = await getB2bUser(data.user.id);
-  if (!b2bUser) {
-    return new NextResponse("Forbidden", { status: 403 });
-  }
-
-  return NextResponse.next();
+  // b2b_users check happens in dashboard/page.tsx (Postgres isn't
+  // available in the Edge runtime middleware runs in).
+  return response;
 }
 
 export const config = {
