@@ -17,6 +17,8 @@ node_modules/
 web/node_modules/
 web/.next/
 web/out/
+data-portal/.next/
+data-portal/out/
 
 # Logs
 logs/
