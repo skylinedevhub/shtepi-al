@@ -9,11 +9,11 @@
 - **Git identity:** always `skylinedevhub` — NEVER use phoebusdev (breaks Vercel deploys)
 
 ## Architecture
-- **Monorepo:** web/ (Next.js 14), scrapy_project/ (Scrapy), scripts/, social/ (Remotion)
+- **Monorepo (npm workspaces):** `web/` (public Next.js 14 site as `@shtepial/web`), `data-portal/` (B2B Next.js 14 intel app as `@shtepial/data-portal`), `packages/analytics` (shared TS lib as `@repo/analytics`), `scrapy_project/` (Scrapy), `scripts/`, `social/` (Remotion)
 - **DB:** Supabase PostgreSQL (prod), seed JSON fallback (no DB). Drizzle ORM.
-- **Auth:** Supabase Auth (server/client split for edge compatibility)
+- **Auth:** Supabase Auth (server/client split for edge compatibility). `b2b_users` table gates the data-portal.
 - **Billing:** Stripe subscriptions + Customer Portal + Webhooks
-- **Deploy:** Vercel auto-deploy from `main`. Works without DB via seed fallback.
+- **Deploy:** Two Vercel projects from the same repo — `shtepi-al` (root: `web/`) → shtepial.al; `shtepial-intel` (root: `data-portal/`) → intel.shtepial.al / shtepial-intel.vercel.app. Both auto-deploy from `main` / `feat/*` pushes. Works without DB via seed fallback.
 - **Images:** `<img>` for scraped URLs (13 CDN domains), Vercel Blob for user uploads
 - **CI:** `.github/workflows/ci.yml` (TypeScript + Vitest + pytest), `scrape.yml` (daily scrape + mark-stale)
 
@@ -42,10 +42,13 @@ ShtëpiAL monetizes via 5 revenue streams. All billing runs through Stripe.
 - `/projects` directory with featured carousel
 - Project detail pages with contact forms, comparison tool
 
-### Market Data (target 5% MRR)
-- Dashboard product (€199/mo) at `/data/dashboard`
-- API product (€499/mo) with key-based auth at `/api/v1/`
-- City metrics: avg €/m², median price, rent yield, inventory depth
+### Market Data (target 5% MRR) — Intel Portal
+- **Lives in the separate `data-portal/` app**, not on shtepial.al — invite-only, no public link, robots disallow.
+- Dashboard product (€199/mo) at `intel.shtepial.al/dashboard` — daily price-movement chart by city + sale/rent, plus metrics tiles. Built on Recharts.
+- API product (€499/mo) at `intel.shtepial.al/api/v1/{trends,cities}` — API-key authed via the `api_keys` table (migration 0013, columns: `user_id`, `key_hash`, `scopes` JSONB, `is_active`).
+- Access gated by `b2b_users` table (Supabase Auth user + invite-only B2B role row).
+- Data layer: `market_snapshots` table written daily by Vercel Cron `0 2 * * *` → `GET /api/cron/market-snapshot` on `web/` (CRON_SECRET bearer-auth). Backfill via `npm run -w @shtepial/web backfill:snapshots`.
+- City assignment: nearest-centroid haversine against 22-city `ALBANIAN_CITY_COORDS` (≤25km cap → null, otherwise national rollup only). Lives in `@repo/analytics`.
 
 ## Property Valuation (`/vleresimi`)
 - Cadastral calculator at `web/src/app/vleresimi/` (`ValuationCalculator.tsx`, `page.tsx`, `error.tsx`)
@@ -155,6 +158,8 @@ Core tables: `listings`, `profiles`, `agencies`, `favorites`, `listing_images`, 
 - `price_alerts`, `saved_searches` — Buyer Plus features (migration 0011)
 - `listing_refreshes` — auto-repost audit trail (migration 0012)
 - `api_keys` — B2B API authentication (migration 0013)
+- `market_snapshots` — daily aggregated price metrics keyed by `(snapshot_date, city, transaction_type, property_type)` with NULL = rollup (migration 0014). COALESCE-based unique index for idempotent upserts.
+- `b2b_users` — invite-only access gate for the data-portal app (migration 0014)
 
 ### Schema extensions to existing tables
 - `agencies`: added `stripe_customer_id`, `plan_id`, `subscription_status`
@@ -188,8 +193,21 @@ Core tables: `listings`, `profiles`, `agencies`, `favorites`, `listing_images`, 
 ### Leads & Pricing
 - Lead scoring: `web/src/lib/leads/scoring.ts` (calculateLeadScore, scoreInquiry)
 - Fair price: `web/src/lib/pricing/fair-price.ts` (calculateFairPriceScore)
-- Market analytics: `web/src/lib/analytics/market.ts` (getMarketOverview, getCityMetrics)
 - Projects: `web/src/lib/db/projects.ts` (getProjects, getProjectBySlug, getFeaturedProjects)
+
+### Market Intel (shared `@repo/analytics` workspace + `data-portal/` app)
+- Geocoord → city: `packages/analytics/src/geocoords/nearest-city.ts` (`getCityFromCoords`, haversine, 25km cap)
+- Snapshot compute: `packages/analytics/src/snapshots/compute.ts` (`computeSnapshotRows`, pure, facet rollups)
+- Snapshot persist: `packages/analytics/src/snapshots/persist.ts` (`upsertSnapshotRows`, ON CONFLICT DO UPDATE)
+- Daily wrapper: `packages/analytics/src/snapshots/daily.ts` (`writeDailySnapshot`)
+- Backfill: `packages/analytics/src/snapshots/backfill.ts` (`backfillSnapshots`, walks `MIN(first_seen)` → today)
+- Trends query: `packages/analytics/src/queries/trends.ts` (`getPriceTrends`)
+- Overview query: `packages/analytics/src/queries/overview.ts` (`getMarketOverview`, moved from `web/`)
+- Cron route: `web/src/app/api/cron/market-snapshot/route.ts`
+- Backfill script: `web/scripts/backfill-market-snapshots.ts` (npm: `backfill:snapshots`)
+- B2B middleware: `data-portal/middleware.ts` (Supabase session + `b2b_users` gate)
+- B2B helpers: `data-portal/src/lib/{supabase/*,db.ts,b2b-user.ts,api-key-auth.ts}`
+- Dashboard UI: `data-portal/src/app/dashboard/{page.tsx,DashboardControls.tsx,PriceChart.tsx}`
 
 ### SEO & Location
 - SEO: `web/src/lib/seo/` (slugs — CITY_SLUGS + buildCityFilterHref, metadata, jsonld, constants)
@@ -202,7 +220,7 @@ Core tables: `listings`, `profiles`, `agencies`, `favorites`, `listing_images`, 
 - Pipelines: `scrapy_project/shtepi/pipelines.py`
 - Normalizers: `scrapy_project/shtepi/normalizers.py`
 - CI: `.github/workflows/ci.yml`, `.github/workflows/scrape.yml`
-- Migrations: `web/src/lib/db/migrations/` (001 + 0001–0013; gap at 0006)
+- Migrations: `web/src/lib/db/migrations/` (001 + 0001–0014; gap at 0006)
 
 ## API Routes
 
@@ -217,7 +235,6 @@ Core tables: `listings`, `profiles`, `agencies`, `favorites`, `listing_images`, 
 - `GET /api/projects` — developer projects with filters
 - `GET /api/projects/[slug]` — project detail
 - `GET /api/partners` — active partner ads by placement
-- `GET /api/analytics/market` — market data (cached 5min)
 - `GET /api/valuation/zones` — cadastral zone list (seed fallback)
 - `POST /api/valuation/calculate` — compute valuation from zone + inputs
 
@@ -253,6 +270,15 @@ Core tables: `listings`, `profiles`, `agencies`, `favorites`, `listing_images`, 
 
 ### Webhook (NO auth, NO CSRF — external caller)
 - `POST /api/webhooks/stripe` — Stripe webhook (signature verified)
+
+### Cron (CRON_SECRET bearer-auth, no CSRF)
+- `GET /api/cron/market-snapshot` — writes today's `market_snapshots` rows (Vercel Cron `0 2 * * *`)
+
+### `data-portal/` app routes (separate Vercel project, B2B only)
+- `/login` — Supabase email+password (no signup)
+- `/dashboard` — server component; reads `getPriceTrends` + `getMarketOverview` from `@repo/analytics`. Middleware gated by `b2b_users`.
+- `GET /api/v1/trends?city=…&transaction_type=sale|rent&days=1..730` — API-key authed
+- `GET /api/v1/cities` — API-key authed
 
 ## Environment Variables
 - `DATABASE_URL` — PostgreSQL connection string
