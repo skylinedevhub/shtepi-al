@@ -28,35 +28,54 @@ export default function LoginForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <label className="block">
-        <span className="block text-sm mb-1">Email</span>
+        <span className="block font-mono text-2xs uppercase tracking-[0.18em] text-fg-dim mb-1.5">
+          Email
+        </span>
         <input
           type="email"
           required
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full border border-warmgray/30 rounded px-3 py-2"
+          className="w-full bg-ink-900 border border-line rounded px-3 py-2 font-mono text-sm
+            text-fg placeholder:text-fg-dim
+            focus:outline-none focus:border-acc-mint/50 focus:ring-1 focus:ring-acc-mint/30
+            transition"
         />
       </label>
       <label className="block">
-        <span className="block text-sm mb-1">Fjalëkalimi</span>
+        <span className="block font-mono text-2xs uppercase tracking-[0.18em] text-fg-dim mb-1.5">
+          Fjalëkalimi
+        </span>
         <input
           type="password"
           required
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full border border-warmgray/30 rounded px-3 py-2"
+          className="w-full bg-ink-900 border border-line rounded px-3 py-2 font-mono text-sm
+            text-fg placeholder:text-fg-dim
+            focus:outline-none focus:border-acc-mint/50 focus:ring-1 focus:ring-acc-mint/30
+            transition"
         />
       </label>
-      {error && <p className="text-terracotta text-sm">{error}</p>}
+      {error && (
+        <p className="font-mono text-xs text-acc-rose border-l-2 border-acc-rose pl-2 py-0.5">
+          {error}
+        </p>
+      )}
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-navy text-cream py-2 rounded hover:opacity-90 disabled:opacity-50"
+        className="w-full bg-acc-mint/10 border border-acc-mint/40 text-acc-mint
+          font-mono text-xs uppercase tracking-[0.18em] py-2.5 rounded
+          hover:bg-acc-mint/20 hover:border-acc-mint/60 transition
+          disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loading ? "Duke hyrë..." : "Hyni"}
+        {loading ? "Duke hyrë…" : "Hyni"}
       </button>
-      <p className="text-xs text-warmgray text-center pt-2">
-        Llogaritë krijohen vetëm me ftesë.
+      <p className="font-mono text-2xs uppercase tracking-[0.18em] text-fg-dim text-center pt-2">
+        Llogaritë krijohen vetëm me ftesë
       </p>
     </form>
   );
