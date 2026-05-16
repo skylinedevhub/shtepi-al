@@ -164,20 +164,75 @@ Recharts. Robots disallow all. Transpiles `@repo/analytics` via
 - `data-portal/src/lib/db.ts` — Drizzle/postgres-js client with
   `prepare: false` (Supabase pooler safe). Node runtime only.
 
-### Dashboard UI
+### Dashboard UI — terminal layout (PR #38, 2026-05-16)
+
+Bloomberg-style market terminal. Dark ink palette (`tailwind.config.ts`
+extends `ink/line/fg/acc` color tokens), Inter + JetBrains Mono loaded via
+`next/font/google` from `app/layout.tsx`, dotted grid background in
+`globals.css`. Public site (`web/`) is independent and unchanged.
+
+Entry points:
 - `data-portal/src/app/page.tsx` — session-aware redirect:
   `/login` if anon, `/dashboard` if authed.
 - `data-portal/src/app/login/{page.tsx,LoginForm.tsx}` — Supabase
-  email+password (no signup). Albanian copy: "Hyni në llogarinë tuaj",
-  "Llogaritë krijohen vetëm me ftesë".
-- `data-portal/src/app/dashboard/page.tsx` — server component. Parallel
-  `Promise.all([getPriceTrends, getMarketOverview])`. Falls back to empty
-  state when no snapshots present.
-- `data-portal/src/app/dashboard/DashboardControls.tsx` — client; URL-
-  driven city dropdown + sale/rent toggle (router.push on change).
-- `data-portal/src/app/dashboard/PriceChart.tsx` — client; Recharts
-  `LineChart` of `avgPriceSqmEur` over up to 730 days (default 180). Brand
-  terracotta line, navy axes, cream backdrop.
+  email+password (no signup). Reskinned with terminal frame + animated
+  mint "SECURE" indicator. Albanian copy.
+- `data-portal/src/app/dashboard/page.tsx` — server component. Reads
+  `searchParams: { city, tx, days, pt }` (whitelist-validated), runs
+  `Promise.all([getPriceTrends, getMarketOverview])`, then composes the
+  shell. `force-dynamic`.
+
+Shell (top → bottom):
+- `_components/status-bar.tsx` — top bar; client. Live tick (animated dot),
+  app version, sync time (`overview.generated_at`), ticking UTC clock,
+  user email, **Dil** logout (`supabase.auth.signOut() → router.push("/login")`).
+- `_components/ticker-tape.tsx` — server. Animated marquee of national
+  totals + per-city €/m² + per-city yields (tinted by ≥5% / <3%). CSS
+  `@keyframes marquee` defined in `tailwind.config.ts`.
+- `_components/filter-rail.tsx` — client. Left 240-px rail.
+  - **Veprim** (Shitje / Qira) → `tx`
+  - **Periudha** (1M / 3M / 6M / 1Y / 2Y) → `days` (whitelist
+    `30|90|180|365|730`)
+  - **Tipi i pronës** (apartament / shtëpi / truall / komerciale) → `pt`
+    (UI-ready; current snapshots are property_type=NULL rollups only)
+  - **Qyteti** — "Mesatare kombëtare" + 22 sorted cities → `city`
+  All buttons call `router.push(\`${pathname}?${next.toString()}\`)`.
+- `_components/metric-tiles.tsx` — server. 6-tile grid. Selected-city mode
+  vs. national rollup mode. Computes **weighted national yield** in-component
+  (`Σ yield × sale_count / Σ sale_count`). Tile tones: mint ≥5% yield, gold
+  3–5%, rose <3%.
+- `_components/map-loader.tsx` (client) + `_components/map-panel.tsx` (client) —
+  `next/dynamic` with `ssr: false` because Leaflet imports `window`.
+  - Tile layer: **CartoDB Dark Matter** `dark_all/{z}/{x}/{y}{r}.png`.
+  - `CircleMarker` per city with `ALBANIAN_CITY_COORDS` (22 cities).
+    Radius is `log(1 + listingCount) / log(1 + maxCount)` (6–22 px).
+    Fill color is a 5-stop ramp (ink → cyan → mint → gold → terra) keyed
+    on `avg_price_sqm`. See `_components/format.ts` for `radiusFor` +
+    `priceColor`.
+  - Click marker → `setParam("city", c.city)`. `<ResetZoom>` flies to
+    selected city or back to Albania center.
+  - Custom dark-tile `.leaflet-*` overrides in `globals.css`.
+  - Marker assets at `data-portal/public/leaflet/marker-{icon,icon-2x,shadow}.png`
+    (copied from `web/public/leaflet/`).
+- `_components/trend-chart.tsx` — client. Recharts `ComposedChart`.
+  Toggleable series chips: **Avg €/m²** (mint line), **Median €** (cyan
+  dashed line), **Listings** (gold bar overlay on right Y-axis). Stat
+  strip above chart: period delta + peak. `Tooltip` formatter widens
+  recharts `ValueType` (`string | number | ...`) to keep TS happy.
+- `_components/city-table.tsx` — client. Sortable table over all
+  `overview.cities`. 8 columns. Click row = select city. Inline bar
+  visualization of `total_listings` next to the count.
+- `_components/footer-bar.tsx` — server. Keyboard hints + totals +
+  snapshot time.
+- `_components/keyboard-shortcuts.tsx` — client. `window.keydown` listener:
+  `S`/`R` → tx, `Esc` → clear `city`. Skipped when focus is in an input.
+- `_components/format.ts` — `fmtEur`, `fmtInt`, `fmtPct`, `fmtDate`,
+  `fmtTime`, `priceColor`, `radiusFor`. Pure functions; safe to import
+  into server components.
+
+URL is the source of truth for filters — every interactive control writes
+to the query string and the server component re-renders. No client-side
+data fetching.
 
 ### B2B API v1
 - `data-portal/src/lib/api-key-auth.ts` — `authenticateApiKey(req)`.

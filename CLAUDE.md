@@ -207,7 +207,15 @@ Core tables: `listings`, `profiles`, `agencies`, `favorites`, `listing_images`, 
 - Backfill script: `web/scripts/backfill-market-snapshots.ts` (npm: `backfill:snapshots`)
 - B2B middleware: `data-portal/src/middleware.ts` (Supabase session redirect to /login; `b2b_users` gate lives in `dashboard/page.tsx` because Postgres isn't available in Edge runtime). With src/app/ layout, middleware MUST live at `src/middleware.ts` — Next.js silently ignores it at the workspace root.
 - B2B helpers: `data-portal/src/lib/{supabase/*,db.ts,b2b-user.ts,api-key-auth.ts}`
-- Dashboard UI: `data-portal/src/app/dashboard/{page.tsx,DashboardControls.tsx,PriceChart.tsx}`
+- Dashboard UI (terminal layout, PR #38): `data-portal/src/app/dashboard/page.tsx` orchestrates components under `data-portal/src/app/dashboard/_components/`:
+  - `status-bar.tsx`, `ticker-tape.tsx`, `filter-rail.tsx`, `metric-tiles.tsx`
+  - `map-loader.tsx` (dynamic, ssr:false) + `map-panel.tsx` (Leaflet + CartoDB Dark Matter tiles)
+  - `trend-chart.tsx` (Recharts ComposedChart, toggleable series), `city-table.tsx` (sortable)
+  - `footer-bar.tsx`, `keyboard-shortcuts.tsx`, `format.ts`
+- Dashboard URL params: `?city=…&tx=sale|rent&days=30|90|180|365|730&pt=apartment|house|land|commercial` (server-side whitelist validated)
+- Keyboard shortcuts: `S`/`R` toggle Shitje/Qira, `Esc` clears city
+- Map markers: per-city CircleMarkers — log-scaled radius by listing count, color ramp by €/m². Selecting a marker writes `?city=…` and fly-to recenters.
+- `data-portal/public/leaflet/` — marker PNGs mirrored from `web/public/leaflet/`
 
 ### SEO & Location
 - SEO: `web/src/lib/seo/` (slugs — CITY_SLUGS + buildCityFilterHref, metadata, jsonld, constants)
