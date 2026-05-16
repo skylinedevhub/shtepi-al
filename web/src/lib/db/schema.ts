@@ -13,6 +13,8 @@ import {
   uniqueIndex,
   primaryKey,
   bigserial,
+  date,
+  numeric,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -768,3 +770,37 @@ export const propertyValuations = pgTable(
     index("idx_valuations_listing").on(table.listingId),
   ]
 );
+
+export const marketSnapshots = pgTable(
+  "market_snapshots",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    snapshotDate: date("snapshot_date").notNull(),
+    city: text("city"),
+    transactionType: text("transaction_type").notNull(),
+    propertyType: text("property_type"),
+    listingCount: integer("listing_count").notNull(),
+    avgPriceEur: numeric("avg_price_eur", { precision: 12, scale: 2 }),
+    medianPriceEur: numeric("median_price_eur", { precision: 12, scale: 2 }),
+    avgPriceSqmEur: numeric("avg_price_sqm_eur", { precision: 10, scale: 2 }),
+    medianPriceSqmEur: numeric("median_price_sqm_eur", { precision: 10, scale: 2 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("idx_market_snapshots_lookup").on(
+      table.city,
+      table.transactionType,
+      table.snapshotDate,
+    ),
+  ],
+);
+
+export const b2bUsers = pgTable("b2b_users", {
+  userId: uuid("user_id").primaryKey(),
+  organization: text("organization").notNull(),
+  role: text("role").notNull().default("viewer"),
+  planSlug: text("plan_slug"),
+  invitedBy: uuid("invited_by"),
+  invitedAt: timestamp("invited_at", { withTimezone: true }).defaultNow(),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+});
