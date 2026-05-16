@@ -6,3 +6,4 @@ export * from "./snapshots/persist";
 export * from "./snapshots/backfill";
 export * from "./snapshots/daily";
 export * from "./queries/trends";
+export * from "./queries/overview";
